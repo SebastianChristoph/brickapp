@@ -1,0 +1,63 @@
+@using brickisbrickapp.Data.Entities
+@inject IDialogService DialogService
+@inject brickisbrickapp.Services.RebrickablePartImageService PartImageService
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Mapping für @Brick?.Name (@Brick?.LegoPartNum)</MudText>
+        <div style="margin-bottom:12px; min-height:68px;">
+            @if (!string.IsNullOrWhiteSpace(_imageUrl))
+            {
+                <img src="@_imageUrl" alt="" style="max-width:64px;max-height:64px;border-radius:4px;border:1px solid #ccc;" />
+            }
+            else
+            {
+                <img src="/part_images/placeholder.png" alt="" style="max-width:64px;max-height:64px;opacity:0.5;border-radius:4px;border:1px solid #ccc;" />
+            }
+        </div>
+                <MudSelect @bind-Value="SelectedBrand" Label="Brand" Required="true">
+                    <MudSelectItem Value="@("Cada")">Cada</MudSelectItem>
+                    <MudSelectItem Value="@("Pantasy")">Pantasy</MudSelectItem>
+                    <MudSelectItem Value="@("Mould King")">Mould King</MudSelectItem>
+                    <MudSelectItem Value="@("BB")">BB</MudSelectItem>
+                </MudSelect>
+        <MudTextField @bind-Value="MappingName" Label="Mapping Name" />
+        <MudTextField @bind-Value="MappingItemId" Label="Item ID" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="OnSave" Color="Color.Primary">Speichern</MudButton>
+        <MudButton OnClick="Cancel" Color="Color.Secondary">Abbrechen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string? _imageUrl;
+    [Parameter] public MappedBrick? Brick { get; set; }
+    [Parameter] public string? Brand { get; set; }
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+    private string SelectedBrand { get; set; } = "Cada";
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Brand))
+            SelectedBrand = Brand;
+
+        if (!string.IsNullOrWhiteSpace(Brick?.LegoPartNum))
+        {
+            _imageUrl = await PartImageService.GetPartImageUrlAsync(Brick.LegoPartNum);
+        }
+    }
+    private string MappingName { get; set; } = string.Empty;
+    private string MappingItemId { get; set; } = string.Empty;
+
+
+    private async Task OnSave()
+    {
+        if (Brick == null) return;
+        if (string.IsNullOrWhiteSpace(MappingName) && string.IsNullOrWhiteSpace(MappingItemId))
+            return; // Mindestens eins muss ausgefüllt sein
+        MudDialog?.Close(DialogResult.Ok((SelectedBrand, MappingName, MappingItemId)));
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+}

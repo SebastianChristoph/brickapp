@@ -1,0 +1,55 @@
+@page "/login"
+
+@using brickisbrickapp.Services
+@inject UserService UserService
+@inject NavigationManager Nav
+
+<PageTitle>Login</PageTitle>
+
+<MudPaper Class="pa-6 mx-auto" MaxWidth="400px">
+    <MudText Typo="Typo.h4" GutterBottom="true">Login</MudText>
+    <MudText Typo="Typo.body2" GutterBottom="true">
+        Bitte gib dein Token ein.
+    </MudText>
+
+    <MudTextField @bind-Value="_token"
+                  Label="Token"
+                  Required="true"
+                  For="@(() => _token)"
+                  Margin="Margin.Dense"
+                  FullWidth="true" />
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudText Color="Color.Error">@_error</MudText>
+    }
+
+    <MudButton Class="mt-4"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               OnClick="LoginWithToken"
+               Disabled="@string.IsNullOrWhiteSpace(_token)">
+        Login
+    </MudButton>
+</MudPaper>
+
+@code {
+    private string _token = string.Empty;
+    private string? _error;
+
+    private async Task LoginWithToken()
+    {
+        _error = null;
+
+        var success = await UserService.LoginWithTokenAsync(_token);
+
+        if (!success)
+        {
+            _error = "Ungültiges Token. Bitte prüfen.";
+            return;
+        }
+
+        // nach erfolgreichem Login irgendwohin navigieren
+        Nav.NavigateTo("/");
+    }
+}

@@ -1,0 +1,246 @@
+@inject IDialogService DialogService
+@inject InventoryService InventoryService
+@using brickisbrickapp.Helpers
+
+@page "/myinventory"
+@using brickisbrickapp.Services
+@using brickisbrickapp.Data.Entities
+@using brickisbrickapp.Components.Dialogs
+@inject UserService UserService
+@inject InventoryService InventoryService
+@inject IDialogService DialogService
+
+<PageTitle>My Inventory</PageTitle>
+
+<MudText Typo="Typo.h5" GutterBottom="true">
+    @(_username is null ? "Willkommen bei BrickIsBrick!" : $"Hallo, {_username}")
+</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="OpenDeleteAllDialog" Class="mb-4">
+    <MudIcon Icon="@Icons.Material.Filled.Delete" /> Gesamtes Inventar löschen
+</MudButton>
+
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@OpenAddItemDialog" Class="mb-4">
+    <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
+    Teil hinzufügen
+</MudButton>
+
+@if (!_authChecked)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (!_isAuth)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (items is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (items.Count == 0)
+{
+    <MudText Typo="Typo.body1">
+        Du hast noch keine Teile im Inventar.
+    </MudText>
+}
+else
+{
+    <MudTable Items="items" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Bild</MudTh>
+            <MudTh>Brick</MudTh>
+            <MudTh>Farbe</MudTh>
+            <MudTh>Brand</MudTh>
+            <MudTh>Brand ID</MudTh>
+            <MudTh>Anzahl</MudTh>
+            <MudTh>Aktionen</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Bild">
+                @{
+                    var partNum = context.MappedBrick?.LegoPartNum ?? "";
+                    var url = _partImageUrls.TryGetValue(partNum, out var u) ? u : null;
+                    var placeholder = brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl;
+                    var imgUrl = !string.IsNullOrWhiteSpace(url) ? url : placeholder;
+                    var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
+                }
+                @if (overlay != null)
+                {
+                    <div class="brick" style="--brick-overlay:@overlay">
+                        <img src="@imgUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                    </div>
+                }
+                else
+                {
+                    <img src="@imgUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                }
+            </MudTd>
+            <MudTd DataLabel="Brick">@context.MappedBrick?.Name</MudTd>
+            <MudTd DataLabel="Farbe">@context.BrickColor?.Name</MudTd>
+            <MudTd DataLabel="Brand">@context.Brand</MudTd>
+            <MudTd DataLabel="Brand ID">
+                @if (context.Brand?.ToLower() == "lego")
+                {
+                    @context.MappedBrick?.LegoPartNum
+                }
+                else if (context.Brand?.ToLower() == "bluebrixx")
+                {
+                    @context.MappedBrick?.BbPartNum
+                }
+                else if (context.Brand?.ToLower() == "cada")
+                {
+                    @context.MappedBrick?.CadaPartNum
+                }
+                else if (context.Brand?.ToLower() == "pantasy")
+                {
+                    @context.MappedBrick?.PantasyPartNum
+                }
+                else if (context.Brand?.ToLower() == "mould king")
+                {
+                    @context.MappedBrick?.MouldKingPartNum
+                }
+                else
+                {
+                    <span>-</span>
+                }
+            </MudTd>
+            <MudTd DataLabel="Anzahl">@context.Quantity</MudTd>
+            <MudTd DataLabel="Aktionen">
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined" 
+                           Color="Color.Primary"
+                           OnClick="@((e) => OpenEditDialog(context.Id, context.Quantity))">
+                    Bearbeiten
+                </MudButton>
+                <MudButton Size="Size.Small" 
+                           Variant="Variant.Outlined" 
+                           Color="Color.Error"
+                           OnClick="@((e) => OpenDeleteDialog(context.Id))">
+                    Löschen
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+    <style>
+    .brick {
+        position: relative;
+        display: inline-block;
+        isolation: isolate;
+    }
+    .brick img {
+        display: block;
+    }
+    .brick::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--brick-overlay, transparent);
+        mix-blend-mode: multiply;
+        pointer-events: none;
+        border-radius: 4px;
+    }
+    </style>
+}
+
+@code {
+        private Dictionary<string, string> _partImageUrls = new();
+    private string? _username;
+    private List<InventoryItem>? items;
+    private bool _authChecked = false;
+    private bool _isAuth = false;
+    // Images temporarily disabled due to API ban
+
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _authChecked) return;
+        _authChecked = false;
+        _isAuth = false;
+        // Authentifizierung prüfen (JSInterop erst hier erlaubt)
+        _isAuth = await UserService.IsAuthenticatedAsync();
+        _authChecked = true;
+        if (!_isAuth)
+        {
+            // Redirect nach Auth-Check
+            Nav.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+        _username = await UserService.GetUsernameAsync();
+        items = await InventoryService.GetCurrentUserInventoryAsync();
+        // Lade die Bild-URLs für die Items
+        if (items != null && items.Any())
+        {
+            var partNumsToLoad = items
+                .Select(i => i.MappedBrick?.LegoPartNum)
+                .Where(p => !string.IsNullOrEmpty(p) && !_partImageUrls.ContainsKey(p))
+                .Distinct()
+                .Select(p => p!)
+                .ToList();
+            if (partNumsToLoad.Count > 0)
+            {
+                var imageService = new brickisbrickapp.Services.RebrickablePartImageService(new HttpClient());
+                var urls = await imageService.GetPartImageUrlsBatchAsync(partNumsToLoad);
+                foreach (var kv in urls)
+                    _partImageUrls[kv.Key] = kv.Value;
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task OpenEditDialog(int itemId, int currentQuantity)
+    {
+        var parameters = new DialogParameters<EditInventoryDialog>();
+        parameters.Add(x => x.ItemId, itemId);
+        parameters.Add(x => x.CurrentQuantity, currentQuantity);
+
+        var dialog = await DialogService.ShowAsync<EditInventoryDialog>("Anzahl bearbeiten", parameters);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            items = await InventoryService.GetCurrentUserInventoryAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenDeleteDialog(int itemId)
+    {
+        var parameters = new DialogParameters();
+        var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("Item löschen?", parameters);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled && result.Data is bool confirmed && confirmed)
+        {
+            await InventoryService.DeleteInventoryItemAsync(itemId);
+            items = await InventoryService.GetCurrentUserInventoryAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenAddItemDialog()
+    {
+        var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>("Teil hinzufügen");
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            items = await InventoryService.GetCurrentUserInventoryAsync();
+            StateHasChanged();
+        }
+    }
+
+        private async Task OpenDeleteAllDialog()
+    {
+        var parameters = new DialogParameters();
+        var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("Gesamtes Inventar wirklich löschen?", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled && result.Data is bool confirmed && confirmed)
+        {
+            await InventoryService.DeleteAllInventoryItemsAsync();
+            items = await InventoryService.GetCurrentUserInventoryAsync();
+            StateHasChanged();
+        }
+    }
+}

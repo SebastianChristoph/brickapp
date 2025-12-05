@@ -1,0 +1,86 @@
+@page "/allsets"
+@using brickisbrickapp.Services
+@using brickisbrickapp.Data.Entities
+@inject UserService UserService
+@inject ItemSetService SetService
+
+<PageTitle>All Sets</PageTitle>
+
+<MudText Typo="Typo.h5" GutterBottom="true">
+    @(_username is null ? "Willkommen bei BrickIsBrick!" : $"Hallo, {_username}")
+</MudText>
+
+<MudText Typo="Typo.h6" GutterBottom="true">
+    Alle verfügbaren Sets
+</MudText>
+
+<MudTextField @bind-Value="_searchText" Label="Suche nach Name oder ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true" Placeholder="Mindestens 3 Zeichen..." Class="mb-4" />
+
+@if (sets is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="_filteredSets" Hover="true" Striped="true" Dense="false">
+        <HeaderContent>
+            <MudTh>Bild</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Brand</MudTh>
+            <MudTh>Lego Set Num</MudTh>
+            <MudTh>Year</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Bild">
+                @if (!string.IsNullOrEmpty(context.ImageUrl))
+                {
+                    <img src="@context.ImageUrl" alt="@context.Name" style="height:50px; width:auto; object-fit:contain;" />
+                }
+                else
+                {
+                    <MudText>-</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Name">
+                <MudLink Href="@($"/sets/{context.Id}")" Color="Color.Primary">
+                    @context.Name
+                </MudLink>
+            </MudTd>
+            <MudTd DataLabel="Brand">@context.Brand</MudTd>
+            <MudTd DataLabel="Lego Set Num">@context.LegoSetNum</MudTd>
+            <MudTd DataLabel="Year">@context.Year</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[]{25, 50, 100}" />
+        </PagerContent>
+    </MudTable>
+}
+
+@code {
+    private string? _username;
+    private List<ItemSet>? sets;
+
+        private string _searchText = string.Empty;
+
+        private List<ItemSet> _filteredSets =>
+            string.IsNullOrWhiteSpace(_searchText) || _searchText.Length < 3
+                ? sets ?? new List<ItemSet>()
+                : (sets ?? new List<ItemSet>()).Where(s =>
+                    (s.Name?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (s.LegoSetNum?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || s.Id.ToString().Contains(_searchText)
+                ).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _username = await UserService.GetUsernameAsync();
+        
+        // Lade ALLE Sets für client-seitige Pagination
+        var (allSets, _) = await SetService.GetPaginatedItemSetsAsync(1, int.MaxValue);
+        sets = allSets;
+
+        StateHasChanged();
+    }
+}

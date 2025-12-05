@@ -1,0 +1,28 @@
+﻿@using brickisbrickapp.Services
+@inject UserService UserService
+
+<MudNavMenu>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+        Home
+    </MudNavLink>
+
+    
+        <MudNavLink Href="allbricks"
+                    Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Filled.Add">
+            All Mapped Bricks
+        </MudNavLink>
+
+        <MudNavLink Href="allsets"
+                    Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Filled.List">
+            All Sets
+        </MudNavLink>
+
+        <MudNavLink Href="myinventory"
+                    Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Filled.List">
+            My Inventory
+        </MudNavLink>
+    
+</MudNavMenu>

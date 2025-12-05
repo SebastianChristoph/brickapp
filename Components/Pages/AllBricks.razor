@@ -1,0 +1,206 @@
+﻿@using brickisbrickapp.Helpers
+@page "/allbricks"
+@using brickisbrickapp.Services
+@using brickisbrickapp.Data.Entities
+@using brickisbrickapp.Components.Dialogs
+@inject UserService UserService
+@inject MappedBrickService BrickService
+
+
+<PageTitle>All Mapped Bricks</PageTitle>
+
+<MudText Typo="Typo.h5" GutterBottom="true">
+    @(_username is null ? "Willkommen bei BrickIsBrick!" : $"Hallo, {_username}")
+</MudText>
+
+<MudTextField Value="_searchText" ValueChanged="@(async (string e) => await OnSearchTextChanged(e))" Label="Suche nach Name oder ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true" Placeholder="Mindestens 3 Zeichen..." Class="mb-4" />
+
+@if (bricks is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="_filteredBricks"
+              Hover="true"
+              Striped="true"
+              Dense="false"
+              Page="_currentPage"
+              RowsPerPage="_pageSize"
+              OnPageChanged="OnPageChanged"
+              OnRowsPerPageChanged="OnRowsPerPageChanged">
+        <HeaderContent>
+            <MudTh></MudTh>
+            <MudTh>Bild</MudTh>
+        
+          
+            <MudTh>Name</MudTh>
+            <MudTh>Lego Part Nr.</MudTh>
+            <MudTh>Lego</MudTh>
+            <MudTh>BB</MudTh>
+            <MudTh>Cada</MudTh>
+            <MudTh>Pantasy</MudTh>
+            <MudTh>Mould King</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => OpenAddInventoryDialog(context))">
+                    <MudIcon Icon="@Icons.Material.Filled.Add" />
+                </MudButton>
+            </MudTd>
+            <MudTd DataLabel="Bild">
+                @{
+                    var partNum = context.LegoPartNum ?? "";
+                    var url = _partImageUrls.TryGetValue(partNum, out var u) ? u : null;
+                    var placeholder = brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl;
+                    var imgUrl = !string.IsNullOrWhiteSpace(url) ? url : placeholder;
+                }
+                <img src="@imgUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+            </MudTd>
+         
+       
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Lego Part Nr.">@context.LegoPartNum</MudTd>
+            <MudTd DataLabel="Lego">@context.LegoName</MudTd>
+            <MudTd DataLabel="BB">
+                @context.BbName
+                @if (string.IsNullOrWhiteSpace(context.BbName))
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "BB"))">Help Mapping</MudButton>
+                }
+            </MudTd>
+            <MudTd DataLabel="Cada">
+                @context.CadaName
+                @if (string.IsNullOrWhiteSpace(context.CadaName))
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "Cada"))">Help Mapping</MudButton>
+                }
+            </MudTd>
+            <MudTd DataLabel="Pantasy">
+                @context.PantasyName
+                @if (string.IsNullOrWhiteSpace(context.PantasyName))
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "Pantasy"))">Help Mapping</MudButton>
+                }
+            </MudTd>
+            <MudTd DataLabel="Mould King">
+                @context.MouldKingName
+                @if (string.IsNullOrWhiteSpace(context.MouldKingName))
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "Mould King"))">Help Mapping</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[]{25, 50, 100}" />
+        </PagerContent>
+    </MudTable>
+}
+
+@code {
+    private string? _username;
+    private List<MappedBrick>? bricks;
+        private string _searchText = string.Empty;
+        // Key: partNum
+        private Dictionary<string, string> _partImageUrls = new();
+        private int _currentPage = 0;
+        private int _pageSize = 25;
+        private List<MappedBrick> _filteredBricks =>
+            string.IsNullOrWhiteSpace(_searchText) || _searchText.Length < 3
+                ? bricks ?? new List<MappedBrick>()
+                : (bricks ?? new List<MappedBrick>()).Where(b =>
+                    (b.Name?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (b.LegoPartNum?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (b.BbName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (b.CadaName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (b.PantasyName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (b.MouldKingName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || b.Id.ToString().Contains(_searchText)
+                ).ToList();
+
+        // Paging übernimmt MudTable, keine eigene Paginierung mehr nötig
+
+    [Inject]
+    private IDialogService DialogService { get; set; } = default!;
+
+    private async Task OpenAddInventoryDialog(MappedBrick brick)
+    {
+           var parameters = new DialogParameters<AddInventoryItemDialog>();
+           parameters.Add(x => x.SelectedBrick, brick);
+           var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>("Teil zum Inventar hinzufügen", parameters);
+           var result = await dialog.Result;
+           // Optional: Feedback oder Refresh
+    }
+
+    private async Task OnSearchTextChanged(string value)
+    {
+        _searchText = value;
+        await LoadPartImageUrlsAsync();
+    }
+
+    private async Task LoadPartImageUrlsAsync()
+    {
+        var partNumsToLoad = _filteredBricks
+            .Select(b => b.LegoPartNum)
+            .Where(p => !string.IsNullOrEmpty(p) && !_partImageUrls.ContainsKey(p))
+            .Distinct()
+            .Select(p => p!)
+            .ToList();
+        if (partNumsToLoad.Count > 0)
+        {
+            var imageService = new RebrickablePartImageService(new HttpClient());
+            var urls = await imageService.GetPartImageUrlsBatchAsync(partNumsToLoad);
+            foreach (var kv in urls)
+                _partImageUrls[kv.Key] = kv.Value;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _username = await UserService.GetUsernameAsync();
+        bricks = await BrickService.GetAllMappedBricksAsync();
+        await LoadPartImageUrlsAsync();
+        StateHasChanged();
+    }
+
+    private void OnPageChanged(int page)
+    {
+        _currentPage = page;
+        StateHasChanged();
+    }
+
+    private void OnRowsPerPageChanged(int size)
+    {
+        _pageSize = size;
+        _currentPage = 0;
+        StateHasChanged();
+    }
+
+    private async Task OpenHelpMappingDialog(MappedBrick brick, string brand)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("Brick", brick);
+        parameters.Add("Brand", brand);
+        var dialog = await DialogService.ShowAsync<HelpMappingDialog>("Mapping helfen", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled && result.Data is ValueTuple<string, string, string> tuple)
+        {
+            await UpdateMappingAsync(brick, tuple.Item1, tuple.Item2, tuple.Item3);
+            await RefreshBricks();
+        }
+    }
+
+    private async Task UpdateMappingAsync(MappedBrick brick, string brand, string mappingName, string mappingItemId)
+    {
+        await BrickService.UpdateMappingAsync(brick.Id, brand, mappingName, mappingItemId);
+    }
+
+    private async Task RefreshBricks()
+    {
+        bricks = await BrickService.GetAllMappedBricksAsync();
+        await LoadPartImageUrlsAsync();
+        StateHasChanged();
+    }
+}

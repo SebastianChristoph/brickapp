@@ -1,0 +1,45 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Möchtest du alle @ItemCount Steine dieses Sets zu deinem Inventar hinzufügen?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Success" OnClick="ConfirmAsync">Hinzufügen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public int ItemCount { get; set; }
+
+    [Inject]
+    public brickisbrickapp.Services.LoadingService LoadingService { get; set; } = default!;
+    [Inject]
+    public brickisbrickapp.Services.InventoryService InventoryService { get; set; } = default!;
+    [Parameter]
+    public int ItemSetId { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog?.Close(false);
+    }
+
+    private async Task ConfirmAsync()
+    {
+        LoadingService.Show();
+        try
+        {
+            await InventoryService.AddSetBricksToInventoryAsync(ItemSetId);
+            MudDialog?.Close(true);
+        }
+        finally
+        {
+            LoadingService.Hide();
+        }
+    }
+}

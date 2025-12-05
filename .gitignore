@@ -52,3 +52,12 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+RebrickableData
+RebrickableData/colors.csv
+RebrickableData/inventories.csv
+RebrickableData/inventory_parts.csv
+RebrickableData/parts.csv
+RebrickableData/sets.csv
+bricksdb.db
+bricksdb.db-shm
+bricksdb.db-wal

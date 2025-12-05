@@ -1,0 +1,47 @@
+@using brickisbrickapp.Services
+@inject InventoryService InventoryService
+
+<MudDialog>
+    <DialogContent>
+        <MudNumericField @bind-Value="NewQuantity" 
+                         Label="Anzahl" 
+                         Min="1" 
+                         Variant="Variant.Outlined" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public int ItemId { get; set; }
+
+    [Parameter]
+    public int CurrentQuantity { get; set; }
+
+    private int NewQuantity = 0;
+
+    protected override void OnInitialized()
+    {
+        NewQuantity = CurrentQuantity;
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private async Task Save()
+    {
+        var success = await InventoryService.UpdateInventoryItemAsync(ItemId, NewQuantity);
+        if (success)
+        {
+            MudDialog?.Close(true);
+        }
+    }
+}

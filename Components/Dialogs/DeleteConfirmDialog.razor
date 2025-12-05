@@ -1,0 +1,25 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Möchtest du dieses Item wirklich aus deinem Inventar löschen?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Error" OnClick="Confirm">Löschen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private void Confirm()
+    {
+        MudDialog?.Close(true);
+    }
+}

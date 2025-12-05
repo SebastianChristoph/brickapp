@@ -1,0 +1,27 @@
+﻿@page "/"
+
+@using brickisbrickapp.Services
+@inject UserService UserService
+
+
+<PageTitle>Home</PageTitle>
+
+@if (_username is null)
+{
+    <MudText Typo="Typo.h5">Willkommen bei BrickIsBrick!</MudText>
+}
+else
+{
+    <MudText Typo="Typo.h5">Hallo, @_username</MudText>
+}
+@code {
+    private string? _username;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _username = await UserService.GetUsernameAsync();
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,258 @@
+
+@using MudBlazor
+@using brickisbrickapp.Services
+@using brickisbrickapp.Data.Entities
+@inject MappedBrickService BrickService
+@inject InventoryService InventoryService
+@inject brickisbrickapp.Services.RebrickablePartImageService PartImageService
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <!-- Brick Image -->
+            @{
+                var overlay = SelectedColor != null ? brickisbrickapp.Helpers.BrickColorHelper.GetHexForColor(SelectedColor.Name) : null;
+            }
+            <div style="margin-bottom:8px; min-height:68px; text-align:center;">
+                @if (!string.IsNullOrWhiteSpace(_imageUrl))
+                {
+                    if (overlay != null)
+                    {
+                        <div class="brick" style="--brick-overlay:@overlay">
+                            <img src="@_imageUrl" alt="" style="max-width:64px;max-height:64px;border-radius:4px;border:1px solid #ccc;" />
+                        </div>
+                    }
+                    else
+                    {
+                        <img src="@_imageUrl" alt="" style="max-width:64px;max-height:64px;border-radius:4px;border:1px solid #ccc;" />
+                    }
+                }
+                else
+                {
+                    <img src="/part_images/placeholder.png" alt="" style="max-width:64px;max-height:64px;opacity:0.5;border-radius:4px;border:1px solid #ccc;" />
+                }
+            </div>
+            <style>
+            .brick {
+                position: relative;
+                display: inline-block;
+                isolation: isolate;
+            }
+            .brick img {
+                display: block;
+            }
+            .brick::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: var(--brick-overlay, transparent);
+                mix-blend-mode: multiply;
+                pointer-events: none;
+                border-radius: 4px;
+            }
+            </style>
+            <!-- Brand Selection -->
+            <MudSelect Value="Brand" Label="Hersteller" Variant="Variant.Outlined" ValueChanged="@((string value) => OnBrandChanged(value))">
+                <MudSelectItem Value="@("Lego")">Lego</MudSelectItem>
+                <MudSelectItem Value="@("BlueBrixx")">BlueBrixx</MudSelectItem>
+                <MudSelectItem Value="@("Cada")">Cada</MudSelectItem>
+                <MudSelectItem Value="@("Pantasy")">Pantasy</MudSelectItem>
+                <MudSelectItem Value="@("Mould King")">Mould King</MudSelectItem>
+            </MudSelect>
+
+            <!-- Lego Part Number Autocomplete -->
+            <MudAutocomplete T="MappedBrick"
+                             ValueChanged="@OnSelectedBrickChanged"
+                             Value="@SelectedBrick"
+                             SearchFunc="@SearchBricksByBrand"
+                             Label="Teilenummer / Name"
+                             ToStringFunc="@(b => b == null ? "" : GetBrickDisplay(b))"
+                             ResetValueOnEmptyText="true"
+                             MinCharacters="3"
+                             Variant="Variant.Outlined">
+                <ItemTemplate Context="brick">
+                    <MudText>@GetBrickDisplay(brick)</MudText>
+                </ItemTemplate>
+            </MudAutocomplete>
+
+
+            <!-- Quick Color Chips -->
+            @if (SelectedBrick != null && Colors.Any())
+            {
+                <MudStack Row="true" Spacing="1" Style="margin-bottom:8px;">
+                    @foreach (var colorName in brickisbrickapp.Helpers.BrickColorHelper.CommonColors)
+                    {
+                        var colorObj = Colors.FirstOrDefault(c => c.Name == colorName);
+                        if (colorObj != null)
+                        {
+                            <MudChip T="object" Color="Color.Primary" Variant="@(SelectedColor?.Name == colorName ? Variant.Filled : Variant.Outlined)" Style="cursor:pointer;" OnClick="@(() => OnQuickColorChip(colorObj))">
+                                <span style="@GetColorDotStyle(colorObj)"></span> @colorName
+                            </MudChip>
+                        }
+                    }
+                </MudStack>
+                <MudSelect T="BrickColor" @bind-Value="SelectedColor" Label="Farbe" Variant="Variant.Outlined">
+                    @foreach (var color in Colors)
+                    {
+                        <MudSelectItem T="BrickColor" Value="@color">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="@GetColorDotStyle(color)"></span>
+                                <span>@color.Name</span>
+                            </div>
+                        </MudSelectItem>
+                    }
+        </MudSelect>
+    }
+
+    <!-- Quantity -->
+            <MudNumericField @bind-Value="Quantity" 
+                             Label="Anzahl" 
+                             Min="1" 
+                             Variant="Variant.Outlined" />
+
+            <!-- Error Message -->
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <MudAlert Severity="Severity.Error">@ErrorMessage</MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Save" Disabled="@(SelectedBrick == null || SelectedColor == null)">
+            Hinzufügen
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    private string Brand = "Lego";
+    private string? _imageUrl;
+    [Parameter]
+    public MappedBrick? SelectedBrick { get; set; }
+    private BrickColor? SelectedColor;
+    private int Quantity = 1;
+    private List<BrickColor> Colors = new();
+    private string ErrorMessage = "";
+
+    private void OnQuickColorChip(BrickColor color)
+    {
+        SelectedColor = color;
+    }
+
+        private string GetColorHex(BrickColor? color)
+    {
+        var rgb = color?.Rgb;
+        if (string.IsNullOrWhiteSpace(rgb))
+            return "transparent";
+        return rgb.StartsWith("#") ? rgb : $"#{rgb}";
+    }
+
+    private string GetColorDotStyle(BrickColor color)
+    {
+        var hex = GetColorHex(color);
+        return $"background-color:{hex}; width:12px; height:12px; border-radius:50%; display:inline-block; border:1px solid #ccc;";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Colors = await BrickService.GetAllColorsAsync();
+        await UpdateImageUrl();
+    }
+
+    private async Task UpdateImageUrl()
+    {
+        _imageUrl = null;
+        if (SelectedBrick != null && !string.IsNullOrWhiteSpace(SelectedBrick.LegoPartNum))
+        {
+            _imageUrl = await PartImageService.GetPartImageUrlAsync(SelectedBrick.LegoPartNum);
+        }
+        StateHasChanged();
+    }
+
+    private async Task OnSelectedBrickChanged(MappedBrick? brick)
+    {
+        SelectedBrick = brick;
+        await UpdateImageUrl();
+    }
+
+    private async Task OnBrandChanged(string brand)
+    {
+        Brand = brand ?? "Lego";
+        await UpdateImageUrl();
+    }
+
+
+    private async Task<IEnumerable<MappedBrick>> SearchBricksByBrand(string searchText, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(searchText) || searchText.Length < 3)
+            return new List<MappedBrick>();
+
+        var all = await BrickService.GetAllMappedBricksAsync();
+        return Brand switch
+        {
+            "Lego" => all.Where(b => (b.LegoPartNum?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                                || (b.LegoName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
+            "BlueBrixx" => all.Where(b => (b.BbPartNum?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                                || (b.BbName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
+            "Cada" => all.Where(b => (b.CadaPartNum?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                                || (b.CadaName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
+            "Pantasy" => all.Where(b => (b.PantasyPartNum?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                                || (b.PantasyName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
+            "Mould King" => all.Where(b => (b.MouldKingPartNum?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                                || (b.MouldKingName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
+            _ => Enumerable.Empty<MappedBrick>()
+        };
+    }
+
+    private string GetBrickDisplay(MappedBrick b)
+    {
+        return Brand switch
+        {
+            "Lego" => $"{b.LegoPartNum} - {b.LegoName}",
+            "BlueBrixx" => $"{b.BbPartNum} - {b.BbName}",
+            "Cada" => $"{b.CadaPartNum} - {b.CadaName}",
+            "Pantasy" => $"{b.PantasyPartNum} - {b.PantasyName}",
+            "Mould King" => $"{b.MouldKingPartNum} - {b.MouldKingName}",
+            _ => b.Name
+        };
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private async Task Save()
+    {
+        ErrorMessage = "";
+
+        if (SelectedBrick == null || SelectedColor == null || Quantity <= 0)
+        {
+            ErrorMessage = "Bitte fülle alle Felder aus.";
+            return;
+        }
+
+        // Verifiziere, dass der Brick wirklich existiert
+        var brick = await BrickService.GetLegoPartByNumberAsync(SelectedBrick.LegoPartNum!);
+        if (brick == null)
+        {
+            ErrorMessage = "Dieser Lego-Stein existiert nicht.";
+            return;
+        }
+
+        // Füge zum Inventory hinzu
+        var success = await InventoryService.AddInventoryItemAsync(brick.Id, SelectedColor.Id, Brand, Quantity);
+        if (success)
+        {
+            MudDialog?.Close(true);
+        }
+        else
+        {
+            ErrorMessage = "Fehler beim Hinzufügen des Items.";
+        }
+    }
+}
