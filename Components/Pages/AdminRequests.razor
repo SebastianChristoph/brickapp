@@ -38,6 +38,7 @@
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Actions">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="isDialogOpen" OnClick="@(() => OnDetailsClickAsync(context))" ButtonType="ButtonType.Button">Details</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" Disabled="isDialogOpen" OnClick="@(() => OnApproveClickAsync(context))" ButtonType="ButtonType.Button" style="margin-left:8px;">Approve</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" Disabled="isDialogOpen" OnClick="@(() => OnRejectClickAsync(context))" ButtonType="ButtonType.Button" style="margin-left:8px;">Reject</MudButton>
                     </MudTd>
                 </RowTemplate>
@@ -52,6 +53,28 @@
         [Inject] private brickisbrickapp.Services.RebrickablePartImageService RebrickablePartImageService { get; set; } = default!;
         [Inject] private IDialogService DialogService { get; set; } = default!;
         [Inject] private brickisbrickapp.Services.UserService UserService { get; set; } = default!;
+        [Inject] private brickisbrickapp.Services.NotificationService NotificationService { get; set; } = default!;
+        private async Task OnApproveClickAsync(brickisbrickapp.Data.Entities.MappingRequest request)
+        {
+            if (isDialogOpen) return;
+            isDialogOpen = true;
+            try
+            {
+                var currentUser = await UserService.GetCurrentUserAsync();
+                if (currentUser == null || !currentUser.IsAdmin)
+                {
+                    NotificationService.Error("Nur Admins können Requests genehmigen.");
+                    return;
+                }
+                await MappingRequestService.ApproveRequestAsync(request.Id, currentUser.Uuid);
+                openMappingRequests = await MappingRequestService.GetOpenRequestsAsync();
+                NotificationService.Success($"Mapping-Request für '{request.MappingName}' wurde genehmigt.");
+            }
+            finally
+            {
+                isDialogOpen = false;
+            }
+        }
 
         private List<brickisbrickapp.Data.Entities.MappingRequest>? openMappingRequests;
         private bool isDialogOpen = false;
