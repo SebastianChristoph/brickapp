@@ -63,14 +63,17 @@
             <MudAutocomplete T="MappedBrick"
                  ValueChanged="@OnSelectedBrickChanged"
                  Value="@SelectedBrick"
-                 SearchFunc="@SearchBricksByBrand"
+                 SearchFunc="@SearchBricksByBrandWithImages"
                  Label="Part number / Name"
                  ToStringFunc="@(b => b == null ? "" : GetBrickDisplay(b))"
                  ResetValueOnEmptyText="true"
                  MinCharacters="3"
                  Variant="Variant.Outlined">
                 <ItemTemplate Context="brick">
-                    <MudText>@GetBrickDisplay(brick)</MudText>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <img src="@GetBrickImageUrl(brick)" alt="" style="width:32px;height:32px;border-radius:4px;border:1px solid #ccc;" />
+                        <span>@GetBrickDisplay(brick)</span>
+                    </div>
                 </ItemTemplate>
             </MudAutocomplete>
 
@@ -136,6 +139,7 @@
     private int Quantity = 1;
     private List<BrickColor> Colors = new();
     private string ErrorMessage = "";
+    private Dictionary<string, string> _brickImageCache = new();
 
     private void OnQuickColorChip(BrickColor color)
     {
@@ -205,6 +209,29 @@
                                 || (b.MouldKingName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
             _ => Enumerable.Empty<MappedBrick>()
         };
+    }
+
+    private async Task<IEnumerable<MappedBrick>> SearchBricksByBrandWithImages(string searchText, CancellationToken cancellationToken)
+    {
+        var results = await SearchBricksByBrand(searchText, cancellationToken);
+        foreach (var brick in results)
+        {
+            var partNum = brick.LegoPartNum;
+            if (!string.IsNullOrWhiteSpace(partNum) && !_brickImageCache.ContainsKey(partNum))
+            {
+                var url = await PartImageService.GetPartImageUrlAsync(partNum);
+                _brickImageCache[partNum] = string.IsNullOrWhiteSpace(url) ? "/part_images/placeholder.png" : url;
+            }
+        }
+        return results;
+    }
+
+    private string GetBrickImageUrl(MappedBrick brick)
+    {
+        var partNum = brick.LegoPartNum;
+        if (!string.IsNullOrWhiteSpace(partNum) && _brickImageCache.TryGetValue(partNum, out var url))
+            return url;
+        return "/part_images/placeholder.png";
     }
 
     private string GetBrickDisplay(MappedBrick b)
