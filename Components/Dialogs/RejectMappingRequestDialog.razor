@@ -13,6 +13,7 @@
 
 @code {
     private string _reason = string.Empty;
-       [CascadingParameter]
+    [Parameter] public brickisbrickapp.Data.Entities.MappingRequest? Request { get; set; }
+    [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
 }
