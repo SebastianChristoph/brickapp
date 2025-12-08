@@ -1,12 +1,13 @@
 @using MudBlazor
 
+
 <MudDialog>
     <DialogContent>
         <MudText>Möchtest du alle @ItemCount Steine dieses Sets zu deinem Inventar hinzufügen?</MudText>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Abbrechen</MudButton>
-        <MudButton Color="Color.Success" OnClick="ConfirmAsync">Hinzufügen</MudButton>
+        <MudButton OnClick="Cancel" Disabled="_loading">Abbrechen</MudButton>
+        <MudButton Color="Color.Success" OnClick="ConfirmAsync" Disabled="_loading">Hinzufügen</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -24,13 +25,19 @@
     [Parameter]
     public int ItemSetId { get; set; }
 
+    private bool _loading = false;
+
     private void Cancel()
     {
-        MudDialog?.Close(false);
+        if (!_loading)
+            MudDialog?.Close(false);
     }
 
     private async Task ConfirmAsync()
     {
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(100); // UI-Render-Pause für Spinner
         LoadingService.Show();
         try
         {
@@ -40,6 +47,7 @@
         finally
         {
             LoadingService.Hide();
+            _loading = false;
         }
     }
 }

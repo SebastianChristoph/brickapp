@@ -132,16 +132,8 @@ namespace brickisbrickapp.Components.Pages
 
             if (result != null && !result.Canceled && result.Data is bool confirmed && confirmed)
             {
-                LoadingService?.Show();
-                try
-                {
-                    var success = await InventoryService.AddSetBricksToInventoryAsync(itemSetId);
-                    // Optional: Erfolgs-Nachricht oder Daten neu laden
-                }
-                finally
-                {
-                    LoadingService?.Hide();
-                }
+                // Spinner wurde bereits im Dialog angezeigt und wieder ausgeblendet
+                // Optional: Erfolgs-Nachricht oder Daten neu laden
             }
         }
 
