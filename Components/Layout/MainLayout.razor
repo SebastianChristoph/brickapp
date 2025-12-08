@@ -17,14 +17,11 @@
                    OnClick="@((e) => DrawerToggle())" />
     <MudText Typo="Typo.h5" Class="ml-3">BrickIsBrick</MudText>
     <MudSpacer />
+ <MudBadge Content="@_newNotificationCount" Color="Color.Error" Overlap="true" Class="mr-2">
 
-    <MudIconButton Icon="@Icons.Material.Filled.Notifications"
-                   Color="Color.Inherit"
-                   Edge="Edge.End"
-                   OnClick="GoToNotifications"
-                   Style="margin-right:8px">
-        <MudBadge BadgeContent="@_newNotificationCount" Color="Color.Error" Visible="@(_newNotificationCount > 0)" Overlap="true" />
-    </MudIconButton>
+ <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Email" Size="Size.Small"  OnClick="GoToNotifications" Class="mr-2"/>
+   
+    </MudBadge>
 
     @if (!string.IsNullOrEmpty(_username))
     {
@@ -79,18 +76,26 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var relativeUri = Nav.ToBaseRelativePath(Nav.Uri).ToLowerInvariant();
-        var isAuth = await UserService.IsAuthenticatedAsync();
+        if (firstRender)
+        {
+            Nav.LocationChanged += NavOnLocationChanged;
+            await LoadUserAndNotificationsAsync();
+        }
+    }
 
+    private async void NavOnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        await LoadUserAndNotificationsAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadUserAndNotificationsAsync()
+    {
+        var isAuth = await UserService.IsAuthenticatedAsync();
         if (!isAuth)
         {
             _username = null;
             _newNotificationCount = 0;
-            // Only Home and Login are public
-            if (!string.IsNullOrEmpty(relativeUri) && !relativeUri.StartsWith("login"))
-            {
-                Nav.NavigateTo("/login", forceLoad: true);
-            }
         }
         else
         {
@@ -98,10 +103,10 @@
             if (name != _username)
             {
                 _username = name;
-                StateHasChanged();
             }
             await UpdateNotificationCountAsync();
         }
+        StateHasChanged();
     }
 
     private async Task UpdateNotificationCountAsync()
@@ -111,8 +116,11 @@
         {
             var notifications = await NotificationService.GetNotificationsForUserAsync(userUuid);
             _newNotificationCount = notifications.Count(n => !n.IsRead);
-            StateHasChanged();
         }
+    }
+    public void Dispose()
+    {
+        Nav.LocationChanged -= NavOnLocationChanged;
     }
 
     private void GoToNotifications()

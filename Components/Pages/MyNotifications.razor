@@ -4,6 +4,7 @@
 @using brickisbrickapp.Services
 @inject UserService UserService
 @inject UserNotificationService NotificationService
+@inject NavigationManager NavigationManager
 
 <PageTitle>My Notifications</PageTitle>
 
@@ -65,6 +66,7 @@ else
         await NotificationService.MarkAsReadAsync(notification.Id);
         await LoadNotificationsAsync();
         StateHasChanged();
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
     }
 
     private async Task MarkAllAsRead()
@@ -75,6 +77,7 @@ else
             await NotificationService.MarkAllAsReadAsync(userUuid);
             await LoadNotificationsAsync();
             StateHasChanged();
+            NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
         }
     }
 }
