@@ -45,6 +45,41 @@
             </MudTable>
         }
     </MudTabPanel>
+     <MudTabPanel Text="Item Requests">
+        @if (openItemRequests == null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (!openItemRequests.Any())
+        {
+            <MudText>No open item requests found.</MudText>
+        }
+        else
+        {
+            <MudTable Items="openItemRequests" Hover="true">
+                <HeaderContent>
+                    <MudTh>Id</MudTh>
+                    <MudTh>Brand</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Requested By</MudTh>
+                    <MudTh>Created At</MudTh>
+                    <MudTh>Status</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Id">@context.Id</MudTd>
+                    <MudTd DataLabel="Brand">@context.Brand</MudTd>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Requested By">@context.RequestedByUser?.Name ?? @context.RequestedByUserId</MudTd>
+                    <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                    <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudTabPanel>
+    <MudTabPanel Text="Set Requests">
+        <p>Set Requests content goes here.</p>
+    </MudTabPanel>
+
     
     </MudTabs>
 
@@ -77,11 +112,14 @@
         }
 
         private List<brickisbrickapp.Data.Entities.MappingRequest>? openMappingRequests;
+        private List<brickisbrickapp.Data.Entities.NewItemRequest>? openItemRequests;
+        [Inject] private brickisbrickapp.Data.Services.NewItemRequestService NewItemRequestService { get; set; } = default!;
         private bool isDialogOpen = false;
 
         protected override async Task OnInitializedAsync()
         {
             openMappingRequests = await MappingRequestService.GetOpenRequestsAsync();
+            openItemRequests = await NewItemRequestService.GetOpenRequestsAsync();
         }
 
         private async Task OnDetailsClickAsync(brickisbrickapp.Data.Entities.MappingRequest request)
@@ -148,9 +186,4 @@
             }
         }
     }
-    <MudTabPanel Text="Item Requests">
-        <p>Item Requests content goes here.</p>
-    </MudTabPanel>
-    <MudTabPanel Text="Set Requests">
-        <p>Set Requests content goes here.</p>
-    </MudTabPanel>
+   
