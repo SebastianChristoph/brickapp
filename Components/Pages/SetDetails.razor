@@ -22,9 +22,9 @@
 else if (_itemSet is null)
 {
     <MudText Typo="Typo.h5" Color="Color.Error">
-        Set not found.
+        Set wurde nicht gefunden.
     </MudText>
-    <MudButton Variant="Variant.Outlined" OnClick="@GoBack">Back</MudButton>
+    <MudButton Variant="Variant.Outlined" OnClick="@GoBack">Zurück</MudButton>
 }
 else
 {
@@ -33,7 +33,8 @@ else
             @if (!string.IsNullOrEmpty(_itemSet.ImageUrl))
             {
                 <div style="flex-shrink:0;">
-                    <img src="@_itemSet.ImageUrl" alt="@_itemSet.Name" style="height:200px; width:auto; object-fit:contain; border-radius:4px;" />
+                    <img src="@_itemSet.ImageUrl" alt="@_itemSet.Name"
+                        style="height:200px; width:auto; object-fit:contain; border-radius:4px;" />
                 </div>
             }
             <MudStack Spacing="1" Style="flex: 1;">
@@ -44,21 +45,18 @@ else
                     Brand: @_itemSet.Brand
                 </MudText>
                 <MudText Typo="Typo.subtitle2">
-                    Set No: @_itemSet.LegoSetNum | Year: @_itemSet.Year
+                    Set Nr: @_itemSet.LegoSetNum | Jahr: @_itemSet.Year
                 </MudText>
                 @if (_userItemSet != null)
                 {
                     <MudText Typo="Typo.subtitle2">
-                        You own: @_userItemSet.Quantity x
+                        Du besitzt: @_userItemSet.Quantity x
                     </MudText>
                 }
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Success" 
-                           OnClick="@OpenAddSetDialog"
-                           Size="Size.Large"
-                           Class="mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="@OpenAddSetDialog" Size="Size.Large"
+                    Class="mt-2">
                     <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
-                    Add all parts
+                    Alle Teile hinzufügen
                 </MudButton>
             </MudStack>
         </MudStack>
@@ -66,116 +64,179 @@ else
 
     <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudProgressLinear Value="@Percent" Color="@(HasAll ? Color.Success : Color.Primary)" Style="min-width:200px;max-width:300px;width:30vw;" />
+            <MudProgressLinear Value="@Percent" Color="@(HasAll? Color.Success: Color.Primary)"
+                Style="min-width:200px;max-width:300px;width:30vw;" />
             <MudText Typo="Typo.body1" Class="ml-4">
                 @if (HasAll)
                 {
-                    <b>You have all bricks, you can build it!</b>
+                    <b>Du hast alle Steine, du kannst es bauen!</b>
                 }
                 else
                 {
-                    <span>@TotalOwned of @TotalNeeded bricks in inventory (@Percent%)</span>
+                    <span>@TotalOwned von @TotalNeeded Steinen im Inventar (@Percent%)</span>
                 }
             </MudText>
         </MudStack>
     </MudPaper>
 
     <MudText Typo="Typo.h6" GutterBottom="true">
-        Bricks in this set
+        Steine in diesem Set
     </MudText>
 
     <style>
-    .brick {
-        position: relative;
-        display: inline-block;
-        isolation: isolate;
-    }
-    .brick img {
-        display: block;
-    }
-    .brick::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: var(--brick-overlay, transparent);
-        mix-blend-mode: multiply;
-        pointer-events: none;
-        border-radius: 4px;
-    }
+        .brick {
+            position: relative;
+            display: inline-block;
+            isolation: isolate;
+        }
+
+        .brick img {
+            display: block;
+        }
+
+        .brick::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: var(--brick-overlay, transparent);
+            mix-blend-mode: multiply;
+            pointer-events: none;
+            border-radius: 4px;
+        }
     </style>
 
-<MudTable Items="_itemSet.Bricks ?? Enumerable.Empty<ItemSetBrick>()">
-    <HeaderContent>
-        <MudTh>Image</MudTh>
-        <MudTh>Standard Name</MudTh>
-        <MudTh>Color</MudTh>
-        <MudTh>Lego</MudTh>
-        <MudTh>BlueBrixx</MudTh>
-        <MudTh>Cada</MudTh>
-        <MudTh>Pantasy</MudTh>
-        <MudTh>Mould King</MudTh>
-        <MudTh>Quantity in set</MudTh>
-        <MudTh>Do you own?</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="Bild">
-            @{
-                var partNum = context.MappedBrick.LegoPartNum ?? "";
-                var url = _partImageUrls.TryGetValue(partNum, out var u) ? u : null;
-                var placeholder = brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl;
-                var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
-            }
-            <div style="position:relative;display:inline-block;min-width:48px;min-height:48px;">
-                @if (!string.IsNullOrWhiteSpace(url))
-                {
-                    @if (overlay != null)
+    <MudTable Items="_itemSet.Bricks ?? Enumerable.Empty<ItemSetBrick>()">
+        <HeaderContent>
+            <MudTh>Bild</MudTh>
+            <MudTh>Standard-Name</MudTh>
+            <MudTh>Farbe</MudTh>
+            <MudTh>Lego</MudTh>
+            <MudTh>BlueBrixx</MudTh>
+            <MudTh>Cada</MudTh>
+            <MudTh>Pantasy</MudTh>
+            <MudTh>Mould King</MudTh>
+            <MudTh>Unknown</MudTh>
+            <MudTh>Anzahl im Set</MudTh>
+            <MudTh>Hast du?</MudTh>
+        </HeaderContent>
+
+        <RowTemplate>
+            <MudTd DataLabel="Bild">
+                @{
+                    var partNum = context.MappedBrick.LegoPartNum ?? "";
+                    var url = _partImageUrls.TryGetValue(partNum, out var u) ? u : null;
+                    var placeholder = brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl;
+                    var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
+                }
+                <div style="position:relative;display:inline-block;min-width:48px;min-height:48px;">
+                    @if (!string.IsNullOrWhiteSpace(url))
                     {
-                        <div class="brick" style="--brick-overlay:@overlay">
-                            <img src="@url" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
-                        </div>
+                        @if (overlay != null)
+                        {
+                            <div class="brick" style="--brick-overlay:@overlay">
+                                <img src="@url" alt=""
+                                    style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
+                                    onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                            </div>
+                        }
+                        else
+                        {
+                            <img src="@url" alt=""
+                                style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
+                                onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                        }
                     }
                     else
                     {
-                        <img src="@url" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                        <span
+                            style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">No
+                            image</span>
                     }
-                }
-                else
+                </div>
+            </MudTd>
+
+            <MudTd DataLabel="Standard Name">@context.MappedBrick.Name</MudTd>
+            <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
+
+            <!-- Lego: Name + PartNo -->
+            <MudTd DataLabel="Lego">
+                @context.MappedBrick.LegoName
+                @if (!string.IsNullOrEmpty(context.MappedBrick.LegoPartNum))
                 {
-                    <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">No image</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.LegoPartNum)</span>
                 }
-            </div>
-        </MudTd>
-        <MudTd DataLabel="Standard Name">@context.MappedBrick.Name</MudTd>
-        <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
-        <MudTd DataLabel="Lego">@context.MappedBrick.LegoName @if (!string.IsNullOrEmpty(context.MappedBrick.LegoPartNum)) { <span style="font-size: 0.9em; color: #999;">(@context.MappedBrick.LegoPartNum)</span> }</MudTd>
-        <MudTd DataLabel="BlueBrixx">@context.MappedBrick.BbName</MudTd>
-        <MudTd DataLabel="Cada">@context.MappedBrick.CadaName</MudTd>
-        <MudTd DataLabel="Pantasy">@context.MappedBrick.PantasyName</MudTd>
-        <MudTd DataLabel="Mould King">@context.MappedBrick.MouldKingName</MudTd>
-        <MudTd DataLabel="Anzahl">@context.Quantity</MudTd>
-        <MudTd DataLabel="Do you own?">
-            @{
-                var key = (context.MappedBrickId, context.BrickColorId);
-                if (_ownedByBrand.TryGetValue(key, out var brands) && brands.Count > 0)
+            </MudTd>
+
+            <!-- BlueBrixx: Name + PartNo -->
+            <MudTd DataLabel="BlueBrixx">
+                @context.MappedBrick.BbName
+                @if (!string.IsNullOrEmpty(context.MappedBrick.BbPartNum))
                 {
-                    foreach (var brand in brands)
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.BbPartNum)</span>
+                }
+            </MudTd>
+
+            <!-- Cada: Name + PartNo -->
+            <MudTd DataLabel="Cada">
+                @context.MappedBrick.CadaName
+                @if (!string.IsNullOrEmpty(context.MappedBrick.CadaPartNum))
+                {
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.CadaPartNum)</span>
+                }
+            </MudTd>
+
+            <!-- Pantasy: Name + PartNo -->
+            <MudTd DataLabel="Pantasy">
+                @context.MappedBrick.PantasyName
+                @if (!string.IsNullOrEmpty(context.MappedBrick.PantasyPartNum))
+                {
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.PantasyPartNum)</span>
+                }
+            </MudTd>
+
+            <!-- Mould King: Name + PartNo -->
+            <MudTd DataLabel="Mould King">
+                @context.MappedBrick.MouldKingName
+                @if (!string.IsNullOrEmpty(context.MappedBrick.MouldKingPartNum))
+                {
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.MouldKingPartNum)</span>
+                }
+            </MudTd>
+
+             <!-- unknown: Name + PartNo -->
+            <MudTd DataLabel="Unknown">
+                @context.MappedBrick.UnknownName
+                @if (!string.IsNullOrEmpty(context.MappedBrick.UnknownPartNum))
+                {
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.UnknownPartNum)</span>
+                }
+            </MudTd>
+
+            <MudTd DataLabel="Anzahl">@context.Quantity</MudTd>
+
+            <MudTd DataLabel="Do you own?">
+                @{
+                    var key = (context.MappedBrickId, context.BrickColorId);
+                    if (_ownedByBrand.TryGetValue(key, out var brands) && brands.Count > 0)
                     {
-                        <MudChip T="string" Color="Color.Primary" Class="mr-1 mb-1">@brand.Key: @brand.Value</MudChip>
+                        foreach (var brand in brands)
+                        {
+                            <MudChip T="string" Color="Color.Primary" Class="mr-1 mb-1">@brand.Key: @brand.Value</MudChip>
+                        }
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Default">None</MudChip>
                     }
                 }
-                else
-                {
-                    <MudChip T="string" Color="Color.Default">None</MudChip>
-                }
-            }
-        </MudTd>
-    </RowTemplate>
-</MudTable>
+            </MudTd>
+        </RowTemplate>
 
 
-    <MudButton Class="mt-4"
-               Variant="Variant.Outlined"
-               OnClick="@GoBack">
-        Back
+    </MudTable>
+
+
+    <MudButton Class="mt-4" Variant="Variant.Outlined" OnClick="@GoBack">
+        Zurück
     </MudButton>
 }

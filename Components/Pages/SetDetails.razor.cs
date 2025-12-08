@@ -1,4 +1,5 @@
 // ...using directives...
+using brickisbrickapp.Components.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,6 @@ using brickisbrickapp.Data.Entities;
 using brickisbrickapp.Helpers;
 using brickisbrickapp.Services;
 using MudBlazor;
-using brickisbrickapp.Components.Dialogs;
 
 namespace brickisbrickapp.Components.Pages
 {

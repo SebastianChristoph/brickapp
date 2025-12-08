@@ -13,5 +13,16 @@ public class AppUser
     // Navigation: alle Inventory-Items dieses Users
     public ICollection<InventoryItem> InventoryItems { get; set; } = new List<InventoryItem>();
     public ICollection<UserItemSet> UserItemSets { get; set; } = new List<UserItemSet>();
+    // Navigation: MappingRequests, die dieser User angelegt hat
+    public ICollection<MappingRequest> MappingRequestsRequested { get; set; } = new List<MappingRequest>();
+    // Navigation: MappingRequests, die dieser User genehmigt hat
+    public ICollection<MappingRequest> MappingRequestsApproved { get; set; } = new List<MappingRequest>();
+    // Navigation: UserNotifications
+    public ICollection<UserNotification> Notifications { get; set; } = new List<UserNotification>();
+
+    // Navigation: NewItemRequests, die dieser User angelegt hat
+    public ICollection<NewItemRequest> NewItemRequestsRequested { get; set; } = new List<NewItemRequest>();
+    // Navigation: NewItemRequests, die dieser User genehmigt hat
+    public ICollection<NewItemRequest> NewItemRequestsApproved { get; set; } = new List<NewItemRequest>();
 
 }

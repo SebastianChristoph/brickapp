@@ -1,0 +1,37 @@
+@namespace brickisbrickapp.Components.Dialogs
+@using brickisbrickapp.Data.Entities
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        @if (Request != null)
+        {
+            <MudText Typo="Typo.h6">Details zu Mapping-Request</MudText>
+
+            <MudText><b>Brick:</b> @Request.Brick?.Name</MudText>
+            <MudText><b>Brand:</b> @Request.Brand</MudText>
+            <MudText><b>Mapping Name:</b> @Request.MappingName</MudText>
+            <MudText><b>Mapping Item ID:</b> @Request.MappingItemId</MudText>
+
+            @if (!string.IsNullOrWhiteSpace(PartImageUrl))
+            {
+                <img src="@PartImageUrl"
+                     alt="Brick Image"
+                     style="max-width:128px;max-height:128px;border-radius:4px;border:1px solid #ccc;margin-top:10px;" />
+            }
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="@Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public MappingRequest? Request { get; set; }
+    [Parameter] public string? PartImageUrl { get; set; }
+
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    private void Close() => MudDialog?.Close();
+}

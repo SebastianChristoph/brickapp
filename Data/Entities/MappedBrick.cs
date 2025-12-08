@@ -20,6 +20,10 @@ public class MappedBrick
     public string? PantasyName { get; set; }
     public string? MouldKingPartNum { get; set; }
     public string? MouldKingName { get; set; }
+    public string? UnknownPartNum { get; set; }
+    public string? UnknownName { get; set; }
 
     public ICollection<InventoryItem> InventoryItems { get; set; } = new List<InventoryItem>();
+    // Navigation: MappingRequests zu diesem Brick
+    public ICollection<MappingRequest> MappingRequests { get; set; } = new List<MappingRequest>();
 }

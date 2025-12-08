@@ -37,6 +37,10 @@ public class MappedBrickService
                 brick.MouldKingName = mappingName;
                 brick.MouldKingPartNum = mappingItemId;
                 break;
+            case "Unknown":
+                brick.UnknownName = mappingName;
+                brick.UnknownPartNum = mappingItemId;
+                break;
         }
         await _db.SaveChangesAsync();
     }
@@ -44,6 +48,7 @@ public class MappedBrickService
     public async Task<List<MappedBrick>> GetAllMappedBricksAsync()
     {
         return await _db.MappedBricks
+            .Include(b => b.MappingRequests)
             .AsNoTracking()
             .OrderBy(b => b.Name)
             .ToListAsync();

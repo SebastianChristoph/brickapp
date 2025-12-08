@@ -3,6 +3,7 @@ using brickisbrickapp.Components;
 using brickisbrickapp.Data;
 using Microsoft.EntityFrameworkCore;
 using brickisbrickapp.Services;
+using brickisbrickapp.Data.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +16,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(connectionString));
 builder.Services.AddScoped<UserService>();
 
+
 builder.Services.AddScoped<MappedBrickService>();
+builder.Services.AddScoped<UserNotificationService>();
+builder.Services.AddScoped<MappingRequestService>(); // MappingRequestService bekommt UserNotificationService über DI
 
 
 builder.Services.AddScoped<InventoryService>();
@@ -24,11 +28,23 @@ builder.Services.AddScoped<ItemSetService>();
 // Global Loading Service
 builder.Services.AddSingleton<LoadingService>();
 
+
 // Rebrickable API Part Image Service
 builder.Services.AddHttpClient<RebrickablePartImageService>();
 
+// ItemUploadService: needs wwwroot path
+builder.Services.AddScoped<ItemUploadService>(sp =>
+    new ItemUploadService(Path.Combine(builder.Environment.ContentRootPath, "wwwroot")));
+
+// NewItemRequestService
+builder.Services.AddScoped<NewItemRequestService>();
+// NewSetRequestService
+builder.Services.AddScoped<NewSetRequestService>();
+
 // MudBlazor
 builder.Services.AddMudServices();
+// Global Notification Service
+builder.Services.AddScoped<NotificationService>();
 
 // Blazor
 builder.Services.AddRazorComponents()

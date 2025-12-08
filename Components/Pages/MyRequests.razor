@@ -1,0 +1,109 @@
+@page "/myrequests"
+@using Microsoft.AspNetCore.Components
+@using brickisbrickapp.Data.Entities
+@using brickisbrickapp.Data.Services
+@using brickisbrickapp.Services
+@inject UserService UserService
+@inject MappingRequestService MappingRequestService
+@inject NewItemRequestService NewItemRequestService
+
+<PageTitle>My Requests</PageTitle>
+
+<MudTabs>
+    <MudTabPanel Text="Mapping requests">
+        <MudText Typo="Typo.h5" GutterBottom="true">My Mapping Requests</MudText>
+        @if (_mappingRequests == null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (!_mappingRequests.Any())
+        {
+            <MudText>No mapping requests found.</MudText>
+        }
+        else
+        {
+            <MudTable Items="_mappingRequests" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Brick</MudTh>
+                    <MudTh>Brand</MudTh>
+                    <MudTh>Mapping Name</MudTh>
+                    <MudTh>Mapping Item ID</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Reason (if rejected)</MudTh>
+                    <MudTh>Created</MudTh>
+                    <MudTh>Approved By</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Brick?.Name</MudTd>
+                    <MudTd>@context.Brand</MudTd>
+                    <MudTd>@context.MappingName</MudTd>
+                    <MudTd>@context.MappingItemId</MudTd>
+                    <MudTd>@context.Status</MudTd>
+                    <MudTd>@context.ReasonRejected</MudTd>
+                    <MudTd>@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                    <MudTd>@context.ApprovedByUser?.Name</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudTabPanel>
+    <MudTabPanel Text="New Item Requests">
+        <MudText Typo="Typo.h5">My Item Requests</MudText>
+        @if (_itemRequests == null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (!_itemRequests.Any())
+        {
+            <MudText>No item requests found.</MudText>
+        }
+        else
+        {
+            <MudTable Items="_itemRequests" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Brand</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Image</MudTh>
+                    <MudTh>Reason (if rejected)</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Brand">@context.Brand</MudTd>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Status">
+                        @context.Status.ToString()
+                    </MudTd>
+                    <MudTd DataLabel="Image">
+                        @if (!string.IsNullOrWhiteSpace(context.ImagePath))
+                        {
+                            <img src="/@context.ImagePath" style="max-width:64px;max-height:64px;" />
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Reason">
+                        @if (context.Status == NewItemRequestStatus.Rejected && !string.IsNullOrWhiteSpace(context.ReasonRejected))
+                        {
+                            <MudAlert Severity="Severity.Error">@context.ReasonRejected</MudAlert>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudTabPanel>
+    <MudTabPanel Text="New Set Requests">
+        <div>noch zu füllen</div>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private List<MappingRequest>? _mappingRequests;
+    private List<NewItemRequest>? _itemRequests;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = await UserService.GetTokenAsync();
+        if (userId != null)
+        {
+            _mappingRequests = await MappingRequestService.GetRequestsByUserAsync(userId);
+            _itemRequests = await NewItemRequestService.GetRequestsByUserAsync(userId);
+        }
+    }
+}

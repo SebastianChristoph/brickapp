@@ -1,0 +1,65 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using brickisbrickapp.Data.Entities
+@inject NavigationManager NavigationManager
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Add New Set</MudText>
+        <MudTextField @bind-Value="Brand" Label="Brand" Required="true" />
+        <MudTextField @bind-Value="SetNo" Label="Set Number" Required="true" />
+        <MudTextField @bind-Value="SetName" Label="Set Name" Required="true" />
+        <InputFile OnChange="OnImageUpload" />
+        <MudDivider />
+        <MudText Typo="Typo.subtitle2">Items in Set</MudText>
+        @foreach (var item in Items)
+        {
+            <MudPaper Class="pa-2 mb-2">
+                <MudTextField @bind-Value="item.ItemIdOrName" Label="Item ID or Name" />
+                <MudTextField @bind-Value="item.Quantity" Label="Quantity" Type="number" />
+                <MudTextField @bind-Value="item.Color" Label="Color" />
+            </MudPaper>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddItem">Add Item</MudButton>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Submit" Color="Color.Primary">Submit</MudButton>
+        <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+    public string? Brand { get; set; }
+    public string? SetNo { get; set; }
+    public string? SetName { get; set; }
+    public IBrowserFile? UploadedImage { get; set; }
+    public List<SetItemInput> Items { get; set; } = new();
+
+    public class SetItemInput
+    {
+        public string? ItemIdOrName { get; set; }
+        public int Quantity { get; set; }
+        public string? Color { get; set; }
+    }
+
+    void AddItem()
+    {
+        Items.Add(new SetItemInput());
+    }
+
+    async Task OnImageUpload(InputFileChangeEventArgs e)
+    {
+        UploadedImage = e.File;
+    }
+
+    async Task Submit()
+    {
+        // TODO: Call service to submit new set request
+        await OnClose.InvokeAsync();
+    }
+
+    void Cancel()
+    {
+        OnClose.InvokeAsync();
+    }
+}

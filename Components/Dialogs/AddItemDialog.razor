@@ -1,0 +1,98 @@
+@namespace brickisbrickapp.Components.Dialogs
+@using Microsoft.AspNetCore.Components.Forms
+@using brickisbrickapp.Data.Entities
+@inject brickisbrickapp.Data.Services.ItemUploadService ItemUploadService
+@inject brickisbrickapp.Services.MappedBrickService BrickService
+@inject brickisbrickapp.Data.Services.NewItemRequestService NewItemRequestService
+
+@inject brickisbrickapp.Services.UserService UserService
+@inject brickisbrickapp.Services.NotificationService NotificationService
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Add New Item</MudText>
+        <MudSelect T="string" Label="Brand" @bind-Value="Brand" Required="true">
+            <MudSelectItem Value="@("Lego")">Lego</MudSelectItem>
+            <MudSelectItem Value="@("BB")">BB</MudSelectItem>
+            <MudSelectItem Value="@("Cada")">Cada</MudSelectItem>
+            <MudSelectItem Value="@("Pantasy")">Pantasy</MudSelectItem>
+            <MudSelectItem Value="@("Mould King")">Mould King</MudSelectItem>
+            <MudSelectItem Value="@("Unknown")">Unknown</MudSelectItem>
+        </MudSelect>
+        <MudTextField @bind-Value="Name" Label="Item Name" Required="true" />
+        <InputFile OnChange="OnInputFileChange" />
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+        }
+        @if (!string.IsNullOrWhiteSpace(_imagePreviewUrl))
+        {
+            <img src="@_imagePreviewUrl" style="max-width:200px;max-height:200px;margin-top:8px;" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="OnSave" Color="Color.Primary">Save</MudButton>
+        <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudBlazor.IMudDialogInstance? MudDialog { get; set; }
+    private string Brand { get; set; } = string.Empty;
+    private string Name { get; set; } = string.Empty;
+    private IBrowserFile? _file;
+    private string? _imagePreviewUrl;
+    private string _errorMessage = string.Empty;
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        _file = e.File;
+        if (_file != null)
+        {
+            var buffer = new byte[_file.Size];
+            await _file.OpenReadStream().ReadAsync(buffer);
+            _imagePreviewUrl = $"data:{_file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+        }
+    }
+
+    private async Task OnSave()
+    {
+        _errorMessage = string.Empty;
+        if (string.IsNullOrWhiteSpace(Brand) || string.IsNullOrWhiteSpace(Name))
+        {
+            _errorMessage = "Brand and Name are required.";
+            return;
+        }
+        // Check for duplicate item
+        var allBricks = await BrickService.GetAllMappedBricksAsync();
+        bool exists = allBricks.Any(b =>
+            (Brand == "Lego" && b.LegoName == Name)
+            || (Brand == "BB" && b.BbName == Name)
+            || (Brand == "Cada" && b.CadaName == Name)
+            || (Brand == "Pantasy" && b.PantasyName == Name)
+            || (Brand == "Mould King" && b.MouldKingName == Name)
+            || (Brand == "Unknown" && b.UnknownName == Name)
+        );
+        if (exists)
+        {
+            _errorMessage = $"An item with the name '{Name}' already exists for brand '{Brand}'.";
+            return;
+        }
+        string? imagePath = null;
+        if (_file != null)
+        {
+            imagePath = await ItemUploadService.SaveResizedImageAsync(_file, Brand, Name);
+        }
+        var userId = await UserService.GetTokenAsync();
+        if (userId is null)
+        {
+            _errorMessage = "User not authenticated.";
+            return;
+        }
+        await NewItemRequestService.CreateRequestAsync(Brand, Name, imagePath, userId);
+        NotificationService.Success($"Item '{Name}' added successfully as a request! An admin has to approve it. You will be notified in your notification area once it's approved.");
+        MudDialog?.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+}

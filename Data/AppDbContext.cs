@@ -19,14 +19,80 @@ public class AppDbContext : DbContext
     public DbSet<ItemSet> ItemSets => Set<ItemSet>();
     public DbSet<ItemSetBrick> ItemSetBricks => Set<ItemSetBrick>();
     public DbSet<UserItemSet> UserItemSets => Set<UserItemSet>();
+    public DbSet<MappingRequest> MappingRequests => Set<MappingRequest>();
+
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+    public DbSet<NewItemRequest> NewItemRequests => Set<NewItemRequest>();
+    public DbSet<NewSetRequest> NewSetRequests => Set<NewSetRequest>();
 
 
     // --- Model-Konfiguration ---------------------------------------
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
+            // NewSetRequest Tabelle
+            modelBuilder.Entity<NewSetRequest>().ToTable("newSetRequests");
+            modelBuilder.Entity<NewSetRequestItem>().ToTable("newSetRequestItems");
 
+        modelBuilder.Entity<NewSetRequest>()
+            .HasMany(nsr => nsr.Items)
+            .WithOne()
+            .HasForeignKey(i => i.NewSetRequestId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+    // NewItemRequest Tabelle
+            // NewItemRequest Tabelle
+            modelBuilder.Entity<NewItemRequest>().ToTable("newItemRequests");
+
+            // Beziehungen NewItemRequest
+            modelBuilder.Entity<NewItemRequest>()
+                .HasOne(nr => nr.RequestedByUser)
+                .WithMany(u => u.NewItemRequestsRequested)
+                .HasForeignKey(nr => nr.RequestedByUserId)
+                .HasPrincipalKey(u => u.Uuid)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<NewItemRequest>()
+                .HasOne(nr => nr.ApprovedByUser)
+                .WithMany(u => u.NewItemRequestsApproved)
+            .HasPrincipalKey(u => u.Uuid)
+            .OnDelete(DeleteBehavior.Restrict);
+
+    // UserNotification Tabelle
+        // UserNotification Tabelle
+        modelBuilder.Entity<UserNotification>().ToTable("userNotifications");
+
+        // Beziehung UserNotification -> AppUser (Uuid)
+        modelBuilder.Entity<UserNotification>()
+            .HasOne(n => n.User)
+            .WithMany(u => u.Notifications)
+            .HasForeignKey(n => n.UserUuid)
+            .HasPrincipalKey(u => u.Uuid)
+            .OnDelete(DeleteBehavior.Cascade);
+            // MappingRequest Tabelle
+            modelBuilder.Entity<MappingRequest>().ToTable("mappingRequests");
+
+            // Beziehungen MappingRequest
+            modelBuilder.Entity<MappingRequest>()
+                .HasOne(mr => mr.Brick)
+                .WithMany(b => b.MappingRequests)
+                .HasForeignKey(mr => mr.BrickId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<MappingRequest>()
+                .HasOne(mr => mr.RequestedByUser)
+                .WithMany(u => u.MappingRequestsRequested)
+                .HasForeignKey(mr => mr.RequestedByUserId)
+                .HasPrincipalKey(u => u.Uuid)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<MappingRequest>()
+                .HasOne(mr => mr.ApprovedByUser)
+                .WithMany(u => u.MappingRequestsApproved)
+                .HasPrincipalKey(u => u.Uuid)
+                .OnDelete(DeleteBehavior.Restrict);
+
+        // Tabellen-Namen
         // Tabellen-Namen
         modelBuilder.Entity<MappedBrick>().ToTable("mappedBricks");
         modelBuilder.Entity<BrickColor>().ToTable("colors");
@@ -100,10 +166,21 @@ public class AppDbContext : DbContext
                 Name = "Admin",
                 IsAdmin = true,
                 CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+                 new AppUser
+            {
+                Id = 2,
+                Uuid = "222",          // dein Admin-Token
+                Name = "Uwe",
+                IsAdmin = false,
+                CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }
         );
 
         // Alle LEGO-Parts, Sets, Farben usw. kommen NICHT hier über HasData,
+        // Alle LEGO-Parts, Sets, Farben usw. kommen NICHT hier über HasData,
         // sondern werden beim Start über den RebrickableSeeder aus den CSVs geladen.
+
+        base.OnModelCreating(modelBuilder);
     }
 }

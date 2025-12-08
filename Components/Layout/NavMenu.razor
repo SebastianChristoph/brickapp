@@ -16,6 +16,18 @@
         <MudNavLink Href="myinventory" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">
             My Inventory
         </MudNavLink>
+        <MudNavLink Href="myrequests" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.QuestionAnswer">
+            My Requests
+        </MudNavLink>
+        <MudNavLink Href="my-notifications" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Notifications">
+            My Notifications
+        </MudNavLink>
+        @if (_isAdmin)
+        {
+                <MudNavLink Href="admin-requests" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.AdminPanelSettings">
+                    Admin Requests
+                </MudNavLink>
+        }
     }
     else
     {
@@ -27,6 +39,7 @@
 
 @code {
     private bool _isAuthenticated;
+    private bool _isAdmin;
     private bool _hasRendered;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -34,6 +47,8 @@
         if (firstRender && !_hasRendered)
         {
             _isAuthenticated = await UserService.IsAuthenticatedAsync();
+            var user = await UserService.GetCurrentUserAsync();
+            _isAdmin = user?.IsAdmin ?? false;
             _hasRendered = true;
             StateHasChanged();
         }
@@ -42,6 +57,8 @@
     public async Task RefreshMenuAsync()
     {
         _isAuthenticated = await UserService.IsAuthenticatedAsync();
+        var user = await UserService.GetCurrentUserAsync();
+        _isAdmin = user?.IsAdmin ?? false;
         StateHasChanged();
     }
 }

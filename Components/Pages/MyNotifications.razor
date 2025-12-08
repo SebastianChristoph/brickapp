@@ -1,0 +1,68 @@
+@page "/my-notifications"
+@using brickisbrickapp.Data.Entities
+@using brickisbrickapp.Data.Services
+@using brickisbrickapp.Services
+@inject UserService UserService
+@inject UserNotificationService NotificationService
+
+<PageTitle>My Notifications</PageTitle>
+
+<MudText Typo="Typo.h5" GutterBottom="true">My Notifications</MudText>
+
+@if (_notifications == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (!_notifications.Any())
+{
+    <MudText>No notifications found.</MudText>
+}
+else
+{
+    <MudList T="UserNotification">
+        @foreach (var n in _notifications)
+        {
+            <MudListItem T="UserNotification">
+                <MudText Typo="Typo.subtitle2">@n.Title</MudText>
+                <MudText>@n.Message</MudText>
+                <MudText Typo="Typo.caption">@n.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                @if (!n.IsRead)
+                {
+                    <MudChip T="string" Color="Color.Info">New</MudChip>
+                    <MudButton Size="Size.Small" Color="Color.Primary" OnClick="@(() => MarkAsRead(n))">Als gelesen markieren</MudButton>
+                }
+            </MudListItem>
+        }
+    </MudList>
+}
+
+@code {
+    private List<UserNotification>? _notifications;
+
+    private bool _hasRendered = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_hasRendered)
+        {
+            await LoadNotificationsAsync();
+            _hasRendered = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadNotificationsAsync()
+    {
+        var userUuid = await UserService.GetTokenAsync();
+        if (!string.IsNullOrEmpty(userUuid))
+        {
+            _notifications = await NotificationService.GetNotificationsForUserAsync(userUuid);
+        }
+    }
+
+    private async Task MarkAsRead(UserNotification notification)
+    {
+        await NotificationService.MarkAsReadAsync(notification.Id);
+        await LoadNotificationsAsync();
+        StateHasChanged();
+    }
+}

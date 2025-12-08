@@ -1,0 +1,100 @@
+@page "/admin-requests"
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>Admin Requests</PageTitle>
+
+<h3>Admin Requests</h3>
+
+<MudTabs>
+    <MudTabPanel Text="Mapping Requests">
+        @if (openMappingRequests == null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (!openMappingRequests.Any())
+        {
+            <MudText>No open mapping requests found.</MudText>
+        }
+        else
+        {
+            <MudTable Items="openMappingRequests" Hover="true">
+                <HeaderContent>
+                    <MudTh>Id</MudTh>
+                    <MudTh>Brick</MudTh>
+                    <MudTh>Brand</MudTh>
+                    <MudTh>Mapping Name</MudTh>
+                    <MudTh>Mapping ItemId</MudTh>
+                    <MudTh>Requested By</MudTh>
+                    <MudTh>Created At</MudTh>
+                <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Id">@context.Id</MudTd>
+                    <MudTd DataLabel="Brick">@context.Brick?.Name</MudTd>
+                    <MudTd DataLabel="Brand">@context.Brand</MudTd>
+                    <MudTd DataLabel="Mapping Name">@context.MappingName</MudTd>
+                    <MudTd DataLabel="Mapping ItemId">@context.MappingItemId</MudTd>
+                    <MudTd DataLabel="Requested By">@context.RequestedByUser?.Name</MudTd>
+                    <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="isDialogOpen" OnClick="@(() => OnDetailsClickAsync(context))" ButtonType="ButtonType.Button">Details</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudTabPanel>
+    
+    </MudTabs>
+
+    @code {
+        [Inject] private brickisbrickapp.Data.Services.MappingRequestService MappingRequestService { get; set; } = default!;
+        [Inject] private brickisbrickapp.Services.RebrickablePartImageService RebrickablePartImageService { get; set; } = default!;
+        [Inject] private IDialogService DialogService { get; set; } = default!;
+
+        private List<brickisbrickapp.Data.Entities.MappingRequest>? openMappingRequests;
+        private bool isDialogOpen = false;
+
+        protected override async Task OnInitializedAsync()
+        {
+            openMappingRequests = await MappingRequestService.GetOpenRequestsAsync();
+        }
+
+        private async Task OnDetailsClickAsync(brickisbrickapp.Data.Entities.MappingRequest request)
+        {
+            if (request == null)
+                return;
+            var brick = request.Brick;
+            if (brick == null)
+            {
+                var parameters = new DialogParameters
+                {
+                    ["Request"] = request,
+                    ["PartImageUrl"] = null
+                };
+                await DialogService.ShowAsync<brickisbrickapp.Components.Dialogs.MappingRequestDetailsDialog>("Mapping Request Details", parameters);
+                return;
+            }
+            string? partNum = request.Brand switch
+            {
+                "BB" => brick.BbPartNum,
+                "Cada" => brick.CadaPartNum,
+                "Pantasy" => brick.PantasyPartNum,
+                "Mould King" => brick.MouldKingPartNum,
+                "Unknown" => brick.UnknownPartNum,
+                _ => brick.LegoPartNum
+            };
+            var partImageUrl = await RebrickablePartImageService.GetPartImageUrlAsync(partNum ?? string.Empty, request.Brand, brick.Name);
+            var parametersWithImage = new DialogParameters
+            {
+                ["Request"] = request,
+                ["PartImageUrl"] = partImageUrl
+            };
+            await DialogService.ShowAsync<brickisbrickapp.Components.Dialogs.MappingRequestDetailsDialog>("Mapping Request Details", parametersWithImage);
+        }
+    }
+    <MudTabPanel Text="Item Requests">
+        <p>Item Requests content goes here.</p>
+    </MudTabPanel>
+    <MudTabPanel Text="Set Requests">
+        <p>Set Requests content goes here.</p>
+    </MudTabPanel>
