@@ -4,7 +4,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.h6">Mapping für @Brick?.Name (@Brick?.LegoPartNum)</MudText>
+        <MudText Typo="Typo.h6">Mapping for @Brick?.Name (@Brick?.LegoPartNum)</MudText>
         <div style="margin-bottom:12px; min-height:68px;">
             @if (!string.IsNullOrWhiteSpace(_imageUrl))
             {
@@ -25,8 +25,8 @@
         <MudTextField @bind-Value="MappingItemId" Label="Item ID" />
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="OnSave" Color="Color.Primary">Speichern</MudButton>
-        <MudButton OnClick="Cancel" Color="Color.Secondary">Abbrechen</MudButton>
+        <MudButton OnClick="OnSave" Color="Color.Primary">Save</MudButton>
+        <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -55,7 +55,7 @@
     {
         if (Brick == null) return;
         if (string.IsNullOrWhiteSpace(MappingName) && string.IsNullOrWhiteSpace(MappingItemId))
-            return; // Mindestens eins muss ausgefüllt sein
+            return; // At least one must be filled
         MudDialog?.Close(DialogResult.Ok((SelectedBrand, MappingName, MappingItemId)));
     }
 

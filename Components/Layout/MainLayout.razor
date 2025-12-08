@@ -73,7 +73,7 @@
     if (!isAuth)
     {
         _username = null;
-        // Nur Home und Login sind öffentlich
+        // Only Home and Login are public
         if (!string.IsNullOrEmpty(relativeUri) && !relativeUri.StartsWith("login"))
         {
             Nav.NavigateTo("/login", forceLoad: true);

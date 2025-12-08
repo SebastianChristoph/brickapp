@@ -22,9 +22,9 @@
 else if (_itemSet is null)
 {
     <MudText Typo="Typo.h5" Color="Color.Error">
-        Set wurde nicht gefunden.
+        Set not found.
     </MudText>
-    <MudButton Variant="Variant.Outlined" OnClick="@GoBack">Zurück</MudButton>
+    <MudButton Variant="Variant.Outlined" OnClick="@GoBack">Back</MudButton>
 }
 else
 {
@@ -44,12 +44,12 @@ else
                     Brand: @_itemSet.Brand
                 </MudText>
                 <MudText Typo="Typo.subtitle2">
-                    Set Nr: @_itemSet.LegoSetNum | Jahr: @_itemSet.Year
+                    Set No: @_itemSet.LegoSetNum | Year: @_itemSet.Year
                 </MudText>
                 @if (_userItemSet != null)
                 {
                     <MudText Typo="Typo.subtitle2">
-                        Du besitzt: @_userItemSet.Quantity x
+                        You own: @_userItemSet.Quantity x
                     </MudText>
                 }
                 <MudButton Variant="Variant.Filled" 
@@ -58,7 +58,7 @@ else
                            Size="Size.Large"
                            Class="mt-2">
                     <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
-                    Alle Teile hinzufügen
+                    Add all parts
                 </MudButton>
             </MudStack>
         </MudStack>
@@ -70,18 +70,18 @@ else
             <MudText Typo="Typo.body1" Class="ml-4">
                 @if (HasAll)
                 {
-                    <b>Du hast alle Steine, du kannst es bauen!</b>
+                    <b>You have all bricks, you can build it!</b>
                 }
                 else
                 {
-                    <span>@TotalOwned von @TotalNeeded Steinen im Inventar (@Percent%)</span>
+                    <span>@TotalOwned of @TotalNeeded bricks in inventory (@Percent%)</span>
                 }
             </MudText>
         </MudStack>
     </MudPaper>
 
     <MudText Typo="Typo.h6" GutterBottom="true">
-        Steine in diesem Set
+        Bricks in this set
     </MudText>
 
     <style>
@@ -106,16 +106,16 @@ else
 
 <MudTable Items="_itemSet.Bricks ?? Enumerable.Empty<ItemSetBrick>()">
     <HeaderContent>
-        <MudTh>Bild</MudTh>
-        <MudTh>Standard-Name</MudTh>
-        <MudTh>Farbe</MudTh>
+        <MudTh>Image</MudTh>
+        <MudTh>Standard Name</MudTh>
+        <MudTh>Color</MudTh>
         <MudTh>Lego</MudTh>
         <MudTh>BlueBrixx</MudTh>
         <MudTh>Cada</MudTh>
         <MudTh>Pantasy</MudTh>
         <MudTh>Mould King</MudTh>
-        <MudTh>Anzahl im Set</MudTh>
-        <MudTh>Hast du?</MudTh>
+        <MudTh>Quantity in set</MudTh>
+        <MudTh>Do you own?</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Bild">
@@ -141,19 +141,19 @@ else
                 }
                 else
                 {
-                    <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">Kein Bild</span>
+                    <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">No image</span>
                 }
             </div>
         </MudTd>
-        <MudTd DataLabel="Standard-Name">@context.MappedBrick.Name</MudTd>
-        <MudTd DataLabel="Farbe">@context.BrickColor?.Name</MudTd>
+        <MudTd DataLabel="Standard Name">@context.MappedBrick.Name</MudTd>
+        <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
         <MudTd DataLabel="Lego">@context.MappedBrick.LegoName @if (!string.IsNullOrEmpty(context.MappedBrick.LegoPartNum)) { <span style="font-size: 0.9em; color: #999;">(@context.MappedBrick.LegoPartNum)</span> }</MudTd>
         <MudTd DataLabel="BlueBrixx">@context.MappedBrick.BbName</MudTd>
         <MudTd DataLabel="Cada">@context.MappedBrick.CadaName</MudTd>
         <MudTd DataLabel="Pantasy">@context.MappedBrick.PantasyName</MudTd>
         <MudTd DataLabel="Mould King">@context.MappedBrick.MouldKingName</MudTd>
         <MudTd DataLabel="Anzahl">@context.Quantity</MudTd>
-        <MudTd DataLabel="Hast du?">
+        <MudTd DataLabel="Do you own?">
             @{
                 var key = (context.MappedBrickId, context.BrickColorId);
                 if (_ownedByBrand.TryGetValue(key, out var brands) && brands.Count > 0)
@@ -165,7 +165,7 @@ else
                 }
                 else
                 {
-                    <MudChip T="string" Color="Color.Default">Keinen</MudChip>
+                    <MudChip T="string" Color="Color.Default">None</MudChip>
                 }
             }
         </MudTd>
@@ -176,6 +176,6 @@ else
     <MudButton Class="mt-4"
                Variant="Variant.Outlined"
                OnClick="@GoBack">
-        Zurück
+        Back
     </MudButton>
 }

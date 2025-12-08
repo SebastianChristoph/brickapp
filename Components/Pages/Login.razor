@@ -9,7 +9,7 @@
 <MudPaper Class="pa-6 mx-auto" MaxWidth="400px">
     <MudText Typo="Typo.h4" GutterBottom="true">Login</MudText>
     <MudText Typo="Typo.body2" GutterBottom="true">
-        Bitte gib dein Token ein.
+        Please enter your token.
     </MudText>
 
     <MudTextField @bind-Value="_token"
@@ -45,11 +45,11 @@
 
         if (!success)
         {
-            _error = "Ungültiges Token. Bitte prüfen.";
+            _error = "Invalid token. Please check.";
             return;
         }
 
-        // nach erfolgreichem Login irgendwohin navigieren
+        // After successful login, navigate somewhere
         Nav.NavigateTo("/", true); // forceLoad: true
     }
 }

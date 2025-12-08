@@ -3,11 +3,11 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText>Möchtest du alle @ItemCount Steine dieses Sets zu deinem Inventar hinzufügen?</MudText>
+        <MudText>Do you want to add all @ItemCount bricks of this set to your inventory?</MudText>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Disabled="_loading">Abbrechen</MudButton>
-        <MudButton Color="Color.Success" OnClick="ConfirmAsync" Disabled="_loading">Hinzufügen</MudButton>
+        <MudButton OnClick="Cancel" Disabled="_loading">Cancel</MudButton>
+        <MudButton Color="Color.Success" OnClick="ConfirmAsync" Disabled="_loading">Add</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -37,7 +37,7 @@
     {
         _loading = true;
         await InvokeAsync(StateHasChanged);
-        await Task.Delay(100); // UI-Render-Pause für Spinner
+        await Task.Delay(100); // UI render pause for spinner
         LoadingService.Show();
         try
         {

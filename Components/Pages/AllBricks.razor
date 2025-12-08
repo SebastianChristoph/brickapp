@@ -10,10 +10,10 @@
 <PageTitle>All Mapped Bricks</PageTitle>
 
 <MudText Typo="Typo.h5" GutterBottom="true">
-    @(_username is null ? "Willkommen bei BrickIsBrick!" : $"Hallo, {_username}")
+    @(_username is null ? "Welcome to BrickIsBrick!" : $"Hello, {_username}")
 </MudText>
 
-<MudTextField Value="_searchText" ValueChanged="@(async (string e) => await OnSearchTextChanged(e))" Label="Suche nach Name oder ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true" Placeholder="Mindestens 3 Zeichen..." Class="mb-4" />
+<MudTextField Value="_searchText" ValueChanged="@(async (string e) => await OnSearchTextChanged(e))" Label="Search by name or ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true" Placeholder="At least 3 characters..." Class="mb-4" />
 
 @if (!string.IsNullOrWhiteSpace(_searchText) && _searchText.Length >= 3)
 {
@@ -33,9 +33,9 @@
                   OnRowsPerPageChanged="OnRowsPerPageChanged">
             <HeaderContent>
                 <MudTh></MudTh>
-                <MudTh>Bild</MudTh>
+                <MudTh>Image</MudTh>
                 <MudTh>Name</MudTh>
-                <MudTh>Lego Part Nr.</MudTh>
+                <MudTh>Lego Part No.</MudTh>
                 <MudTh>Lego</MudTh>
                 <MudTh>BB</MudTh>
                 <MudTh>Cada</MudTh>
@@ -48,7 +48,7 @@
                         <MudIcon Icon="@Icons.Material.Filled.Add" />
                     </MudButton>
                 </MudTd>
-                <MudTd DataLabel="Bild">
+                <MudTd DataLabel="Image">
                     @{
                         var partNum = context.LegoPartNum ?? "";
                         var url = _partImageUrls.TryGetValue(partNum, out var u) ? u : null;
@@ -58,7 +58,7 @@
                     <img src="@imgUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
                 </MudTd>
                 <MudTd DataLabel="Name">@context.Name</MudTd>
-                <MudTd DataLabel="Lego Part Nr.">@context.LegoPartNum</MudTd>
+                <MudTd DataLabel="Lego Part No.">@context.LegoPartNum</MudTd>
                 <MudTd DataLabel="Lego">@context.LegoName</MudTd>
                 <MudTd DataLabel="BB">
                     @context.BbName
@@ -117,7 +117,7 @@
                     || b.Id.ToString().Contains(_searchText)
                 ).ToList();
 
-        // Paging übernimmt MudTable, keine eigene Paginierung mehr nötig
+        // Paging is handled by MudTable, no custom pagination needed
 
     [Inject]
     private IDialogService DialogService { get; set; } = default!;
@@ -126,9 +126,9 @@
     {
            var parameters = new DialogParameters<AddInventoryItemDialog>();
            parameters.Add(x => x.SelectedBrick, brick);
-           var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>("Teil zum Inventar hinzufügen", parameters);
+           var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>("Add item to inventory", parameters);
            var result = await dialog.Result;
-           // Optional: Feedback oder Refresh
+           // Optional: Feedback or Refresh
     }
 
     private async Task OnSearchTextChanged(string value)
@@ -182,7 +182,7 @@
         var parameters = new DialogParameters();
         parameters.Add("Brick", brick);
         parameters.Add("Brand", brand);
-        var dialog = await DialogService.ShowAsync<HelpMappingDialog>("Mapping helfen", parameters);
+        var dialog = await DialogService.ShowAsync<HelpMappingDialog>("Help with mapping", parameters);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled && result.Data is ValueTuple<string, string, string> tuple)
         {

@@ -1,4 +1,3 @@
-
 @using MudBlazor
 @using brickisbrickapp.Services
 @using brickisbrickapp.Data.Entities
@@ -52,7 +51,7 @@
             }
             </style>
             <!-- Brand Selection -->
-            <MudSelect Value="Brand" Label="Hersteller" Variant="Variant.Outlined" ValueChanged="@((string value) => OnBrandChanged(value))">
+            <MudSelect Value="Brand" Label="Brand" Variant="Variant.Outlined" ValueChanged="@((string value) => OnBrandChanged(value))">
                 <MudSelectItem Value="@("Lego")">Lego</MudSelectItem>
                 <MudSelectItem Value="@("BlueBrixx")">BlueBrixx</MudSelectItem>
                 <MudSelectItem Value="@("Cada")">Cada</MudSelectItem>
@@ -62,14 +61,14 @@
 
             <!-- Lego Part Number Autocomplete -->
             <MudAutocomplete T="MappedBrick"
-                             ValueChanged="@OnSelectedBrickChanged"
-                             Value="@SelectedBrick"
-                             SearchFunc="@SearchBricksByBrand"
-                             Label="Teilenummer / Name"
-                             ToStringFunc="@(b => b == null ? "" : GetBrickDisplay(b))"
-                             ResetValueOnEmptyText="true"
-                             MinCharacters="3"
-                             Variant="Variant.Outlined">
+                 ValueChanged="@OnSelectedBrickChanged"
+                 Value="@SelectedBrick"
+                 SearchFunc="@SearchBricksByBrand"
+                 Label="Part number / Name"
+                 ToStringFunc="@(b => b == null ? "" : GetBrickDisplay(b))"
+                 ResetValueOnEmptyText="true"
+                 MinCharacters="3"
+                 Variant="Variant.Outlined">
                 <ItemTemplate Context="brick">
                     <MudText>@GetBrickDisplay(brick)</MudText>
                 </ItemTemplate>
@@ -91,7 +90,7 @@
                         }
                     }
                 </MudStack>
-                <MudSelect T="BrickColor" @bind-Value="SelectedColor" Label="Farbe" Variant="Variant.Outlined">
+                <MudSelect T="BrickColor" @bind-Value="SelectedColor" Label="Color" Variant="Variant.Outlined">
                     @foreach (var color in Colors)
                     {
                         <MudSelectItem T="BrickColor" Value="@color">
@@ -106,9 +105,9 @@
 
     <!-- Quantity -->
             <MudNumericField @bind-Value="Quantity" 
-                             Label="Anzahl" 
-                             Min="1" 
-                             Variant="Variant.Outlined" />
+                 Label="Quantity" 
+                 Min="1" 
+                 Variant="Variant.Outlined" />
 
             <!-- Error Message -->
             @if (!string.IsNullOrEmpty(ErrorMessage))
@@ -118,9 +117,9 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
         <MudButton Color="Color.Primary" OnClick="Save" Disabled="@(SelectedBrick == null || SelectedColor == null)">
-            Hinzufügen
+            Add
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -232,7 +231,7 @@
 
         if (SelectedBrick == null || SelectedColor == null || Quantity <= 0)
         {
-            ErrorMessage = "Bitte fülle alle Felder aus.";
+            ErrorMessage = "Please fill out all fields.";
             return;
         }
 
@@ -240,7 +239,7 @@
         var brick = await BrickService.GetLegoPartByNumberAsync(SelectedBrick.LegoPartNum!);
         if (brick == null)
         {
-            ErrorMessage = "Dieser Lego-Stein existiert nicht.";
+            ErrorMessage = "This Lego brick does not exist.";
             return;
         }
 
@@ -252,7 +251,7 @@
         }
         else
         {
-            ErrorMessage = "Fehler beim Hinzufügen des Items.";
+            ErrorMessage = "Error adding item.";
         }
     }
 }
