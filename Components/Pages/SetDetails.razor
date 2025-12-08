@@ -4,6 +4,7 @@
 @using Services
 @using Data.Entities
 @using MudBlazor
+@using MudBlazor.Services
 @using brickisbrickapp.Components.Pages
 @using brickisbrickapp.Components.Dialogs
 @inject ItemSetService ItemSetService
@@ -83,7 +84,27 @@ else
         Steine in diesem Set
     </MudText>
 
-    <MudTable Items="_itemSet.Bricks">
+    <style>
+    .brick {
+        position: relative;
+        display: inline-block;
+        isolation: isolate;
+    }
+    .brick img {
+        display: block;
+    }
+    .brick::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--brick-overlay, transparent);
+        mix-blend-mode: multiply;
+        pointer-events: none;
+        border-radius: 4px;
+    }
+    </style>
+
+<MudTable Items="_itemSet.Bricks ?? Enumerable.Empty<ItemSetBrick>()">
     <HeaderContent>
         <MudTh>Bild</MudTh>
         <MudTh>Standard-Name</MudTh>
@@ -102,39 +123,28 @@ else
                 var partNum = context.MappedBrick.LegoPartNum ?? "";
                 var url = _partImageUrls.TryGetValue(partNum, out var u) ? u : null;
                 var placeholder = brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl;
-                var imgUrl = !string.IsNullOrWhiteSpace(url) ? url : placeholder;
                 var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
             }
-            @if (overlay != null)
-            {
-                <div class="brick" style="--brick-overlay:@overlay">
-                    <img src="@imgUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
-                </div>
-            }
-            else
-            {
-                <img src="@imgUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
-            }
+            <div style="position:relative;display:inline-block;min-width:48px;min-height:48px;">
+                @if (!string.IsNullOrWhiteSpace(url))
+                {
+                    @if (overlay != null)
+                    {
+                        <div class="brick" style="--brick-overlay:@overlay">
+                            <img src="@url" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                        </div>
+                    }
+                    else
+                    {
+                        <img src="@url" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                    }
+                }
+                else
+                {
+                    <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">Kein Bild</span>
+                }
+            </div>
         </MudTd>
-        <style>
-        .brick {
-            position: relative;
-            display: inline-block;
-            isolation: isolate;
-        }
-        .brick img {
-            display: block;
-        }
-        .brick::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: var(--brick-overlay, transparent);
-            mix-blend-mode: multiply;
-            pointer-events: none;
-            border-radius: 4px;
-        }
-        </style>
         <MudTd DataLabel="Standard-Name">@context.MappedBrick.Name</MudTd>
         <MudTd DataLabel="Farbe">@context.BrickColor?.Name</MudTd>
         <MudTd DataLabel="Lego">@context.MappedBrick.LegoName @if (!string.IsNullOrEmpty(context.MappedBrick.LegoPartNum)) { <span style="font-size: 0.9em; color: #999;">(@context.MappedBrick.LegoPartNum)</span> }</MudTd>

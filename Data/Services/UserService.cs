@@ -13,7 +13,6 @@ public class UserService
     private readonly NavigationManager _nav;
 
     private AppUser? _currentUser;
-    private bool _hasTriedLoadFromStorage = false;
 
     private const string TokenKey = "authToken";
     private const string UsernameKey = "username";
@@ -27,34 +26,26 @@ public class UserService
 
     public async Task<bool> IsAuthenticatedAsync()
     {
-        if (_currentUser != null)
-            return true;
-
-        // Verhindern, dass bei jedem Call erneut aus localStorage gelesen wird
-        if (_hasTriedLoadFromStorage)
-            return _currentUser != null;
-
-        _hasTriedLoadFromStorage = true;
-
+        // Prüfe IMMER den aktuellen Token im LocalStorage
         var token = await _js.InvokeAsync<string>("userAuth.getAuthToken");
 
         if (string.IsNullOrWhiteSpace(token))
+        {
+            _currentUser = null;
             return false;
+        }
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Uuid == token);
 
         if (user == null)
         {
-            // Token ungültig -> localStorage aufräumen
             await _js.InvokeVoidAsync("userAuth.clearAuth");
+            _currentUser = null;
             return false;
         }
 
         _currentUser = user;
-
-        // sicherstellen, dass Username auch im Storage steht
         await _js.InvokeVoidAsync("userAuth.setAuthInfo", user.Uuid, user.Name ?? string.Empty);
-
         return true;
     }
 
@@ -72,7 +63,6 @@ public class UserService
         }
 
         _currentUser = user;
-        _hasTriedLoadFromStorage = true;
 
         await _js.InvokeVoidAsync("userAuth.setAuthInfo", user.Uuid, user.Name ?? string.Empty);
 
@@ -113,7 +103,6 @@ public class UserService
     public async Task LogoutAsync()
     {
         _currentUser = null;
-        _hasTriedLoadFromStorage = false;
         await _js.InvokeVoidAsync("userAuth.clearAuth");
     }
 }

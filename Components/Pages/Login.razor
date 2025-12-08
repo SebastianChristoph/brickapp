@@ -27,8 +27,8 @@
     <MudButton Class="mt-4"
                Variant="Variant.Filled"
                Color="Color.Primary"
-               OnClick="LoginWithToken"
-               Disabled="@string.IsNullOrWhiteSpace(_token)">
+               Disabled="@string.IsNullOrWhiteSpace(_token)"
+               OnClick="LoginWithToken">
         Login
     </MudButton>
 </MudPaper>
@@ -50,6 +50,6 @@
         }
 
         // nach erfolgreichem Login irgendwohin navigieren
-        Nav.NavigateTo("/");
+        Nav.NavigateTo("/", true); // forceLoad: true
     }
 }

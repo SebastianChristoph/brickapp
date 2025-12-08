@@ -19,9 +19,9 @@
 
     @if (!string.IsNullOrEmpty(_username))
     {
-        <MudText Typo="Typo.body2" Class="mr-2">
-            Eingeloggt als @_username
-        </MudText>
+        <MudAvatar Class="mr-2" Size="Size.Medium" Color="Color.Primary">
+            @_username.Substring(0,1).ToUpper()
+        </MudAvatar>
     }
 
     <MudIconButton Icon="@Icons.Material.Filled.ExitToApp"
@@ -68,15 +68,12 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
 {
     var relativeUri = Nav.ToBaseRelativePath(Nav.Uri).ToLowerInvariant();
-
-    // Aktuellen Auth-Status holen
     var isAuth = await UserService.IsAuthenticatedAsync();
 
     if (!isAuth)
     {
         _username = null;
-
-        // Nur Home ("") und Login sind öffentlich
+        // Nur Home und Login sind öffentlich
         if (!string.IsNullOrEmpty(relativeUri) && !relativeUri.StartsWith("login"))
         {
             Nav.NavigateTo("/login", forceLoad: true);

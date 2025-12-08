@@ -5,24 +5,43 @@
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
         Home
     </MudNavLink>
-
-    
-        <MudNavLink Href="allbricks"
-                    Match="NavLinkMatch.Prefix"
-                    Icon="@Icons.Material.Filled.Add">
+    @if (_isAuthenticated)
+    {
+        <MudNavLink Href="allbricks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">
             All Mapped Bricks
         </MudNavLink>
-
-        <MudNavLink Href="allsets"
-                    Match="NavLinkMatch.Prefix"
-                    Icon="@Icons.Material.Filled.List">
+        <MudNavLink Href="allsets" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">
             All Sets
         </MudNavLink>
-
-        <MudNavLink Href="myinventory"
-                    Match="NavLinkMatch.Prefix"
-                    Icon="@Icons.Material.Filled.List">
+        <MudNavLink Href="myinventory" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">
             My Inventory
         </MudNavLink>
-    
+    }
+    else
+    {
+        <MudNavLink Href="login" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Login">
+            Login
+        </MudNavLink>
+    }
 </MudNavMenu>
+
+@code {
+    private bool _isAuthenticated;
+    private bool _hasRendered;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_hasRendered)
+        {
+            _isAuthenticated = await UserService.IsAuthenticatedAsync();
+            _hasRendered = true;
+            StateHasChanged();
+        }
+    }
+
+    public async Task RefreshMenuAsync()
+    {
+        _isAuthenticated = await UserService.IsAuthenticatedAsync();
+        StateHasChanged();
+    }
+}

@@ -15,8 +15,12 @@ namespace brickisbrickapp.Components.Pages
     public partial class SetDetails : ComponentBase
     {
 
+
     [Inject]
     public LoadingService? LoadingService { get; set; }
+
+    [Inject]
+    public RebrickablePartImageService RebrickablePartImageService { get; set; } = default!;
 
 
         private Dictionary<string, string> _partImageUrls = new();
@@ -79,6 +83,7 @@ namespace brickisbrickapp.Components.Pages
                 );
 
             // Lade die Bild-URLs für die Bricks des Sets
+
             if (_itemSet?.Bricks != null && _itemSet.Bricks.Any())
             {
                 var partNumsToLoad = _itemSet.Bricks
@@ -89,10 +94,15 @@ namespace brickisbrickapp.Components.Pages
                     .ToList();
                 if (partNumsToLoad.Count > 0)
                 {
-                    var imageService = new brickisbrickapp.Services.RebrickablePartImageService(new HttpClient());
-                    var urls = await imageService.GetPartImageUrlsBatchAsync(partNumsToLoad);
-                    foreach (var kv in urls)
-                        _partImageUrls[kv.Key] = kv.Value;
+                    // Bilder asynchron laden, aber Seite schon anzeigen (Lazy Loading)
+                    _ = Task.Run(async () => {
+                        var urls = await RebrickablePartImageService.GetPartImageUrlsBatchAsync(partNumsToLoad);
+                        foreach (var kv in urls)
+                        {
+                            _partImageUrls[kv.Key] = kv.Value;
+                        }
+                        await InvokeAsync(StateHasChanged);
+                    });
                 }
             }
 
