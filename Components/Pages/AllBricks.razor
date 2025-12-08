@@ -32,8 +32,8 @@
     }
     else
     {
-        <MudTable Items="_filteredBricks" Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize"
-            OnPageChanged="OnPageChanged" OnRowsPerPageChanged="OnRowsPerPageChanged">
+        <MudTable Items="bricks" Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize"
+                    OnPageChanged="OnPageChanged" OnRowsPerPageChanged="OnRowsPerPageChanged">
             <HeaderContent>
                 <MudTh></MudTh>
                 <MudTh>Image</MudTh>
@@ -211,24 +211,12 @@
 
 @code {
     private string? _username;
-    private List<MappedBrick>? bricks;
+    private List<MappedBrick> bricks = new();
+    private int totalCount = 0;
     private string _searchText = string.Empty;
-    // Key: BrickId
     private Dictionary<int, string> _imageUrls = new();
     private int _currentPage = 0;
     private int _pageSize = 25;
-    private List<MappedBrick> _filteredBricks =>
-    string.IsNullOrWhiteSpace(_searchText) || _searchText.Length < 3
-    ? bricks ?? new List<MappedBrick>()
-    : (bricks ?? new List<MappedBrick>()).Where(b =>
-    (b.Name?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-    || (b.LegoPartNum?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-    || (b.BbName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-    || (b.CadaName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-    || (b.PantasyName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-    || (b.MouldKingName?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-    || b.Id.ToString().Contains(_searchText)
-    ).ToList();
 
     // Paging is handled by MudTable, no custom pagination needed
 
@@ -257,14 +245,15 @@
     private async Task OnSearchTextChanged(string value)
     {
         _searchText = value;
-        await LoadImageUrlsAsync();
+        _currentPage = 0;
+        await LoadBricksAsync();
     }
 
     private async Task LoadImageUrlsAsync()
     {
         var imageService = new brickisbrickapp.Services.RebrickablePartImageService(new System.Net.Http.HttpClient());
         _imageUrls.Clear();
-        foreach (var brick in _filteredBricks)
+        foreach (var brick in bricks)
         {
             var partNum = brick.LegoPartNum;
             if (string.IsNullOrWhiteSpace(partNum))
@@ -284,26 +273,30 @@
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (!firstRender) return;
-
         _username = await UserService.GetUsernameAsync();
-        bricks = await BrickService.GetAllMappedBricksAsync();
-        await LoadImageUrlsAsync();
-        StateHasChanged();
+        await LoadBricksAsync();
     }
 
-    private void OnPageChanged(int page)
+    private async void OnPageChanged(int page)
     {
         _currentPage = page;
-        StateHasChanged();
+        await LoadBricksAsync();
     }
 
-    private void OnRowsPerPageChanged(int size)
+    private async void OnRowsPerPageChanged(int size)
     {
         _pageSize = size;
         _currentPage = 0;
+        await LoadBricksAsync();
+    }
+    private async Task LoadBricksAsync()
+    {
+        var result = await BrickService.GetPaginatedMappedBricksAsync(_currentPage + 1, _pageSize, _searchText);
+        bricks = result.Items;
+        totalCount = result.TotalCount;
+        await LoadImageUrlsAsync();
         StateHasChanged();
     }
 
@@ -332,8 +325,6 @@
 
     private async Task RefreshBricks()
     {
-        bricks = await BrickService.GetAllMappedBricksAsync();
-        await LoadImageUrlsAsync();
-        StateHasChanged();
+        await LoadBricksAsync();
     }
 }
