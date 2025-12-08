@@ -58,35 +58,58 @@ else
                 @{
                     List<InventoryItem> brandItems = brandGroup.ToList();
                 }
+
                 <MudTable T="InventoryItem"
                           Items="brandItems"
                           Hover="true"
                           Striped="true"
-                          SortLabel="Sort"
                           Sortable="true">
+
                     <HeaderContent>
-                        <MudTh SortBy="@((InventoryItem x) => x.MappedBrick != null ? x.MappedBrick.Name : string.Empty)">
-                            Brick
+                        <MudTh>
+                            <MudTableSortLabel T="InventoryItem"
+                                               SortBy="@(x => x.MappedBrick?.Name ?? string.Empty)">
+                                Brick
+                            </MudTableSortLabel>
                         </MudTh>
-                        <MudTh SortBy="@((InventoryItem x) => x.BrickColor != null ? x.BrickColor.Name : string.Empty)">
-                            Color
+
+                        <MudTh>
+                            <MudTableSortLabel T="InventoryItem"
+                                               SortBy="@(x => x.BrickColor?.Name ?? string.Empty)">
+                                Color
+                            </MudTableSortLabel>
                         </MudTh>
-                        <MudTh SortBy="@((InventoryItem x) => x.Brand)">
-                            Brand
+
+                        <MudTh>
+                            <MudTableSortLabel T="InventoryItem"
+                                               SortBy="@(x => x.Brand ?? string.Empty)">
+                                Brand
+                            </MudTableSortLabel>
                         </MudTh>
-                        <MudTh SortBy="@((InventoryItem x) => BrandIdSelector(x))">
-                            Brand ID
+
+                        <MudTh>
+                            <MudTableSortLabel T="InventoryItem"
+                                               SortBy="@(x => BrandIdSelector(x))">
+                                Brand ID
+                            </MudTableSortLabel>
                         </MudTh>
-                        <MudTh SortBy="@((InventoryItem x) => x.Quantity)">
-                            Quantity
+
+                        <MudTh>
+                            <MudTableSortLabel T="InventoryItem"
+                                               SortBy="@(x => x.Quantity)">
+                                Quantity
+                            </MudTableSortLabel>
                         </MudTh>
+
                         <MudTh>
                             Image
                         </MudTh>
+
                         <MudTh>
                             Actions
                         </MudTh>
                     </HeaderContent>
+
                     <RowTemplate>
                         <MudTd DataLabel="Brick">@context.MappedBrick?.Name</MudTd>
                         <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
@@ -186,16 +209,14 @@ else
     </style>
 }
 
-@code
-{
+@code {
     private Dictionary<string, string> _partImageUrls = new();
-
     private string? _username;
     private List<InventoryItem>? items;
     private bool _authChecked;
     private bool _isAuth;
 
-    // Selector für Sortierung nach Brand-spezifischer PartNum
+    // Selector for brand specific part number
     private static string BrandIdSelector(InventoryItem i)
     {
         var brand = i.Brand?.ToLowerInvariant();
@@ -217,7 +238,6 @@ else
 
         _authChecked = true;
 
-        // Auth check
         _isAuth = await UserService.IsAuthenticatedAsync();
 
         if (!_isAuth)
@@ -229,7 +249,6 @@ else
         _username = await UserService.GetUsernameAsync();
         items = await InventoryService.GetCurrentUserInventoryAsync();
 
-        // Bilder laden
         if (items != null && items.Any())
         {
             var partNumsToLoad = items
