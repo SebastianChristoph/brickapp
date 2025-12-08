@@ -84,7 +84,42 @@
         }
     </MudTabPanel>
     <MudTabPanel Text="@(openSetRequests == null ? "Set Requests" : $"Set Requests ({openSetRequests.Count})")">
-        <p>Set Requests content goes here.</p>
+        @if (openSetRequests == null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (!openSetRequests.Any())
+        {
+            <MudText>No open set requests found.</MudText>
+        }
+        else
+        {
+            <MudTable Items="openSetRequests" Hover="true">
+                <HeaderContent>
+                    <MudTh>Id</MudTh>
+                    <MudTh>Brand</MudTh>
+                    <MudTh>Set No</MudTh>
+                    <MudTh>Set Name</MudTh>
+                    <MudTh>Requested By</MudTh>
+                    <MudTh>Created At</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Id">@context.Id</MudTd>
+                    <MudTd DataLabel="Brand">@context.Brand</MudTd>
+                    <MudTd DataLabel="Set No">@context.SetNo</MudTd>
+                    <MudTd DataLabel="Set Name">@context.SetName</MudTd>
+                    <MudTd DataLabel="Requested By">@context.UserId</MudTd>
+                    <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                    <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ApproveNewSetRequest(context.Id)">Approve</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => RejectNewSetRequest(context.Id)">Reject</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
     </MudTabPanel>
 
     
@@ -210,20 +245,14 @@
             }
         }
 
-          private async Task RejectNewSetRequest(int requestId)
+    private async Task RejectNewSetRequest(int requestId)
     {
         try
         {
-            var token = await UserService.GetTokenAsync();
-            if (token == null)
-            {
-                NotificationService.Error("User token not found.");
-                return;
-            }
             string reason = "abgelehnt durch Admin"; // Optional: Dialog für Grund
-            await RequestService.RejectMappingRequestAsync(requestId, token, reason);
-            openMappingRequests = await RequestService.GetOpenMappingRequestsAsync();
-            NotificationService.Success("Mapping-Request erfolgreich abgelehnt.");
+            await RequestService.RejectNewSetRequestAsync(requestId, reason);
+            openSetRequests = await RequestService.GetOpenNewSetRequestsAsync();
+            NotificationService.Success("New set request erfolgreich abgelehnt.");
         }
         catch (Exception ex)
         {
