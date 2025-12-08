@@ -67,7 +67,7 @@
                         @context.LegoName
                         @if (!string.IsNullOrWhiteSpace(context.LegoPartNum))
                         {
-                            <span> [@context.LegoPartNum]</span>
+                            <MudText Typo="Typo.caption"> [@context.LegoPartNum]</MudText>
                         }
                     }
                     else
@@ -223,13 +223,19 @@
     [Inject]
     private IDialogService DialogService { get; set; } = default!;
 
+    [Inject]
+    private brickisbrickapp.Services.NotificationService NotificationService { get; set; } = default!;
+
     private async Task OpenAddInventoryDialog(MappedBrick brick)
     {
         var parameters = new DialogParameters<AddInventoryItemDialog>();
         parameters.Add(x => x.SelectedBrick, brick);
         var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>("Add item to inventory", parameters);
         var result = await dialog.Result;
-        // Optional: Feedback or Refresh
+        if (result is not null && result.Data is bool b && b)
+        {
+            NotificationService.Success("Item erfolgreich dem Inventar hinzugefügt!");
+        }
     }
 
     private async Task OpenAddItemDialog()
@@ -273,10 +279,14 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        _username = await UserService.GetUsernameAsync();
-        await LoadBricksAsync();
+        if (firstRender)
+        {
+            _username = await UserService.GetUsernameAsync();
+            await LoadBricksAsync();
+            StateHasChanged();
+        }
     }
 
     private async void OnPageChanged(int page)
