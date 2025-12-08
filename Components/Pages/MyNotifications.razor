@@ -19,6 +19,7 @@ else if (!_notifications.Any())
 }
 else
 {
+    <MudButton Color="Color.Primary" Variant="Variant.Filled" Style="margin-bottom: 16px;" OnClick="@MarkAllAsRead">Alle als gelesen markieren</MudButton>
     <MudList T="UserNotification">
         @foreach (var n in _notifications)
         {
@@ -64,5 +65,16 @@ else
         await NotificationService.MarkAsReadAsync(notification.Id);
         await LoadNotificationsAsync();
         StateHasChanged();
+    }
+
+    private async Task MarkAllAsRead()
+    {
+        var userUuid = await UserService.GetTokenAsync();
+        if (!string.IsNullOrEmpty(userUuid))
+        {
+            await NotificationService.MarkAllAsReadAsync(userUuid);
+            await LoadNotificationsAsync();
+            StateHasChanged();
+        }
     }
 }

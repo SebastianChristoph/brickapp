@@ -3,6 +3,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject UserService UserService
+@inject brickisbrickapp.Data.Services.UserNotificationService NotificationService
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="false" />
 <MudPopoverProvider />
@@ -16,6 +17,14 @@
                    OnClick="@((e) => DrawerToggle())" />
     <MudText Typo="Typo.h5" Class="ml-3">BrickIsBrick</MudText>
     <MudSpacer />
+
+    <MudIconButton Icon="@Icons.Material.Filled.Notifications"
+                   Color="Color.Inherit"
+                   Edge="Edge.End"
+                   OnClick="GoToNotifications"
+                   Style="margin-right:8px">
+        <MudBadge BadgeContent="@_newNotificationCount" Color="Color.Error" Visible="@(_newNotificationCount > 0)" Overlap="true" />
+    </MudIconButton>
 
     @if (!string.IsNullOrEmpty(_username))
     {
@@ -34,8 +43,10 @@
     <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <NavMenu />
     </MudDrawer>
-    <MudMainContent Class="pt-16 pa-4">
+    <MudMainContent>
+    <MudContainer Fixed="true" Class="mt-8 ml-8">
         @Body
+        </MudContainer>
         <GlobalLoading />
     </MudMainContent>
 </MudLayout>
@@ -52,6 +63,7 @@
     private MudTheme? _theme = null;
 
     private string? _username;
+    private int _newNotificationCount = 0;
 
      protected override void OnInitialized()
     {
@@ -66,29 +78,47 @@
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
-{
-    var relativeUri = Nav.ToBaseRelativePath(Nav.Uri).ToLowerInvariant();
-    var isAuth = await UserService.IsAuthenticatedAsync();
-
-    if (!isAuth)
     {
-        _username = null;
-        // Only Home and Login are public
-        if (!string.IsNullOrEmpty(relativeUri) && !relativeUri.StartsWith("login"))
+        var relativeUri = Nav.ToBaseRelativePath(Nav.Uri).ToLowerInvariant();
+        var isAuth = await UserService.IsAuthenticatedAsync();
+
+        if (!isAuth)
         {
-            Nav.NavigateTo("/login", forceLoad: true);
+            _username = null;
+            _newNotificationCount = 0;
+            // Only Home and Login are public
+            if (!string.IsNullOrEmpty(relativeUri) && !relativeUri.StartsWith("login"))
+            {
+                Nav.NavigateTo("/login", forceLoad: true);
+            }
+        }
+        else
+        {
+            var name = await UserService.GetUsernameAsync();
+            if (name != _username)
+            {
+                _username = name;
+                StateHasChanged();
+            }
+            await UpdateNotificationCountAsync();
         }
     }
-    else
+
+    private async Task UpdateNotificationCountAsync()
     {
-        var name = await UserService.GetUsernameAsync();
-        if (name != _username)
+        var userUuid = await UserService.GetTokenAsync();
+        if (!string.IsNullOrEmpty(userUuid))
         {
-            _username = name;
+            var notifications = await NotificationService.GetNotificationsForUserAsync(userUuid);
+            _newNotificationCount = notifications.Count(n => !n.IsRead);
             StateHasChanged();
         }
     }
-}
+
+    private void GoToNotifications()
+    {
+        Nav.NavigateTo("/my-notifications");
+    }
 
     private void DrawerToggle()
     {

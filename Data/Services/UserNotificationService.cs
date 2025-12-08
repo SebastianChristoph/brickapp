@@ -43,5 +43,20 @@ namespace brickisbrickapp.Data.Services
                 await _db.SaveChangesAsync();
             }
         }
+
+            public async Task MarkAllAsReadAsync(string userUuid)
+            {
+                var notifications = await _db.UserNotifications
+                    .Where(n => n.UserUuid == userUuid && !n.IsRead)
+                    .ToListAsync();
+                foreach (var notification in notifications)
+                {
+                    notification.IsRead = true;
+                }
+                if (notifications.Count > 0)
+                {
+                    await _db.SaveChangesAsync();
+                }
+            }
     }
 }
