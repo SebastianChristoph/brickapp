@@ -19,7 +19,7 @@ builder.Services.AddScoped<UserService>();
 
 builder.Services.AddScoped<MappedBrickService>();
 builder.Services.AddScoped<UserNotificationService>();
-builder.Services.AddScoped<MappingRequestService>(); // MappingRequestService bekommt UserNotificationService über DI
+builder.Services.AddScoped<RequestService>(); // RequestService bekommt UserNotificationService über DI
 
 
 builder.Services.AddScoped<InventoryService>();
@@ -35,11 +35,6 @@ builder.Services.AddHttpClient<RebrickablePartImageService>();
 // ItemUploadService: needs wwwroot path
 builder.Services.AddScoped<ItemUploadService>(sp =>
     new ItemUploadService(Path.Combine(builder.Environment.ContentRootPath, "wwwroot")));
-
-// NewItemRequestService
-builder.Services.AddScoped<NewItemRequestService>();
-// NewSetRequestService
-builder.Services.AddScoped<NewSetRequestService>();
 
 // MudBlazor
 builder.Services.AddMudServices();

@@ -4,9 +4,7 @@
 @using brickisbrickapp.Data.Services
 @using brickisbrickapp.Services
 @inject UserService UserService
-@inject MappingRequestService MappingRequestService
-@inject NewItemRequestService NewItemRequestService
-
+@inject RequestService RequestService
 <PageTitle>My Requests</PageTitle>
 
 <MudTabs>
@@ -102,8 +100,8 @@
         var userId = await UserService.GetTokenAsync();
         if (userId != null)
         {
-            _mappingRequests = await MappingRequestService.GetRequestsByUserAsync(userId);
-            _itemRequests = await NewItemRequestService.GetRequestsByUserAsync(userId);
+            _mappingRequests = await RequestService.GetMappingRequestsByUserAsync(userId);
+            _itemRequests = await RequestService.GetNewItemRequestsByUserAsync(userId);
         }
     }
 }

@@ -1,10 +1,10 @@
 @namespace brickisbrickapp.Components.Dialogs
 @using Microsoft.AspNetCore.Components.Forms
 @using brickisbrickapp.Data.Entities
+@using brickisbrickapp.Data.Services
+@inject brickisbrickapp.Data.Services.RequestService RequestService
 @inject brickisbrickapp.Data.Services.ItemUploadService ItemUploadService
 @inject brickisbrickapp.Services.MappedBrickService BrickService
-@inject brickisbrickapp.Data.Services.NewItemRequestService NewItemRequestService
-
 @inject brickisbrickapp.Services.UserService UserService
 @inject brickisbrickapp.Services.NotificationService NotificationService
 
@@ -89,7 +89,7 @@
             _errorMessage = "User not authenticated.";
             return;
         }
-        await NewItemRequestService.CreateRequestAsync(Brand, Name, imagePath, userId);
+        await RequestService.CreateNewItemRequestAsync(Brand, Name, imagePath, userId);
         NotificationService.Success($"Item '{Name}' added successfully as a request! An admin has to approve it. You will be notified in your notification area once it's approved.");
         MudDialog?.Close(DialogResult.Ok(true));
     }

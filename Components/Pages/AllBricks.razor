@@ -6,7 +6,7 @@
 @using brickisbrickapp.Components.Dialogs
 @inject UserService UserService
 @inject MappedBrickService BrickService
-@inject MappingRequestService MappingRequestService
+@inject RequestService RequestService
 
 
 
@@ -326,7 +326,7 @@
         var userId = await UserService.GetTokenAsync();
         if (userId is null)
             return;
-        await MappingRequestService.CreateRequestAsync(brick.Id, brand, mappingName, mappingItemId, userId);
+        await RequestService.CreateMappingRequestAsync(brick.Id, brand, mappingName, mappingItemId, userId);
         await RefreshBricks();
     }
 

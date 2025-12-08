@@ -1,5 +1,7 @@
+  
 @page "/admin-requests"
 @using Microsoft.AspNetCore.Components
+@using brickisbrickapp.Services
 
 <PageTitle>Admin Requests</PageTitle>
 
@@ -26,6 +28,7 @@
                     <MudTh>Mapping ItemId</MudTh>
                     <MudTh>Requested By</MudTh>
                     <MudTh>Created At</MudTh>
+                    <MudTh>Actions</MudTh>
                 <!-- Actions column entfernt -->
                 </HeaderContent>
                 <RowTemplate>
@@ -37,7 +40,8 @@
                     <MudTd DataLabel="Requested By">@context.RequestedByUser?.Name</MudTd>
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Actions">
-                     
+                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ApproveMappingRequest(context.Id)">Approve</MudButton>
+                      <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => RejectMappingRequest(context.Id)">Reject</MudButton>
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -62,6 +66,7 @@
                     <MudTh>Requested By</MudTh>
                     <MudTh>Created At</MudTh>
                     <MudTh>Status</MudTh>
+                    <MudTh>Actions</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Id">@context.Id</MudTd>
@@ -70,11 +75,15 @@
                     <MudTd DataLabel="Requested By">@context.RequestedByUser?.Name ?? @context.RequestedByUserId</MudTd>
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
+                      <MudTd DataLabel="Actions">
+                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ApproveNewItemRequest(context.Id)">Approve</MudButton>
+                      <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => RejectNewItemRequest(context.Id)">Reject</MudButton>
+                      </MudTd>
                 </RowTemplate>
             </MudTable>
         }
     </MudTabPanel>
-    <MudTabPanel Text="@(setRequests == null ? "Set Requests" : $"Set Requests ({setRequests.Count})")">
+    <MudTabPanel Text="@(openSetRequests == null ? "Set Requests" : $"Set Requests ({openSetRequests.Count})")">
         <p>Set Requests content goes here.</p>
     </MudTabPanel>
 
@@ -82,17 +91,144 @@
     </MudTabs>
 
     @code {
-    [Inject] private brickisbrickapp.Data.Services.MappingRequestService MappingRequestService { get; set; } = default!;
-    [Inject] private brickisbrickapp.Data.Services.NewItemRequestService NewItemRequestService { get; set; } = default!;
+    [Inject] private brickisbrickapp.Data.Services.RequestService RequestService { get; set; } = default!;
+
+    [Inject] private brickisbrickapp.Services.NotificationService NotificationService { get; set; } = default!;
+    [Inject] private Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    [Inject] private brickisbrickapp.Services.UserService UserService { get; set; } = default!;
 
     private List<brickisbrickapp.Data.Entities.MappingRequest>? openMappingRequests;
     private List<brickisbrickapp.Data.Entities.NewItemRequest>? openItemRequests;
-    private List<object>? setRequests;
+    private List<brickisbrickapp.Data.Entities.NewSetRequest>? openSetRequests;
 
         protected override async Task OnInitializedAsync()
         {
-            openMappingRequests = await MappingRequestService.GetOpenRequestsAsync();
-            openItemRequests = await NewItemRequestService.GetOpenRequestsAsync();
+            openMappingRequests = await RequestService.GetOpenMappingRequestsAsync();
+            openItemRequests = await  RequestService.GetOpenNewItemRequestsAsync();
+            openSetRequests = await RequestService.GetOpenNewSetRequestsAsync();
         }
+        private async Task ApproveMappingRequest(int requestId)
+        {
+            try
+            {
+                var token = await UserService.GetTokenAsync();
+            if (token == null)
+            {
+                NotificationService.Error("User token not found.");
+                return;
+            }
+                await RequestService.ApproveMappingRequestAsync(requestId, token);
+                NotificationService.Success("Mapping request approved successfully.");
+                openMappingRequests = await RequestService.GetOpenMappingRequestsAsync();
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Error($"Error approving request: {ex.Message}");
+            }
+        }
+
+          private async Task RejectMappingRequest(int requestId)
+    {
+        try
+        {
+            var token = await UserService.GetTokenAsync();
+            if (token == null)
+            {
+                NotificationService.Error("User token not found.");
+                return;
+            }
+            string reason = "abgelehnt durch Admin"; // Optional: Dialog für Grund
+            await RequestService.RejectMappingRequestAsync(requestId, token, reason);
+            openMappingRequests = await RequestService.GetOpenMappingRequestsAsync();
+            NotificationService.Success("Mapping-Request erfolgreich abgelehnt.");
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Error($"Fehler beim Ablehnen: {ex.Message}");
+        }
+    }
+
+      private async Task ApproveNewItemRequest(int requestId)
+        {
+            try
+            {
+                var token = await UserService.GetTokenAsync();
+            if (token == null)
+            {
+                NotificationService.Error("User token not found.");
+                return;
+            }
+                await RequestService.ApproveNewItemRequestAsync(requestId, token);
+                NotificationService.Success("new item request approved successfully.");
+                openItemRequests = await RequestService.GetOpenNewItemRequestsAsync();
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Error($"Error approving request: {ex.Message}");
+            }
+        }
+
+          private async Task RejectNewItemRequest(int requestId)
+    {
+        try
+        {
+            var token = await UserService.GetTokenAsync();
+            if (token == null)
+            {
+                NotificationService.Error("User token not found.");
+                return;
+            }
+            string reason = "abgelehnt durch Admin"; // Optional: Dialog für Grund
+            await RequestService.RejectNewItemRequestAsync(requestId, token, reason);
+            openItemRequests = await RequestService.GetOpenNewItemRequestsAsync();
+            NotificationService.Success("New item request erfolgreich abgelehnt.");
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Error($"Fehler beim Ablehnen: {ex.Message}");
+        }
+    }
+
+
+      private async Task ApproveNewSetRequest(int requestId)
+        {
+            try
+            {
+                var token = await UserService.GetTokenAsync();
+            if (token == null)
+            {
+                NotificationService.Error("User token not found.");
+                return;
+            }
+                await RequestService.ApproveNewSetRequestAsync(requestId);
+                NotificationService.Success("New set request approved successfully.");
+                openSetRequests = await RequestService.GetOpenNewSetRequestsAsync();
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Error($"Error approving request: {ex.Message}");
+            }
+        }
+
+          private async Task RejectNewSetRequest(int requestId)
+    {
+        try
+        {
+            var token = await UserService.GetTokenAsync();
+            if (token == null)
+            {
+                NotificationService.Error("User token not found.");
+                return;
+            }
+            string reason = "abgelehnt durch Admin"; // Optional: Dialog für Grund
+            await RequestService.RejectMappingRequestAsync(requestId, token, reason);
+            openMappingRequests = await RequestService.GetOpenMappingRequestsAsync();
+            NotificationService.Success("Mapping-Request erfolgreich abgelehnt.");
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Error($"Fehler beim Ablehnen: {ex.Message}");
+        }
+    }
     }
    
