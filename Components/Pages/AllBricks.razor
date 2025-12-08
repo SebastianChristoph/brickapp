@@ -15,86 +15,85 @@
 
 <MudTextField Value="_searchText" ValueChanged="@(async (string e) => await OnSearchTextChanged(e))" Label="Suche nach Name oder ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true" Placeholder="Mindestens 3 Zeichen..." Class="mb-4" />
 
-@if (bricks is null)
+@if (!string.IsNullOrWhiteSpace(_searchText) && _searchText.Length >= 3)
 {
-    <MudProgressCircular Indeterminate="true" />
-}
-else
-{
-    <MudTable Items="_filteredBricks"
-              Hover="true"
-              Striped="true"
-              Dense="false"
-              Page="_currentPage"
-              RowsPerPage="_pageSize"
-              OnPageChanged="OnPageChanged"
-              OnRowsPerPageChanged="OnRowsPerPageChanged">
-        <HeaderContent>
-            <MudTh></MudTh>
-            <MudTh>Bild</MudTh>
-        
-          
-            <MudTh>Name</MudTh>
-            <MudTh>Lego Part Nr.</MudTh>
-            <MudTh>Lego</MudTh>
-            <MudTh>BB</MudTh>
-            <MudTh>Cada</MudTh>
-            <MudTh>Pantasy</MudTh>
-            <MudTh>Mould King</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>
-                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => OpenAddInventoryDialog(context))">
-                    <MudIcon Icon="@Icons.Material.Filled.Add" />
-                </MudButton>
-            </MudTd>
-            <MudTd DataLabel="Bild">
-                @{
-                    var partNum = context.LegoPartNum ?? "";
-                    var url = _partImageUrls.TryGetValue(partNum, out var u) ? u : null;
-                    var placeholder = brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl;
-                    var imgUrl = !string.IsNullOrWhiteSpace(url) ? url : placeholder;
-                }
-                <img src="@imgUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
-            </MudTd>
-         
-       
-            <MudTd DataLabel="Name">@context.Name</MudTd>
-            <MudTd DataLabel="Lego Part Nr.">@context.LegoPartNum</MudTd>
-            <MudTd DataLabel="Lego">@context.LegoName</MudTd>
-            <MudTd DataLabel="BB">
-                @context.BbName
-                @if (string.IsNullOrWhiteSpace(context.BbName))
-                {
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "BB"))">Help Mapping</MudButton>
-                }
-            </MudTd>
-            <MudTd DataLabel="Cada">
-                @context.CadaName
-                @if (string.IsNullOrWhiteSpace(context.CadaName))
-                {
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "Cada"))">Help Mapping</MudButton>
-                }
-            </MudTd>
-            <MudTd DataLabel="Pantasy">
-                @context.PantasyName
-                @if (string.IsNullOrWhiteSpace(context.PantasyName))
-                {
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "Pantasy"))">Help Mapping</MudButton>
-                }
-            </MudTd>
-            <MudTd DataLabel="Mould King">
-                @context.MouldKingName
-                @if (string.IsNullOrWhiteSpace(context.MouldKingName))
-                {
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "Mould King"))">Help Mapping</MudButton>
-                }
-            </MudTd>
-        </RowTemplate>
-        <PagerContent>
-            <MudTablePager PageSizeOptions="new int[]{25, 50, 100}" />
-        </PagerContent>
-    </MudTable>
+    if (bricks is null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudTable Items="_filteredBricks"
+                  Hover="true"
+                  Striped="true"
+                  Dense="false"
+                  Page="_currentPage"
+                  RowsPerPage="_pageSize"
+                  OnPageChanged="OnPageChanged"
+                  OnRowsPerPageChanged="OnRowsPerPageChanged">
+            <HeaderContent>
+                <MudTh></MudTh>
+                <MudTh>Bild</MudTh>
+                <MudTh>Name</MudTh>
+                <MudTh>Lego Part Nr.</MudTh>
+                <MudTh>Lego</MudTh>
+                <MudTh>BB</MudTh>
+                <MudTh>Cada</MudTh>
+                <MudTh>Pantasy</MudTh>
+                <MudTh>Mould King</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => OpenAddInventoryDialog(context))">
+                        <MudIcon Icon="@Icons.Material.Filled.Add" />
+                    </MudButton>
+                </MudTd>
+                <MudTd DataLabel="Bild">
+                    @{
+                        var partNum = context.LegoPartNum ?? "";
+                        var url = _partImageUrls.TryGetValue(partNum, out var u) ? u : null;
+                        var placeholder = brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl;
+                        var imgUrl = !string.IsNullOrWhiteSpace(url) ? url : placeholder;
+                    }
+                    <img src="@imgUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;" onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                </MudTd>
+                <MudTd DataLabel="Name">@context.Name</MudTd>
+                <MudTd DataLabel="Lego Part Nr.">@context.LegoPartNum</MudTd>
+                <MudTd DataLabel="Lego">@context.LegoName</MudTd>
+                <MudTd DataLabel="BB">
+                    @context.BbName
+                    @if (string.IsNullOrWhiteSpace(context.BbName))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "BB"))">Help Mapping</MudButton>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Cada">
+                    @context.CadaName
+                    @if (string.IsNullOrWhiteSpace(context.CadaName))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "Cada"))">Help Mapping</MudButton>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Pantasy">
+                    @context.PantasyName
+                    @if (string.IsNullOrWhiteSpace(context.PantasyName))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "Pantasy"))">Help Mapping</MudButton>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Mould King">
+                    @context.MouldKingName
+                    @if (string.IsNullOrWhiteSpace(context.MouldKingName))
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" OnClick="@(() => OpenHelpMappingDialog(context, "Mould King"))">Help Mapping</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[]{25, 50, 100}" />
+            </PagerContent>
+        </MudTable>
+    }
 }
 
 @code {
