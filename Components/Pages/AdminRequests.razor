@@ -6,7 +6,7 @@
 <h3>Admin Requests</h3>
 
 <MudTabs>
-    <MudTabPanel Text="Mapping Requests">
+    <MudTabPanel Text="@(openMappingRequests == null ? "Mapping Requests" : $"Mapping Requests ({openMappingRequests.Count})")">
         @if (openMappingRequests == null)
         {
             <MudProgressCircular Indeterminate="true" />
@@ -26,7 +26,7 @@
                     <MudTh>Mapping ItemId</MudTh>
                     <MudTh>Requested By</MudTh>
                     <MudTh>Created At</MudTh>
-                <MudTh>Actions</MudTh>
+                <!-- Actions column entfernt -->
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Id">@context.Id</MudTd>
@@ -37,15 +37,13 @@
                     <MudTd DataLabel="Requested By">@context.RequestedByUser?.Name</MudTd>
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Actions">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="isDialogOpen" OnClick="@(() => OnDetailsClickAsync(context))" ButtonType="ButtonType.Button">Details</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small" Disabled="isDialogOpen" OnClick="@(() => OnApproveClickAsync(context))" ButtonType="ButtonType.Button" style="margin-left:8px;">Approve</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" Disabled="isDialogOpen" OnClick="@(() => OnRejectClickAsync(context))" ButtonType="ButtonType.Button" style="margin-left:8px;">Reject</MudButton>
+                     
                     </MudTd>
                 </RowTemplate>
             </MudTable>
         }
     </MudTabPanel>
-     <MudTabPanel Text="Item Requests">
+    <MudTabPanel Text="@(openItemRequests == null ? "Item Requests" : $"Item Requests ({openItemRequests.Count})")">
         @if (openItemRequests == null)
         {
             <MudProgressCircular Indeterminate="true" />
@@ -76,7 +74,7 @@
             </MudTable>
         }
     </MudTabPanel>
-    <MudTabPanel Text="Set Requests">
+    <MudTabPanel Text="@(setRequests == null ? "Set Requests" : $"Set Requests ({setRequests.Count})")">
         <p>Set Requests content goes here.</p>
     </MudTabPanel>
 
@@ -84,106 +82,17 @@
     </MudTabs>
 
     @code {
-        [Inject] private brickisbrickapp.Data.Services.MappingRequestService MappingRequestService { get; set; } = default!;
-        [Inject] private brickisbrickapp.Services.RebrickablePartImageService RebrickablePartImageService { get; set; } = default!;
-        [Inject] private IDialogService DialogService { get; set; } = default!;
-        [Inject] private brickisbrickapp.Services.UserService UserService { get; set; } = default!;
-        [Inject] private brickisbrickapp.Services.NotificationService NotificationService { get; set; } = default!;
-        private async Task OnApproveClickAsync(brickisbrickapp.Data.Entities.MappingRequest request)
-        {
-            if (isDialogOpen) return;
-            isDialogOpen = true;
-            try
-            {
-                var currentUser = await UserService.GetCurrentUserAsync();
-                if (currentUser == null || !currentUser.IsAdmin)
-                {
-                    NotificationService.Error("Nur Admins können Requests genehmigen.");
-                    return;
-                }
-                await MappingRequestService.ApproveRequestAsync(request.Id, currentUser.Uuid);
-                openMappingRequests = await MappingRequestService.GetOpenRequestsAsync();
-                NotificationService.Success($"Mapping-Request für '{request.MappingName}' wurde genehmigt.");
-            }
-            finally
-            {
-                isDialogOpen = false;
-            }
-        }
+    [Inject] private brickisbrickapp.Data.Services.MappingRequestService MappingRequestService { get; set; } = default!;
+    [Inject] private brickisbrickapp.Data.Services.NewItemRequestService NewItemRequestService { get; set; } = default!;
 
-        private List<brickisbrickapp.Data.Entities.MappingRequest>? openMappingRequests;
-        private List<brickisbrickapp.Data.Entities.NewItemRequest>? openItemRequests;
-        [Inject] private brickisbrickapp.Data.Services.NewItemRequestService NewItemRequestService { get; set; } = default!;
-        private bool isDialogOpen = false;
+    private List<brickisbrickapp.Data.Entities.MappingRequest>? openMappingRequests;
+    private List<brickisbrickapp.Data.Entities.NewItemRequest>? openItemRequests;
+    private List<object>? setRequests;
 
         protected override async Task OnInitializedAsync()
         {
             openMappingRequests = await MappingRequestService.GetOpenRequestsAsync();
             openItemRequests = await NewItemRequestService.GetOpenRequestsAsync();
-        }
-
-        private async Task OnDetailsClickAsync(brickisbrickapp.Data.Entities.MappingRequest request)
-        {
-            if (request == null)
-                return;
-            var brick = request.Brick;
-            if (brick == null)
-            {
-                var parameters = new DialogParameters
-                {
-                    ["Request"] = request,
-                    ["PartImageUrl"] = null
-                };
-                await DialogService.ShowAsync<brickisbrickapp.Components.Dialogs.MappingRequestDetailsDialog>("Mapping Request Details", parameters);
-                return;
-            }
-            string? partNum = request.Brand switch
-            {
-                "BB" => brick.BbPartNum,
-                "Cada" => brick.CadaPartNum,
-                "Pantasy" => brick.PantasyPartNum,
-                "Mould King" => brick.MouldKingPartNum,
-                "Unknown" => brick.UnknownPartNum,
-                _ => brick.LegoPartNum
-            };
-            var partImageUrl = await RebrickablePartImageService.GetPartImageUrlAsync(partNum ?? string.Empty, request.Brand, brick.Name);
-            var parametersWithImage = new DialogParameters
-            {
-                ["Request"] = request,
-                ["PartImageUrl"] = partImageUrl
-            };
-            await DialogService.ShowAsync<brickisbrickapp.Components.Dialogs.MappingRequestDetailsDialog>("Mapping Request Details", parametersWithImage);
-        }
-        private async Task OnRejectClickAsync(brickisbrickapp.Data.Entities.MappingRequest request)
-        {
-            if (isDialogOpen) return;
-            isDialogOpen = true;
-            try
-            {
-                var parameters = new DialogParameters
-                {
-                    ["Request"] = request
-                };
-                var dialogRef = await DialogService.ShowAsync<brickisbrickapp.Components.Dialogs.RejectMappingRequestDialog>("Mapping-Request ablehnen", parameters);
-                var result = await dialogRef.Result;
-                if (result != null && !result.Canceled && result.Data is string reason && !string.IsNullOrWhiteSpace(reason))
-                {
-                    // Hole die aktuelle Admin-UUID aus dem UserService
-                    var currentUser = await UserService.GetCurrentUserAsync();
-                    if (currentUser == null || !currentUser.IsAdmin)
-                    {
-                        // Optional: Fehlerbehandlung, falls kein Admin
-                        return;
-                    }
-                    string adminUserId = currentUser.Uuid;
-                    await MappingRequestService.RejectRequestAsync(request.Id, adminUserId, reason);
-                    openMappingRequests = await MappingRequestService.GetOpenRequestsAsync();
-                }
-            }
-            finally
-            {
-                isDialogOpen = false;
-            }
         }
     }
    
