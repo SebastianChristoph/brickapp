@@ -24,6 +24,23 @@ else if (_mock == null)
 }
 else
 {
+    <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudProgressLinear Value="@Percent" Color="@(HasAll ? Color.Success : Color.Primary)" Style="min-width:200px;max-width:300px;width:30vw;" />
+            <MudText Typo="Typo.body1" Class="ml-4">
+                @if (HasAll)
+                {
+                    <b>Du hast alle Steine, du kannst es bauen!</b>
+                }
+                else
+                {
+                    <span>@TotalOwned von @TotalNeeded Steinen im Inventar (@Percent%)<br />Fehlend: @TotalMissing</span>
+                }
+            </MudText>
+        </MudStack>
+    </MudPaper>
+  
+
 
     <MudText Typo="Typo.h5">@_mock.Name</MudText>
     <MudText Typo="Typo.subtitle2" Class="mb-2">Typ: @_mock.MockType</MudText>
@@ -36,40 +53,35 @@ else
 
     @if (_mock?.Items != null && _mock.Items.Any(i => i.MappedBrickId == null))
     {
-        <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
-            <MudText Color="Color.Warning" Typo="Typo.subtitle2">
-                Für folgende Items wurde kein MappedBrick gefunden:
-            </MudText>
-
-            <MudList T="string">
-                @foreach (var item in _mock.Items.Where(i => i.MappedBrickId == null))
-                {
-                    var bricklinkUrl = $"https://www.bricklink.com/v2/search.page?q={item.ExternalPartNum}#T=P";
-                    // oder: string bricklinkUrl = ...
-
-                    <MudListItem T="string">
-                        <MudText>
-                            ITEMID:
-                            @if (_mock.MockType == "bricklink" && !string.IsNullOrWhiteSpace(item.ExternalPartNum))
-                            {
-                                <b>
-                                    <a href="@bricklinkUrl" target="_blank" rel="noopener noreferrer">
-                                        @item.ExternalPartNum
-                                    </a>
-                                </b>
-                            }
-                            else
-                            {
-                                <b>@item.ExternalPartNum blop</b>
-                            }
-                            , COLOR: <b>@item.BrickColorId</b>,
-                            QTY: <b>@item.Quantity</b>
-                        </MudText>
-                    </MudListItem>
-                }
-
-            </MudList>
-        </MudPaper>
+        <MudExpansionPanels>
+            <MudExpansionPanel Text="Für folgende Items wurde kein MappedBrick gefunden:" Color="Color.Warning" Style="background:#fffbe6;border:1px solid #ffe082;">
+                <MudList T="string">
+                    @foreach (var item in _mock.Items.Where(i => i.MappedBrickId == null))
+                    {
+                        var bricklinkUrl = $"https://www.bricklink.com/v2/search.page?q={item.ExternalPartNum}#T=P";
+                        <MudListItem T="string">
+                            <MudText>
+                                ITEMID:
+                                @if (_mock.MockType == "bricklink" && !string.IsNullOrWhiteSpace(item.ExternalPartNum))
+                                {
+                                    <b>
+                                        <a href="@bricklinkUrl" target="_blank" rel="noopener noreferrer">
+                                            @item.ExternalPartNum
+                                        </a>
+                                    </b>
+                                }
+                                else
+                                {
+                                    <b>@item.ExternalPartNum blop</b>
+                                }
+                                , COLOR: <b>@item.BrickColorId</b>,
+                                QTY: <b>@item.Quantity</b>
+                            </MudText>
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
     }
 
 
@@ -207,10 +219,11 @@ else
             </MudTd>
         </RowTemplate>
     </MudTable>
-
     <MudButton Class="mt-4" Variant="Variant.Outlined" OnClick="GoBack">
         Zurück
     </MudButton>
+    }
+}
 }
 
 @code {
@@ -219,6 +232,21 @@ else
     private bool _loading = true;
     private Dictionary<string, string> _partImageUrls = new();
     private Dictionary<(int, int), Dictionary<string, int>> _ownedByBrand = new();
+
+      private int TotalNeeded => _mock?.Items?.Sum(i => i.Quantity) ?? 0;
+    private int TotalOwned => _mock?.Items?.Sum(i => Math.Min(GetOwnedQuantity(i), i.Quantity)) ?? 0;
+    private int TotalMissing => TotalNeeded - TotalOwned;
+    private int Percent => (TotalNeeded > 0 && TotalOwned == TotalNeeded)
+        ? 100
+        : (TotalNeeded > 0 ? (int)Math.Floor(100.0 * (double)TotalOwned / TotalNeeded) : 0);
+    private bool HasAll => TotalNeeded > 0 && TotalOwned == TotalNeeded;
+
+    private int GetOwnedQuantity(MockItem item)
+    {
+        return _ownedByBrand.TryGetValue((item.MappedBrickId ?? 0, item.BrickColorId ?? 0), out var brandDict)
+            ? brandDict.Values.Sum()
+            : 0;
+    }
 
     private async Task OpenAddMockDialog()
     {
