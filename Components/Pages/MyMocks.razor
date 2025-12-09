@@ -9,11 +9,34 @@
 
 <h3>My Mocks</h3>
 
+
 <MudPaper Class="pa-4 mb-4">
+        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAllMocks" Class="ml-2">Alle Mocks löschen</MudButton>
     <MudText Typo="Typo.h6">Neues Mock hochladen</MudText>
+    <MudSelect @bind-Value="selectedFormat" Label="Dateiformat" Style="width:200px;">
+        <MudSelectItem Value="@("Bricklink")">Bricklink List (XML)</MudSelectItem>
+        <!-- Weitere Formate später -->
+    </MudSelect>
     <InputFile OnChange="OnFileSelected" accept=".xml" />
     <MudText Color="Color.Error">@uploadError</MudText>
 </MudPaper>
+
+@if (unmappedItems.Count > 0)
+    {
+        <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
+            <MudText Color="Color.Warning" Typo="Typo.subtitle2">
+                Für folgende Items wurde kein MappedBrick gefunden:
+            </MudText>
+            <MudList T="string">
+                @foreach (var item in unmappedItems)
+                {
+                    <MudListItem T="string">
+                        <MudText>ITEMID: <b>@item.PartNum</b>, COLOR: <b>@item.ColorId</b>, QTY: <b>@item.Quantity</b></MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudPaper>
+    }
 
 <MudPaper Class="pa-4">
     <MudText Typo="Typo.h6">Deine Mocks</MudText>
@@ -41,6 +64,24 @@
 @code {
     private List<Mock>? userMocks;
     private string uploadError = string.Empty;
+    private List<(string? PartNum, int? ColorId, int Quantity)> unmappedItems = new();
+    private string selectedFormat = "Bricklink";
+
+    private async Task DeleteAllMocks()
+    {
+        var userUuid = await UserService.GetTokenAsync();
+        if (string.IsNullOrEmpty(userUuid))
+            return;
+        using var scope = ServiceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+        var mocks = db.Mocks.Where(m => m.UserUuid == userUuid).ToList();
+        if (mocks.Any())
+        {
+            db.Mocks.RemoveRange(mocks);
+            db.SaveChanges();
+        }
+        await LoadMocks();
+    }
 
 
     private bool _loaded = false;
@@ -76,16 +117,38 @@
             return;
         try
         {
+            unmappedItems.Clear();
             using var stream = file.OpenReadStream();
             using var reader = new StreamReader(stream);
             var xmlString = await reader.ReadToEndAsync();
             var doc = XDocument.Parse(xmlString);
-            var items = doc.Descendants("ITEM").Select(x => new MockItem
+            var items = new List<MockItem>();
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+            foreach (var x in doc.Descendants("ITEM"))
             {
-                ExternalPartNum = x.Element("ITEMID")?.Value,
-                Quantity = int.TryParse(x.Element("MINQTY")?.Value, out var q) ? q : 1,
-                // Color and mapping will be resolved later
-            }).ToList();
+                var partNum = x.Element("ITEMID")?.Value;
+                var colorId = int.TryParse(x.Element("COLOR")?.Value, out var cid) ? cid : (int?)null;
+                var qty = int.TryParse(x.Element("MINQTY")?.Value, out var q) ? q : 1;
+                int? mappedBrickId = null;
+                if (!string.IsNullOrEmpty(partNum))
+                {
+                    var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
+                    if (mapped != null)
+                        mappedBrickId = mapped.Id;
+                }
+                if (mappedBrickId == null)
+                {
+                    unmappedItems.Add((partNum, colorId, qty));
+                }
+                items.Add(new MockItem
+                {
+                    ExternalPartNum = partNum,
+                    Quantity = qty,
+                    BrickColorId = colorId,
+                    MappedBrickId = mappedBrickId
+                });
+            }
             var name = file.Name;
             var userUuid = await UserService.GetTokenAsync();
             if (string.IsNullOrEmpty(userUuid))
@@ -93,12 +156,11 @@
                 uploadError = "Nicht eingeloggt.";
                 return;
             }
-            using var scope = ServiceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
             var mock = new Mock
             {
                 Name = name,
                 UserUuid = userUuid,
+                MockType = selectedFormat,
                 Items = items
             };
             db.Mocks.Add(mock);
@@ -109,5 +171,6 @@
         {
             uploadError = $"Fehler beim Hochladen: {ex.Message}";
         }
+    
     }
 }

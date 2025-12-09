@@ -1,42 +1,235 @@
+        @if (_mock?.Items != null && _mock.Items.Any(i => i.MappedBrickId == null))
+        {
+            <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
+                <MudText Color="Color.Warning" Typo="Typo.subtitle2">
+                    Für folgende Items wurde kein MappedBrick gefunden:
+                </MudText>
+                <MudList T="string">
+                    @foreach (var item in _mock.Items.Where(i => i.MappedBrickId == null))
+                    {
+                        <MudListItem T="string">
+                            <MudText>ITEMID: <b>@item.ExternalPartNum</b>, COLOR: <b>@item.BrickColorId</b>, QTY: <b>@item.Quantity</b></MudText>
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudPaper>
+        }
+    <style>
+        .brick {
+            position: relative;
+            display: inline-block;
+            isolation: isolate;
+        }
+        .brick img {
+            display: block;
+        }
+        .brick::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: var(--brick-overlay, transparent);
+            mix-blend-mode: multiply;
+            pointer-events: none;
+            border-radius: 4px;
+        }
+    </style>
+
 @page "/mockdetail/{mockId:int}"
 @using brickisbrickapp.Data.Entities
+@using brickisbrickapp.Helpers
+@using Microsoft.EntityFrameworkCore
 @inject IServiceProvider ServiceProvider
 @inject NavigationManager Nav
+@inject brickisbrickapp.Services.InventoryService InventoryService
+@inject brickisbrickapp.Services.RebrickablePartImageService RebrickablePartImageService
 
 <h3>Mock Details</h3>
 
-@if (mock == null)
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_mock == null)
 {
     <MudText>Mock nicht gefunden.</MudText>
     <MudButton OnClick="GoBack">Zurück</MudButton>
 }
 else
 {
-    <MudText Typo="Typo.h5">@mock.Name</MudText>
-    <MudList T="string">
-        @foreach (var item in mock.Items)
-        {
-            <MudListItem T="string">
-                <MudText>@item.ExternalPartNum - Menge: @item.Quantity</MudText>
-            </MudListItem>
-        }
-    </MudList>
-    <MudButton OnClick="GoBack">Zurück</MudButton>
+
+    <MudText Typo="Typo.h5">@_mock.Name</MudText>
+    <MudText Typo="Typo.subtitle2" Class="mb-2">Typ: @_mock.MockType</MudText>
+
+    <MudTable Items="_mock.Items">
+        <HeaderContent>
+            <MudTh>Bild</MudTh>
+            <MudTh>Standard-Name</MudTh>
+            <MudTh>Farbe</MudTh>
+            <MudTh>Lego</MudTh>
+            <MudTh>BlueBrixx</MudTh>
+            <MudTh>Cada</MudTh>
+            <MudTh>Pantasy</MudTh>
+            <MudTh>Mould King</MudTh>
+            <MudTh>Unknown</MudTh>
+            <MudTh>Anzahl</MudTh>
+            <MudTh>Hast du?</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Bild">
+                @{
+                    var partNum = context.MappedBrick?.LegoPartNum ?? context.ExternalPartNum ?? "";
+                    var url = _partImageUrls.TryGetValue(partNum, out var u) ? u : null;
+                    var placeholder = brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl;
+                    var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
+                }
+                <div style="position:relative;display:inline-block;min-width:48px;min-height:48px;">
+                    @if (!string.IsNullOrWhiteSpace(url))
+                    {
+                        @if (overlay != null)
+                        {
+                            <div class="brick" style="--brick-overlay:@overlay">
+                                <img src="@url" alt=""
+                                    style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
+                                    onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                            </div>
+                        }
+                        else
+                        {
+                            <img src="@url" alt=""
+                                style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
+                                onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                        }
+                    }
+                    else
+                    {
+                        <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">No image</span>
+                    }
+                </div>
+            </MudTd>
+            <MudTd DataLabel="Standard Name">@context.MappedBrick?.Name</MudTd>
+            <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
+            <MudTd DataLabel="Lego">
+                @context.MappedBrick?.LegoName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.LegoPartNum))
+                {
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.LegoPartNum)</span>
+                }
+            </MudTd>
+            <MudTd DataLabel="BlueBrixx">
+                @context.MappedBrick?.BbName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.BbPartNum))
+                {
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.BbPartNum)</span>
+                }
+            </MudTd>
+            <MudTd DataLabel="Cada">
+                @context.MappedBrick?.CadaName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.CadaPartNum))
+                {
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.CadaPartNum)</span>
+                }
+            </MudTd>
+            <MudTd DataLabel="Pantasy">
+                @context.MappedBrick?.PantasyName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.PantasyPartNum))
+                {
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.PantasyPartNum)</span>
+                }
+            </MudTd>
+            <MudTd DataLabel="Mould King">
+                @context.MappedBrick?.MouldKingName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.MouldKingPartNum))
+                {
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.MouldKingPartNum)</span>
+                }
+            </MudTd>
+            <MudTd DataLabel="Unknown">
+                @context.MappedBrick?.UnknownName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.UnknownPartNum))
+                {
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.UnknownPartNum)</span>
+                }
+            </MudTd>
+            <MudTd DataLabel="Anzahl">@context.Quantity</MudTd>
+            <MudTd DataLabel="Do you own?">
+                @{
+                    var key = (context.MappedBrickId ?? 0, context.BrickColorId ?? 0);
+                    if (_ownedByBrand.TryGetValue(key, out var brands) && brands.Count > 0)
+                    {
+                        foreach (var brand in brands)
+                        {
+                            <MudChip T="string" Color="Color.Primary" Class="mr-1 mb-1">@brand.Key: @brand.Value</MudChip>
+                        }
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Default">None</MudChip>
+                    }
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    <MudButton Class="mt-4" Variant="Variant.Outlined" OnClick="GoBack">
+        Zurück
+    </MudButton>
 }
 
 @code {
     [Parameter] public int mockId { get; set; }
-    private Mock? mock;
+    private Mock? _mock;
+    private bool _loading = true;
+    private Dictionary<string, string> _partImageUrls = new();
+    private Dictionary<(int, int), Dictionary<string, int>> _ownedByBrand = new();
 
     protected override async Task OnInitializedAsync()
     {
+        _loading = true;
         using var scope = ServiceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-        mock = db.Mocks.Where(m => m.Id == mockId).FirstOrDefault();
-        if (mock != null)
+        _mock = db.Mocks.Where(m => m.Id == mockId)
+            .FirstOrDefault();
+        if (_mock != null)
         {
-            db.Entry(mock).Collection(m => m.Items).Load();
+            db.Entry(_mock).Collection(m => m.Items).Query()
+                .Include(i => i.MappedBrick)
+                .Include(i => i.BrickColor)
+                .Load();
         }
+
+        // Inventory laden
+        var inventory = await InventoryService.GetCurrentUserInventoryAsync();
+        _ownedByBrand = inventory
+            .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
+            .ToDictionary(
+                g => g.Key,
+                g => g.GroupBy(i => i.Brand)
+                    .ToDictionary(
+                        bg => bg.Key,
+                        bg => bg.Sum(i => i.Quantity)
+                    )
+            );
+
+        // Bild-URLs laden
+        if (_mock?.Items != null && _mock.Items.Any())
+        {
+            var partNumsToLoad = _mock.Items
+                .Select(i => i.MappedBrick?.LegoPartNum ?? i.ExternalPartNum)
+                .Where(p => !string.IsNullOrEmpty(p) && !_partImageUrls.ContainsKey(p!))
+                .Distinct()
+                .Select(p => p!)
+                .ToList();
+            if (partNumsToLoad.Count > 0)
+            {
+                var urls = await RebrickablePartImageService.GetPartImageUrlsBatchAsync(partNumsToLoad);
+                foreach (var kv in urls)
+                {
+                    _partImageUrls[kv.Key] = kv.Value;
+                }
+            }
+        }
+
+        _loading = false;
     }
 
     private void GoBack()
