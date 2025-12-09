@@ -1,4 +1,3 @@
-       
 @page "/mockdetail/{mockId:int}"
 @using Data.Entities
 @using Helpers
@@ -9,6 +8,8 @@
 @inject Services.RebrickablePartImageService RebrickablePartImageService
 
 @inject IDialogService DialogService
+@inject Services.NotificationService NotificationService
+@inject Services.LoadingService LoadingService
 
 <h3>Mock Details</h3>
 
@@ -32,69 +33,67 @@ else
     </MudButton>
 
 
-    
-@if (_mock?.Items != null && _mock.Items.Any(i => i.MappedBrickId == null))
-{
-    <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
-        <MudText Color="Color.Warning" Typo="Typo.subtitle2">
-            Für folgende Items wurde kein MappedBrick gefunden:
-        </MudText>
 
-        <MudList T="string">
-           @foreach (var item in _mock.Items.Where(i => i.MappedBrickId == null))
-{
-    var bricklinkUrl = $"https://www.bricklink.com/v2/search.page?q={item.ExternalPartNum}#T=P";
-    // oder: string bricklinkUrl = ...
+    @if (_mock?.Items != null && _mock.Items.Any(i => i.MappedBrickId == null))
+    {
+        <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
+            <MudText Color="Color.Warning" Typo="Typo.subtitle2">
+                Für folgende Items wurde kein MappedBrick gefunden:
+            </MudText>
 
-    <MudListItem T="string">
-        <MudText>
-            ITEMID:
-            @if (_mock.MockType == "Bricklink" && !string.IsNullOrWhiteSpace(item.ExternalPartNum))
-            {
-                <b>
-                    <a href="@bricklinkUrl"
-                       target="_blank"
-                       rel="noopener noreferrer">
-                        @item.ExternalPartNum
-                    </a>
-                </b>
-            }
-            else
-            {
-                <b>@item.ExternalPartNum blop</b>
-            }
-            , COLOR: <b>@item.BrickColorId</b>,
-            QTY: <b>@item.Quantity</b>
-        </MudText>
-    </MudListItem>
-}
+            <MudList T="string">
+                @foreach (var item in _mock.Items.Where(i => i.MappedBrickId == null))
+                {
+                    var bricklinkUrl = $"https://www.bricklink.com/v2/search.page?q={item.ExternalPartNum}#T=P";
+                    // oder: string bricklinkUrl = ...
 
-        </MudList>
-    </MudPaper>
-}
+                    <MudListItem T="string">
+                        <MudText>
+                            ITEMID:
+                            @if (_mock.MockType == "bricklink" && !string.IsNullOrWhiteSpace(item.ExternalPartNum))
+                            {
+                                <b>
+                                    <a href="@bricklinkUrl" target="_blank" rel="noopener noreferrer">
+                                        @item.ExternalPartNum
+                                    </a>
+                                </b>
+                            }
+                            else
+                            {
+                                <b>@item.ExternalPartNum blop</b>
+                            }
+                            , COLOR: <b>@item.BrickColorId</b>,
+                            QTY: <b>@item.Quantity</b>
+                        </MudText>
+                    </MudListItem>
+                }
 
-
-<style>
-    .brick {
-        position: relative;
-        display: inline-block;
-        isolation: isolate;
+            </MudList>
+        </MudPaper>
     }
-    .brick img {
-        display: block;
-    }
-    .brick::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: var(--brick-overlay, transparent);
-        mix-blend-mode: multiply;
-        pointer-events: none;
-        border-radius: 4px;
-    }
-</style>
 
 
+    <style>
+        .brick {
+            position: relative;
+            display: inline-block;
+            isolation: isolate;
+        }
+
+        .brick img {
+            display: block;
+        }
+
+        .brick::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: var(--brick-overlay, transparent);
+            mix-blend-mode: multiply;
+            pointer-events: none;
+            border-radius: 4px;
+        }
+    </style>
 
 
     <MudTable Items="GetFilteredItems()">
@@ -139,7 +138,9 @@ else
                     }
                     else
                     {
-                        <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">No image</span>
+                        <span
+                            style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">No
+                            image</span>
                     }
                 </div>
             </MudTd>
@@ -218,72 +219,86 @@ else
     private bool _loading = true;
     private Dictionary<string, string> _partImageUrls = new();
     private Dictionary<(int, int), Dictionary<string, int>> _ownedByBrand = new();
-    
-        private async Task OpenAddMockDialog()
+
+    private async Task OpenAddMockDialog()
+    {
+        var parameters = new DialogParameters { ["MockId"] = mockId };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
+        
+        var dialog = await DialogService.ShowAsync<Components.Dialogs.AddMockToInventoryDialog>("Mock-Teile ins Inventar",
+        parameters, options);
+        var result = await dialog.Result;
+        
+        if (result != null && result.Data is bool confirmed)
         {
-            var parameters = new DialogParameters { ["MockId"] = mockId };
-            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
-            var dialog = await DialogService.ShowAsync<Components.Dialogs.AddMockToInventoryDialog>("Mock-Teile ins Inventar", parameters, options);
-            var result = await dialog.Result;
-            if (result != null && !result.Canceled )
+            LoadingService?.Hide();
+            if (confirmed)
             {
-                // Optional: Nach dem Hinzufügen neu laden
                 await OnInitializedAsync();
                 StateHasChanged();
+                NotificationService.Success("Mock-Items erfolgreich zum Inventar hinzugefügt.");
             }
-        }
-
-        private IEnumerable<MockItem> GetFilteredItems()
-        {
-            if (_mock == null || _mock.Items == null)
-                return Enumerable.Empty<MockItem>();
-
-            if (_mock.MockType?.ToLower() == "Bricklink")
+            else
             {
-                // Nur Items mit Standard-Name anzeigen
-                return _mock.Items.Where(i => i.MappedBrick != null && !string.IsNullOrWhiteSpace(i.MappedBrick.Name));
+                NotificationService.Error("Fehler beim Hinzufügen der Mock-Items zum Inventar.");
             }
-            // Sonst wie bisher
-            return _mock.Items.Where(i => i.MappedBrick != null || !string.IsNullOrWhiteSpace(i.ExternalPartNum) || i.Quantity > 0);
         }
+    }
 
-    protected override async Task OnInitializedAsync()
+    private IEnumerable<MockItem> GetFilteredItems()
     {
+        if (_mock == null || _mock.Items == null)
+            return Enumerable.Empty<MockItem>();
+
+        if (_mock.MockType?.ToLower() == "bricklink")
+        {
+            // Nur Items mit Standard-Name anzeigen
+            return _mock.Items.Where(i => i.MappedBrick != null && !string.IsNullOrWhiteSpace(i.MappedBrick.Name));
+        }
+        // Sonst wie bisher
+        return _mock.Items.Where(i => i.MappedBrick != null || !string.IsNullOrWhiteSpace(i.ExternalPartNum) || i.Quantity > 0);
+    }
+
+    private bool _initialized = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized) return;
+        _initialized = true;
         _loading = true;
         using var scope = ServiceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
         _mock = db.Mocks.Where(m => m.Id == mockId)
-            .FirstOrDefault();
+        .FirstOrDefault();
         if (_mock != null)
         {
             db.Entry(_mock).Collection(m => m.Items).Query()
-                .Include(i => i.MappedBrick)
-                .Include(i => i.BrickColor)
-                .Load();
+            .Include(i => i.MappedBrick)
+            .Include(i => i.BrickColor)
+            .Load();
         }
 
         // Inventory laden
         var inventory = await InventoryService.GetCurrentUserInventoryAsync();
         _ownedByBrand = inventory
-            .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
-            .ToDictionary(
-                g => g.Key,
-                g => g.GroupBy(i => i.Brand)
-                    .ToDictionary(
-                        bg => bg.Key,
-                        bg => bg.Sum(i => i.Quantity)
-                    )
-            );
+        .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
+        .ToDictionary(
+        g => g.Key,
+        g => g.GroupBy(i => i.Brand)
+        .ToDictionary(
+        bg => bg.Key,
+        bg => bg.Sum(i => i.Quantity)
+        )
+        );
 
         // Bild-URLs laden
         if (_mock?.Items != null && _mock.Items.Any())
         {
             var partNumsToLoad = _mock.Items
-                .Select(i => i.MappedBrick?.LegoPartNum ?? i.ExternalPartNum)
-                .Where(p => !string.IsNullOrEmpty(p) && !_partImageUrls.ContainsKey(p!))
-                .Distinct()
-                .Select(p => p!)
-                .ToList();
+            .Select(i => i.MappedBrick?.LegoPartNum ?? i.ExternalPartNum)
+            .Where(p => !string.IsNullOrEmpty(p) && !_partImageUrls.ContainsKey(p!))
+            .Distinct()
+            .Select(p => p!)
+            .ToList();
             if (partNumsToLoad.Count > 0)
             {
                 var urls = await RebrickablePartImageService.GetPartImageUrlsBatchAsync(partNumsToLoad);
@@ -295,6 +310,7 @@ else
         }
 
         _loading = false;
+        StateHasChanged();
     }
 
     private void GoBack()

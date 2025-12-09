@@ -45,12 +45,15 @@ public class InventoryService
         if (mock == null || mock.Items == null || !mock.Items.Any())
             return false;
 
+        // Wenn bricklink-Mock, Brand auf "Lego" setzen
+        var brand = (mock.MockType?.ToLower() == "bricklink") ? "Lego" : "Mock";
+
         foreach (var item in mock.Items)
         {
             if (item.MappedBrickId == null || item.BrickColorId == null || item.Quantity <= 0)
                 continue;
 
-            var success = await AddInventoryItemAsync(item.MappedBrickId.Value, item.BrickColorId.Value, "Mock", item.Quantity);
+            var success = await AddInventoryItemAsync(item.MappedBrickId.Value, item.BrickColorId.Value, brand, item.Quantity);
             if (!success)
                 return false;
         }

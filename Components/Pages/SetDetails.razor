@@ -12,6 +12,7 @@
 @inject NavigationManager Nav
 @inject InventoryService InventoryService
 @inject IDialogService DialogService
+@inject Services.NotificationService NotificationService
 
 <PageTitle>Set Details</PageTitle>
 
@@ -360,8 +361,16 @@ else
 
             if (result != null && !result.Canceled && result.Data is bool confirmed && confirmed)
             {
-                // Spinner wurde bereits im Dialog angezeigt und wieder ausgeblendet
-                // Optional: Erfolgs-Nachricht oder Daten neu laden
+                  if (confirmed)
+            {
+                await OnInitializedAsync();
+                StateHasChanged();
+                NotificationService.Success("Items erfolgreich zum Inventar hinzugefügt.");
+            }
+            else
+            {
+                NotificationService.Error("Fehler beim Hinzufügen der Items zum Inventar.");
+            }
             }
         }
 

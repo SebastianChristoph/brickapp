@@ -2,9 +2,9 @@ using System.Collections.Generic;
 
 namespace Helpers
 {
-    public static class BricklinkColorMap
+    public static class bricklinkColorMap
     {
-        // Bricklink ColorId -> interne Farbnamen (wie in BrickColor.Name)
+        // bricklink ColorId -> interne Farbnamen (wie in BrickColor.Name)
         private static readonly Dictionary<int, string> _bricklinkIdToName = new()
         {
             { 0, "Black" },

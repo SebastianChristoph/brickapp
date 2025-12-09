@@ -8,7 +8,7 @@ namespace Helpers
     public static class BrickColorHelper
     {
           public static readonly List<string> CommonColors = new() { "Blue", "Red", "Green" };
-        // Mapping BrickLink-Farbnamen zu Hex/RGB (Auszug, erweiterbar)
+        // Mapping bricklink-Farbnamen zu Hex/RGB (Auszug, erweiterbar)
         private static readonly Dictionary<string, string> BrickColorToHex = new(StringComparer.OrdinalIgnoreCase)
         {
             { "Aqua", "#B3D7D1" }, // rgb(179,215,209)
@@ -35,8 +35,11 @@ namespace Helpers
             { "Dark Tan", "#958A73" }, // rgb(149,138,115)
             { "Green", "#237841" }, // rgb(35,120,65)
             { "Light Bluish Gray", "#A0A5A9" }, // rgb(160,165,169)
+            { "Light Blue", "#b0d1ecff" }, // rgb(160,165,169)
             { "Light Gray", "#E5E4DE" }, // rgb(229,228,222)
             { "Light Pink", "#FECCCF" }, // rgb(254,204,207)
+            { "Light Orange", "#FFD580" }, // rgb(255,213,128)
+            { "Light Brown", "#C69C6D" }, // rgb(198,156,109)
             { "Lime", "#C7D23C" }, // rgb(199,210,60)
             { "Magenta", "#923978" }, // rgb(146,57,120)
             { "Medium Azure", "#68C3E2" }, // rgb(104,195,226)
@@ -45,6 +48,7 @@ namespace Helpers
             { "Medium Nougat", "#AA7D55" }, // rgb(170,125,85)
             { "Orange", "#FE8A18" }, // rgb(254,138,24)
             { "Pink", "#FC97AC" }, // rgb(252,151,172)
+            { "Pearl Light Gray", "#D7D2CB" }, // rgb(215,210,203)
             { "Purple", "#A06EBB" }, // rgb(160,110,187)
             { "Red", "#C91A09" }, // rgb(201,26,9)
             { "Reddish Brown", "#582A12" }, // rgb(88,42,18)

@@ -11,7 +11,7 @@ namespace Data.Entities
         [Required]
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public string MockType { get; set; } = "Bricklink"; // z.B. Bricklink, CSV, ...
+        public string MockType { get; set; } = "bricklink"; // z.B. bricklink, CSV, ...
         public string UserUuid { get; set; } = string.Empty;
         [ForeignKey("UserUuid")]
         public AppUser User { get; set; } = default!;

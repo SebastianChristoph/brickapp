@@ -12,13 +12,14 @@
 
 <MudPaper Class="pa-4 mb-4">
         <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAllMocks" Class="ml-2">Alle Mocks löschen</MudButton>
-    <MudText Typo="Typo.h6">Neues Mock hochladen</MudText>
-    <MudSelect @bind-Value="selectedFormat" Label="Dateiformat" Style="width:200px;">
-        <MudSelectItem Value="@("Bricklink")">Bricklink List (XML)</MudSelectItem>
-        <!-- Weitere Formate später -->
-    </MudSelect>
-    <InputFile OnChange="OnFileSelected" accept=".xml" />
-    <MudText Color="Color.Error">@uploadError</MudText>
+        <MudText Typo="Typo.h6">Neues Mock hochladen</MudText>
+        <MudSelect @bind-Value="selectedFormat" Label="Dateiformat" Style="width:200px;">
+            <MudSelectItem Value="@("bricklink")">bricklink List (XML)</MudSelectItem>
+            <!-- Weitere Formate später -->
+        </MudSelect>
+        <MudTextField @bind-Value="newMockName" Label="Mock-Name" Style="width:200px;margin-top:8px;" />
+        <InputFile OnChange="OnFileSelected" accept=".xml" />
+        <MudText Color="Color.Error">@uploadError</MudText>
 </MudPaper>
 
 @if (unmappedItems.Count > 0)
@@ -53,8 +54,11 @@
         {
             @foreach (var mock in userMocks)
             {
-                <MudListItem T="string" Style="cursor:pointer" OnClick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
-                    <MudText>@mock.Name</MudText>
+                <MudListItem T="string" Style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+                    <span style="flex:1" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
+                        <MudText>@mock.Name</MudText>
+                    </span>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" Style="margin-left:8px" OnClick="@(() => DeleteMock(mock.Id))">Löschen</MudButton>
                 </MudListItem>
             }
         }
@@ -65,7 +69,24 @@
     private List<Mock>? userMocks;
     private string uploadError = string.Empty;
     private List<(string? PartNum, int? ColorId, int Quantity)> unmappedItems = new();
-    private string selectedFormat = "Bricklink";
+    private string selectedFormat = "bricklink";
+    private string newMockName = string.Empty;
+
+    private async Task DeleteMock(int mockId)
+    {
+        var userUuid = await UserService.GetTokenAsync();
+        if (string.IsNullOrEmpty(userUuid))
+            return;
+        using var scope = ServiceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+        var mock = db.Mocks.FirstOrDefault(m => m.Id == mockId && m.UserUuid == userUuid);
+        if (mock != null)
+        {
+            db.Mocks.Remove(mock);
+            db.SaveChanges();
+        }
+        await LoadMocks();
+    }
 
     private async Task DeleteAllMocks()
     {
@@ -149,7 +170,7 @@
                     MappedBrickId = mappedBrickId
                 });
             }
-            var name = file.Name;
+            var name = string.IsNullOrWhiteSpace(newMockName) ? file.Name : newMockName.Trim();
             var userUuid = await UserService.GetTokenAsync();
             if (string.IsNullOrEmpty(userUuid))
             {
@@ -165,6 +186,7 @@
             };
             db.Mocks.Add(mock);
             db.SaveChanges();
+            newMockName = string.Empty;
             await LoadMocks();
         }
         catch (Exception ex)
