@@ -1,3 +1,6 @@
+// ItemSetExportService für DI registrieren
+
+// API-Controller-Support aktivieren
 using MudBlazor.Services;
 using brickisbrickapp.Components;
 using brickisbrickapp.Data;
@@ -6,6 +9,7 @@ using brickisbrickapp.Services;
 using brickisbrickapp.Data.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
 
 // Pfad zur SQLite-Datei (bricksdb.db im Projektverzeichnis)
 var dbPath = Path.Combine(builder.Environment.ContentRootPath, "bricksdb.db");
@@ -21,7 +25,12 @@ builder.Services.AddScoped<MappedBrickService>();
 builder.Services.AddScoped<UserNotificationService>();
 builder.Services.AddScoped<RequestService>(); // RequestService bekommt UserNotificationService über DI
 
-
+builder.Services.AddScoped<ItemSetExportService>(sp =>
+    new ItemSetExportService(
+        sp.GetRequiredService<AppDbContext>(),
+        Path.Combine(builder.Environment.ContentRootPath, "mappedData", "exported_sets.json")
+    )
+);
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<ItemSetService>();
 
@@ -38,6 +47,13 @@ builder.Services.AddScoped<ItemUploadService>(sp =>
 
 // MudBlazor
 builder.Services.AddMudServices();
+// MappedBrickExportService für DI registrieren
+builder.Services.AddScoped<MappedBrickExportService>(sp =>
+    new MappedBrickExportService(
+        sp.GetRequiredService<AppDbContext>(),
+        Path.Combine(builder.Environment.ContentRootPath, "mappedData", "exported_mappedbricks.json")
+    )
+);
 // Global Notification Service
 builder.Services.AddScoped<NotificationService>();
 
@@ -68,8 +84,11 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAntiforgery();
 
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+// API-Controller-Endpunkte aktivieren
+app.MapControllers();
 
 app.Run();

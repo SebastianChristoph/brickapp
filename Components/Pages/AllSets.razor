@@ -1,6 +1,7 @@
 @page "/allsets"
 @using brickisbrickapp.Services
 @using brickisbrickapp.Data.Entities
+
 @inject UserService UserService
 @inject ItemSetService SetService
 
@@ -14,9 +15,7 @@
     All available sets
 </MudText>
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenAddSetDialog" Class="mb-4">Add New Set</MudButton>
-<MudDialog @bind-IsOpen="_addSetDialogOpen">
-    <AddNewSetDialog OnClose="CloseAddSetDialog" />
-</MudDialog>
+
 
 <MudTextField @bind-Value="_searchText" Label="Search by name or ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true" Placeholder="At least 3 characters..." Class="mb-4" />
 

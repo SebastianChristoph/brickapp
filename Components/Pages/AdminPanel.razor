@@ -1,0 +1,58 @@
+@page "/admin-panel"
+@inject IServiceProvider ServiceProvider
+
+
+<h3>Admin Panel</h3>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportMappings">Export Mappings</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportSets">Export Sets</MudButton>
+
+<div>@statusMessage</div>
+  
+
+@code {
+    private string statusMessage = "";
+
+    private async Task ExportMappings()
+    {
+        try
+        {
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+            var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+            var mappedDataDir = Path.Combine(env.ContentRootPath, "mappedData");
+            if (!Directory.Exists(mappedDataDir))
+                Directory.CreateDirectory(mappedDataDir);
+            var exportPath = Path.Combine(mappedDataDir, "exported_mappedbricks.json");
+            var exportService = new Data.Services.MappedBrickExportService(db, exportPath);
+            var count = await exportService.ExportMappedBricksAsync();
+            statusMessage = $"Export erfolgreich: {count} Mappings gespeichert. (Pfad: {exportPath})";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Fehler beim Export: {ex.Message}";
+        }
+    }
+
+      private async Task ExportSets()
+    {
+        try
+        {
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+            var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+            var mappedDataDir = Path.Combine(env.ContentRootPath, "mappedData");
+            if (!Directory.Exists(mappedDataDir))
+                Directory.CreateDirectory(mappedDataDir);
+            var exportPath = Path.Combine(mappedDataDir, "exported_sets.json");
+            var exportService = new Data.Services.ItemSetExportService(db, exportPath);
+            var count = await exportService.ExportSetsAsync();
+            statusMessage = $"Sets-Export erfolgreich: {count} Sets gespeichert. (Pfad: {exportPath})";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Fehler beim Sets-Export: {ex.Message}";
+        }
+    }
+
+}
