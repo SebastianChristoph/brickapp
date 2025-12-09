@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using brickisbrickapp.Data;
+using Data;
 
 #nullable disable
 
-namespace brickisbrickapp.Migrations
+namespace Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20251209125534_AddMockEntities")]
@@ -48,7 +48,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("itemsets", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.AppUser", b =>
+            modelBuilder.Entity("Data.Entities.AppUser", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -90,7 +90,7 @@ namespace brickisbrickapp.Migrations
                         });
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.BrickColor", b =>
+            modelBuilder.Entity("Data.Entities.BrickColor", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -111,7 +111,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("colors", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.InventoryItem", b =>
+            modelBuilder.Entity("Data.Entities.InventoryItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -144,7 +144,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("inventory", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.ItemSetBrick", b =>
+            modelBuilder.Entity("Data.Entities.ItemSetBrick", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -173,7 +173,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("itemsetbricks", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.MappedBrick", b =>
+            modelBuilder.Entity("Data.Entities.MappedBrick", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -224,7 +224,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("mappedBricks", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.MappingRequest", b =>
+            modelBuilder.Entity("Data.Entities.MappingRequest", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -275,7 +275,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("mappingRequests", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.Mock", b =>
+            modelBuilder.Entity("Data.Entities.Mock", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -299,7 +299,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("mocks", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.MockItem", b =>
+            modelBuilder.Entity("Data.Entities.MockItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -331,7 +331,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("mockitems", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.NewItemRequest", b =>
+            modelBuilder.Entity("Data.Entities.NewItemRequest", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -376,7 +376,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("newItemRequests", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.NewSetRequest", b =>
+            modelBuilder.Entity("Data.Entities.NewSetRequest", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -415,7 +415,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("newSetRequests", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.NewSetRequestItem", b =>
+            modelBuilder.Entity("Data.Entities.NewSetRequestItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -442,7 +442,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("newSetRequestItems", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.UserItemSet", b =>
+            modelBuilder.Entity("Data.Entities.UserItemSet", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -471,7 +471,7 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("useritemsets", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.UserNotification", b =>
+            modelBuilder.Entity("Data.Entities.UserNotification", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -508,21 +508,21 @@ namespace brickisbrickapp.Migrations
                     b.ToTable("userNotifications", (string)null);
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.InventoryItem", b =>
+            modelBuilder.Entity("Data.Entities.InventoryItem", b =>
                 {
-                    b.HasOne("brickisbrickapp.Data.Entities.AppUser", "AppUser")
+                    b.HasOne("Data.Entities.AppUser", "AppUser")
                         .WithMany("InventoryItems")
                         .HasForeignKey("AppUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("brickisbrickapp.Data.Entities.BrickColor", "BrickColor")
+                    b.HasOne("Data.Entities.BrickColor", "BrickColor")
                         .WithMany("InventoryItems")
                         .HasForeignKey("BrickColorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("brickisbrickapp.Data.Entities.MappedBrick", "MappedBrick")
+                    b.HasOne("Data.Entities.MappedBrick", "MappedBrick")
                         .WithMany("InventoryItems")
                         .HasForeignKey("MappedBrickId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -535,9 +535,9 @@ namespace brickisbrickapp.Migrations
                     b.Navigation("MappedBrick");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.ItemSetBrick", b =>
+            modelBuilder.Entity("Data.Entities.ItemSetBrick", b =>
                 {
-                    b.HasOne("brickisbrickapp.Data.Entities.BrickColor", "BrickColor")
+                    b.HasOne("Data.Entities.BrickColor", "BrickColor")
                         .WithMany()
                         .HasForeignKey("BrickColorId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -549,7 +549,7 @@ namespace brickisbrickapp.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("brickisbrickapp.Data.Entities.MappedBrick", "MappedBrick")
+                    b.HasOne("Data.Entities.MappedBrick", "MappedBrick")
                         .WithMany()
                         .HasForeignKey("MappedBrickId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -562,21 +562,21 @@ namespace brickisbrickapp.Migrations
                     b.Navigation("MappedBrick");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.MappingRequest", b =>
+            modelBuilder.Entity("Data.Entities.MappingRequest", b =>
                 {
-                    b.HasOne("brickisbrickapp.Data.Entities.AppUser", "ApprovedByUser")
+                    b.HasOne("Data.Entities.AppUser", "ApprovedByUser")
                         .WithMany("MappingRequestsApproved")
                         .HasForeignKey("ApprovedByUserId")
                         .HasPrincipalKey("Uuid")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("brickisbrickapp.Data.Entities.MappedBrick", "Brick")
+                    b.HasOne("Data.Entities.MappedBrick", "Brick")
                         .WithMany("MappingRequests")
                         .HasForeignKey("BrickId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("brickisbrickapp.Data.Entities.AppUser", "RequestedByUser")
+                    b.HasOne("Data.Entities.AppUser", "RequestedByUser")
                         .WithMany("MappingRequestsRequested")
                         .HasForeignKey("RequestedByUserId")
                         .HasPrincipalKey("Uuid")
@@ -590,9 +590,9 @@ namespace brickisbrickapp.Migrations
                     b.Navigation("RequestedByUser");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.Mock", b =>
+            modelBuilder.Entity("Data.Entities.Mock", b =>
                 {
-                    b.HasOne("brickisbrickapp.Data.Entities.AppUser", "User")
+                    b.HasOne("Data.Entities.AppUser", "User")
                         .WithMany()
                         .HasForeignKey("UserUuid")
                         .HasPrincipalKey("Uuid")
@@ -602,19 +602,19 @@ namespace brickisbrickapp.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.MockItem", b =>
+            modelBuilder.Entity("Data.Entities.MockItem", b =>
                 {
-                    b.HasOne("brickisbrickapp.Data.Entities.BrickColor", "BrickColor")
+                    b.HasOne("Data.Entities.BrickColor", "BrickColor")
                         .WithMany()
                         .HasForeignKey("BrickColorId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("brickisbrickapp.Data.Entities.MappedBrick", "MappedBrick")
+                    b.HasOne("Data.Entities.MappedBrick", "MappedBrick")
                         .WithMany()
                         .HasForeignKey("MappedBrickId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("brickisbrickapp.Data.Entities.Mock", "Mock")
+                    b.HasOne("Data.Entities.Mock", "Mock")
                         .WithMany("Items")
                         .HasForeignKey("MockId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -627,15 +627,15 @@ namespace brickisbrickapp.Migrations
                     b.Navigation("Mock");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.NewItemRequest", b =>
+            modelBuilder.Entity("Data.Entities.NewItemRequest", b =>
                 {
-                    b.HasOne("brickisbrickapp.Data.Entities.AppUser", "ApprovedByUser")
+                    b.HasOne("Data.Entities.AppUser", "ApprovedByUser")
                         .WithMany("NewItemRequestsApproved")
                         .HasForeignKey("ApprovedByUserId")
                         .HasPrincipalKey("Uuid")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("brickisbrickapp.Data.Entities.AppUser", "RequestedByUser")
+                    b.HasOne("Data.Entities.AppUser", "RequestedByUser")
                         .WithMany("NewItemRequestsRequested")
                         .HasForeignKey("RequestedByUserId")
                         .HasPrincipalKey("Uuid")
@@ -647,18 +647,18 @@ namespace brickisbrickapp.Migrations
                     b.Navigation("RequestedByUser");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.NewSetRequestItem", b =>
+            modelBuilder.Entity("Data.Entities.NewSetRequestItem", b =>
                 {
-                    b.HasOne("brickisbrickapp.Data.Entities.NewSetRequest", null)
+                    b.HasOne("Data.Entities.NewSetRequest", null)
                         .WithMany("Items")
                         .HasForeignKey("NewSetRequestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.UserItemSet", b =>
+            modelBuilder.Entity("Data.Entities.UserItemSet", b =>
                 {
-                    b.HasOne("brickisbrickapp.Data.Entities.AppUser", "AppUser")
+                    b.HasOne("Data.Entities.AppUser", "AppUser")
                         .WithMany("UserItemSets")
                         .HasForeignKey("AppUserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -670,7 +670,7 @@ namespace brickisbrickapp.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("brickisbrickapp.Data.Entities.UserItemSet", null)
+                    b.HasOne("Data.Entities.UserItemSet", null)
                         .WithMany("UserItemSets")
                         .HasForeignKey("UserItemSetId");
 
@@ -679,9 +679,9 @@ namespace brickisbrickapp.Migrations
                     b.Navigation("ItemSet");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.UserNotification", b =>
+            modelBuilder.Entity("Data.Entities.UserNotification", b =>
                 {
-                    b.HasOne("brickisbrickapp.Data.Entities.AppUser", "User")
+                    b.HasOne("Data.Entities.AppUser", "User")
                         .WithMany("Notifications")
                         .HasForeignKey("UserUuid")
                         .HasPrincipalKey("Uuid")
@@ -696,7 +696,7 @@ namespace brickisbrickapp.Migrations
                     b.Navigation("Bricks");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.AppUser", b =>
+            modelBuilder.Entity("Data.Entities.AppUser", b =>
                 {
                     b.Navigation("InventoryItems");
 
@@ -713,29 +713,29 @@ namespace brickisbrickapp.Migrations
                     b.Navigation("UserItemSets");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.BrickColor", b =>
+            modelBuilder.Entity("Data.Entities.BrickColor", b =>
                 {
                     b.Navigation("InventoryItems");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.MappedBrick", b =>
+            modelBuilder.Entity("Data.Entities.MappedBrick", b =>
                 {
                     b.Navigation("InventoryItems");
 
                     b.Navigation("MappingRequests");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.Mock", b =>
+            modelBuilder.Entity("Data.Entities.Mock", b =>
                 {
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.NewSetRequest", b =>
+            modelBuilder.Entity("Data.Entities.NewSetRequest", b =>
                 {
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("brickisbrickapp.Data.Entities.UserItemSet", b =>
+            modelBuilder.Entity("Data.Entities.UserItemSet", b =>
                 {
                     b.Navigation("UserItemSets");
                 });

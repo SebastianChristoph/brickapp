@@ -1,8 +1,8 @@
-using brickisbrickapp.Data;
-using brickisbrickapp.Data.Entities;
+using Data;
+using Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace brickisbrickapp.Services;
+namespace Services;
 
 public class ItemSetService
 {

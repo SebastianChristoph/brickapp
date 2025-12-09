@@ -1,9 +1,9 @@
 @page "/myinventory"
 
-@using brickisbrickapp.Services
-@using brickisbrickapp.Data.Entities
-@using brickisbrickapp.Components.Dialogs
-@using brickisbrickapp.Helpers
+@using Services
+@using Data.Entities
+@using Components.Dialogs
+@using Helpers
 @using MudBlazor
 
 @inject UserService UserService
@@ -145,7 +145,7 @@ else
                             @{
                                 var partNum = context.MappedBrick?.LegoPartNum ?? "";
                                 var url = _partImageUrls.TryGetValue(partNum, out var u) ? u : null;
-                                var placeholder = brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl;
+                                var placeholder = Services.RebrickablePartImageService.PlaceholderUrl;
                                 var imgUrl = !string.IsNullOrWhiteSpace(url) ? url : placeholder;
                                 var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
                             }
@@ -260,7 +260,7 @@ else
 
             if (partNumsToLoad.Count > 0)
             {
-                var imageService = new brickisbrickapp.Services.RebrickablePartImageService(new HttpClient());
+                var imageService = new Services.RebrickablePartImageService(new HttpClient());
                 var urls = await imageService.GetPartImageUrlsBatchAsync(partNumsToLoad);
 
                 foreach (var kv in urls)

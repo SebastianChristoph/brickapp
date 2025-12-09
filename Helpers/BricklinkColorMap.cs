@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace brickisbrickapp.Helpers
+namespace Helpers
 {
     public static class BricklinkColorMap
     {

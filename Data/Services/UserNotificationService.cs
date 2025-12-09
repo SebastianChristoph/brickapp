@@ -1,7 +1,7 @@
-using brickisbrickapp.Data.Entities;
+using Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace brickisbrickapp.Data.Services
+namespace Data.Services
 {
     public class UserNotificationService
     {

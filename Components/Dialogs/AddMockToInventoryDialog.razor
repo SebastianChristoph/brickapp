@@ -1,0 +1,38 @@
+@inject Services.InventoryService InventoryService
+@inject IDialogService DialogService
+@code {
+    [Parameter] public int MockId { get; set; }
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+    private bool _loading = false;
+    private string? _error;
+    private async Task AddAllAsync()
+    {
+        _loading = true;
+        _error = null;
+        var result = await InventoryService.AddMockItemsToInventoryAsync(MockId);
+        if (result)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            _error = "Fehler beim Hinzufügen der Mock-Items zum Inventar.";
+        }
+        _loading = false;
+    }
+}
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Alle Mock-Items ins Inventar legen?</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">Alle Teile dieses Mocks werden deinem Inventar hinzugefügt.</MudText>
+        @if (_error != null)
+        {
+            <MudText Color="Color.Error">@_error</MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Disabled="_loading" OnClick="AddAllAsync" Color="Color.Success">Hinzufügen</MudButton>
+        <MudButton Disabled="_loading" OnClick="MudDialog.Cancel">Abbrechen</MudButton>
+    </DialogActions>
+</MudDialog>

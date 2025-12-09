@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using brickisbrickapp.Data.Entities;
-using brickisbrickapp.Services;
+using Data.Entities;
+using Services;
 
-namespace brickisbrickapp.Helpers;
+namespace Helpers;
 
 public static class InventorySetHelper
 {

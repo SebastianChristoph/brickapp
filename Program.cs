@@ -2,11 +2,11 @@
 
 // API-Controller-Support aktivieren
 using MudBlazor.Services;
-using brickisbrickapp.Components;
-using brickisbrickapp.Data;
+using Data;
 using Microsoft.EntityFrameworkCore;
-using brickisbrickapp.Services;
-using brickisbrickapp.Data.Services;
+using Services;
+using brickapp.Components;
+using Data.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();

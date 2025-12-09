@@ -1,10 +1,10 @@
-using brickisbrickapp.Data;
-using brickisbrickapp.Data.Entities;
+using Data;
+using Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
 
-namespace brickisbrickapp.Services;
+namespace Services;
 
 public class UserService
 {

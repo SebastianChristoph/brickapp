@@ -1,9 +1,9 @@
 using System.Globalization;
 using CsvHelper;
-using brickisbrickapp.Data.Entities;
+using Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace brickisbrickapp.Data;
+namespace Data;
 
 public static class RebrickableSeeder
 {

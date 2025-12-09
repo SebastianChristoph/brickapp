@@ -1,9 +1,9 @@
-﻿@using brickisbrickapp.Helpers
+﻿@using Helpers
 @page "/allbricks"
-@using brickisbrickapp.Services
-@using brickisbrickapp.Data.Services
-@using brickisbrickapp.Data.Entities
-@using brickisbrickapp.Components.Dialogs
+@using Services
+@using Data.Services
+@using Data.Entities
+@using Components.Dialogs
 @inject UserService UserService
 @inject MappedBrickService BrickService
 @inject RequestService RequestService
@@ -54,8 +54,8 @@
                     </MudButton>
                 </MudTd>
                 <MudTd DataLabel="Image">
-                    <img src="@(_imageUrls.ContainsKey(context.Id) ? _imageUrls[context.Id] : brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl)" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
-                        onerror="if(this.src!== '@brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl'){this.src='@brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl';this.style.opacity='0.5';}" />
+                    <img src="@(_imageUrls.ContainsKey(context.Id) ? _imageUrls[context.Id] : Services.RebrickablePartImageService.PlaceholderUrl)" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
+                        onerror="if(this.src!== '@Services.RebrickablePartImageService.PlaceholderUrl'){this.src='@Services.RebrickablePartImageService.PlaceholderUrl';this.style.opacity='0.5';}" />
                 </MudTd>
                 <MudTd DataLabel="Item Name">
                     @context.Name
@@ -224,7 +224,7 @@
     private IDialogService DialogService { get; set; } = default!;
 
     [Inject]
-    private brickisbrickapp.Services.NotificationService NotificationService { get; set; } = default!;
+    private Services.NotificationService NotificationService { get; set; } = default!;
 
     private async Task OpenAddInventoryDialog(MappedBrick brick)
     {
@@ -257,14 +257,14 @@
 
     private async Task LoadImageUrlsAsync()
     {
-        var imageService = new brickisbrickapp.Services.RebrickablePartImageService(new System.Net.Http.HttpClient());
+        var imageService = new Services.RebrickablePartImageService(new System.Net.Http.HttpClient());
         _imageUrls.Clear();
         foreach (var brick in bricks)
         {
             var partNum = brick.LegoPartNum;
             if (string.IsNullOrWhiteSpace(partNum))
             {
-                _imageUrls[brick.Id] = brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl;
+                _imageUrls[brick.Id] = Services.RebrickablePartImageService.PlaceholderUrl;
                 continue;
             }
             var brand = brick.BbName != null ? "BB" :
@@ -274,7 +274,7 @@
                        brick.UnknownName != null ? "Unknown" : null;
             var name = brick.Name;
             var imgUrl = await imageService.GetPartImageUrlAsync(partNum, brand, name);
-            var placeholder = brickisbrickapp.Services.RebrickablePartImageService.PlaceholderUrl;
+            var placeholder = Services.RebrickablePartImageService.PlaceholderUrl;
             _imageUrls[brick.Id] = string.IsNullOrWhiteSpace(imgUrl) ? placeholder : imgUrl;
         }
     }

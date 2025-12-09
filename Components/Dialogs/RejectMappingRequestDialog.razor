@@ -1,4 +1,4 @@
-@namespace brickisbrickapp.Components.Dialogs
+
 @using MudBlazor
 <MudDialog>
     <DialogContent>
@@ -13,7 +13,7 @@
 
 @code {
     private string _reason = string.Empty;
-    [Parameter] public brickisbrickapp.Data.Entities.MappingRequest? Request { get; set; }
+    [Parameter] public Data.Entities.MappingRequest? Request { get; set; }
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
 }

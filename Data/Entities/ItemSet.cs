@@ -1,4 +1,4 @@
-using brickisbrickapp.Data.Entities;
+using Data.Entities;
 
 public class ItemSet
 {

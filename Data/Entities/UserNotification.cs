@@ -1,6 +1,6 @@
 using System;
 
-namespace brickisbrickapp.Data.Entities
+namespace Data.Entities
 {
     public class UserNotification
     {

@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace brickisbrickapp.Migrations
+namespace Migrations
 {
     /// <inheritdoc />
     public partial class AddMockEntities : Migration

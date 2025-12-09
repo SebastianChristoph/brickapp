@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
-namespace brickisbrickapp.Data.Services
+namespace Data.Services
 {
     public class ItemUploadService
     {

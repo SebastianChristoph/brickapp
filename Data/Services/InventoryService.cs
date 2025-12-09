@@ -1,11 +1,22 @@
-using brickisbrickapp.Data;
-using brickisbrickapp.Data.Entities;
+   
+using Data;
+using Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace brickisbrickapp.Services;
+namespace Services;
 
 public class InventoryService
 {
+    public InventoryService(AppDbContext db, UserService userService)
+    {
+        _db = db;
+        _userService = userService;
+    }
+    
+
+        private readonly AppDbContext _db;
+    private readonly UserService _userService;
+
 
 
     /// Löscht das gesamte Inventar des aktuell eingeloggten Users
@@ -23,14 +34,31 @@ public class InventoryService
         await _db.SaveChangesAsync();
         return true;
     }
-    private readonly AppDbContext _db;
-    private readonly UserService _userService;
 
-    public InventoryService(AppDbContext db, UserService userService)
+     public async Task<bool> AddMockItemsToInventoryAsync(int mockId)
     {
-        _db = db;
-        _userService = userService;
+        var user = await _userService.GetCurrentUserAsync();
+        if (user == null)
+            return false;
+
+        var mock = await _db.Mocks.Include(m => m.Items).FirstOrDefaultAsync(m => m.Id == mockId);
+        if (mock == null || mock.Items == null || !mock.Items.Any())
+            return false;
+
+        foreach (var item in mock.Items)
+        {
+            if (item.MappedBrickId == null || item.BrickColorId == null || item.Quantity <= 0)
+                continue;
+
+            var success = await AddInventoryItemAsync(item.MappedBrickId.Value, item.BrickColorId.Value, "Mock", item.Quantity);
+            if (!success)
+                return false;
+        }
+
+        return true;
     }
+
+  
 
     /// Holt alle InventoryItems des aktuell eingeloggten Users.
     public async Task<List<InventoryItem>> GetCurrentUserInventoryAsync()

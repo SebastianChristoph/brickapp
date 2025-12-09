@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using System.Text.Json;
 
-namespace brickisbrickapp.Services;
+namespace Services;
 
 public class RebrickablePartImageService
 {

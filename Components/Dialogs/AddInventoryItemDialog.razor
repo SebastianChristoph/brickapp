@@ -1,18 +1,18 @@
-@namespace brickisbrickapp.Components.Dialogs
+
 @using MudBlazor
-@using brickisbrickapp.Services
-@using brickisbrickapp.Data.Entities
+@using Services
+@using Data.Entities
 @inject MappedBrickService BrickService
 @inject InventoryService InventoryService
-@inject brickisbrickapp.Services.RebrickablePartImageService PartImageService
-@inject brickisbrickapp.Services.NotificationService NotificationService
+@inject Services.RebrickablePartImageService PartImageService
+@inject Services.NotificationService NotificationService
 
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="3">
             <!-- Brick Image -->
             @{
-                var overlay = SelectedColor != null ? brickisbrickapp.Helpers.BrickColorHelper.GetHexForColor(SelectedColor.Name) : null;
+                var overlay = SelectedColor != null ? Helpers.BrickColorHelper.GetHexForColor(SelectedColor.Name) : null;
             }
             <div style="margin-bottom:8px; min-height:68px; text-align:center;">
                 @if (!string.IsNullOrWhiteSpace(_imageUrl))
@@ -84,7 +84,7 @@
             @if (SelectedBrick != null && Colors.Any())
             {
                 <MudStack Row="true" Spacing="1" Style="margin-bottom:8px;">
-                    @foreach (var colorName in brickisbrickapp.Helpers.BrickColorHelper.CommonColors)
+                    @foreach (var colorName in Helpers.BrickColorHelper.CommonColors)
                     {
                         var colorObj = Colors.FirstOrDefault(c => c.Name == colorName);
                         if (colorObj != null)

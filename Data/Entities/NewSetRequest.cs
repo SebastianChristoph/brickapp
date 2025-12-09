@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace brickisbrickapp.Data.Entities
+namespace Data.Entities
 {
     public class NewSetRequest
     {
