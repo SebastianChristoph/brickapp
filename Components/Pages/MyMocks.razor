@@ -1,0 +1,113 @@
+@page "/mymocks"
+@using System.Xml.Linq
+@using brickisbrickapp.Data.Entities
+@using Microsoft.AspNetCore.Components.Forms
+@using brickisbrickapp.Services
+@inject NavigationManager Nav
+@inject IServiceProvider ServiceProvider
+@inject UserService UserService
+
+<h3>My Mocks</h3>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6">Neues Mock hochladen</MudText>
+    <InputFile OnChange="OnFileSelected" accept=".xml" />
+    <MudText Color="Color.Error">@uploadError</MudText>
+</MudPaper>
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h6">Deine Mocks</MudText>
+    <MudList T="string">
+        @if (userMocks == null)
+        {
+            <MudText>Wird geladen...</MudText>
+        }
+        else if (!userMocks.Any())
+        {
+            <MudText>Keine Mocks gefunden.</MudText>
+        }
+        else
+        {
+            @foreach (var mock in userMocks)
+            {
+                <MudListItem T="string" Style="cursor:pointer" OnClick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
+                    <MudText>@mock.Name</MudText>
+                </MudListItem>
+            }
+        }
+    </MudList>
+</MudPaper>
+
+@code {
+    private List<Mock>? userMocks;
+    private string uploadError = string.Empty;
+
+
+    private bool _loaded = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_loaded)
+        {
+            _loaded = true;
+            await LoadMocks();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadMocks()
+    {
+        using var scope = ServiceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+        var userUuid = await UserService.GetTokenAsync();
+        
+        if (string.IsNullOrEmpty(userUuid))
+        {
+            userMocks = new();
+            return;
+        }
+        userMocks = db.Mocks.Where(m => m.UserUuid == userUuid).ToList();
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        uploadError = string.Empty;
+        var file = e.File;
+        if (file == null)
+            return;
+        try
+        {
+            using var stream = file.OpenReadStream();
+            using var reader = new StreamReader(stream);
+            var xmlString = await reader.ReadToEndAsync();
+            var doc = XDocument.Parse(xmlString);
+            var items = doc.Descendants("ITEM").Select(x => new MockItem
+            {
+                ExternalPartNum = x.Element("ITEMID")?.Value,
+                Quantity = int.TryParse(x.Element("MINQTY")?.Value, out var q) ? q : 1,
+                // Color and mapping will be resolved later
+            }).ToList();
+            var name = file.Name;
+            var userUuid = await UserService.GetTokenAsync();
+            if (string.IsNullOrEmpty(userUuid))
+            {
+                uploadError = "Nicht eingeloggt.";
+                return;
+            }
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+            var mock = new Mock
+            {
+                Name = name,
+                UserUuid = userUuid,
+                Items = items
+            };
+            db.Mocks.Add(mock);
+            db.SaveChanges();
+            await LoadMocks();
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"Fehler beim Hochladen: {ex.Message}";
+        }
+    }
+}

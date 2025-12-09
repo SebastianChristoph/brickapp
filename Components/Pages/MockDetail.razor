@@ -1,0 +1,46 @@
+@page "/mockdetail/{mockId:int}"
+@using brickisbrickapp.Data.Entities
+@inject IServiceProvider ServiceProvider
+@inject NavigationManager Nav
+
+<h3>Mock Details</h3>
+
+@if (mock == null)
+{
+    <MudText>Mock nicht gefunden.</MudText>
+    <MudButton OnClick="GoBack">Zurück</MudButton>
+}
+else
+{
+    <MudText Typo="Typo.h5">@mock.Name</MudText>
+    <MudList T="string">
+        @foreach (var item in mock.Items)
+        {
+            <MudListItem T="string">
+                <MudText>@item.ExternalPartNum - Menge: @item.Quantity</MudText>
+            </MudListItem>
+        }
+    </MudList>
+    <MudButton OnClick="GoBack">Zurück</MudButton>
+}
+
+@code {
+    [Parameter] public int mockId { get; set; }
+    private Mock? mock;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var scope = ServiceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+        mock = db.Mocks.Where(m => m.Id == mockId).FirstOrDefault();
+        if (mock != null)
+        {
+            db.Entry(mock).Collection(m => m.Items).Load();
+        }
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/mymocks");
+    }
+}

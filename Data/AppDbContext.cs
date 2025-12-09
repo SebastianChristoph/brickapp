@@ -25,6 +25,9 @@ public class AppDbContext : DbContext
     public DbSet<NewItemRequest> NewItemRequests => Set<NewItemRequest>();
     public DbSet<NewSetRequest> NewSetRequests => Set<NewSetRequest>();
 
+    public DbSet<Mock> Mocks => Set<Mock>();
+    public DbSet<MockItem> MockItems => Set<MockItem>();
+
 
     // --- Model-Konfiguration ---------------------------------------
 
@@ -180,6 +183,35 @@ public class AppDbContext : DbContext
         // Alle LEGO-Parts, Sets, Farben usw. kommen NICHT hier über HasData,
         // Alle LEGO-Parts, Sets, Farben usw. kommen NICHT hier über HasData,
         // sondern werden beim Start über den RebrickableSeeder aus den CSVs geladen.
+
+        // ----------------- Mock & MockItem ------------------
+        modelBuilder.Entity<Mock>().ToTable("mocks");
+        modelBuilder.Entity<MockItem>().ToTable("mockitems");
+
+        modelBuilder.Entity<Mock>()
+            .HasMany(m => m.Items)
+            .WithOne(i => i.Mock)
+            .HasForeignKey(i => i.MockId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Mock>()
+            .HasOne(m => m.User)
+            .WithMany()
+            .HasForeignKey(m => m.UserUuid)
+            .HasPrincipalKey(u => u.Uuid)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<MockItem>()
+            .HasOne(mi => mi.MappedBrick)
+            .WithMany()
+            .HasForeignKey(mi => mi.MappedBrickId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<MockItem>()
+            .HasOne(mi => mi.BrickColor)
+            .WithMany()
+            .HasForeignKey(mi => mi.BrickColorId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         base.OnModelCreating(modelBuilder);
     }
