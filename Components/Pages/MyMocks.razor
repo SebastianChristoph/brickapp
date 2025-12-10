@@ -15,10 +15,11 @@
         <MudText Typo="Typo.h6">Neues Mock hochladen</MudText>
         <MudSelect @bind-Value="selectedFormat" Label="Dateiformat" Style="width:200px;">
             <MudSelectItem Value="@("bricklink")">bricklink List (XML)</MudSelectItem>
+            <MudSelectItem Value="@("rebrickable")">Rebrickable List (CSV)</MudSelectItem>
             <!-- Weitere Formate später -->
         </MudSelect>
         <MudTextField @bind-Value="newMockName" Label="Mock-Name" Style="width:200px;margin-top:8px;" />
-        <InputFile OnChange="OnFileSelected" accept=".xml" />
+        <InputFile OnChange="OnFileSelected" accept="@(selectedFormat == "bricklink" ? ".xml" : ".csv")" />
         <MudText Color="Color.Error">@uploadError</MudText>
 </MudPaper>
 
@@ -136,40 +137,122 @@
         var file = e.File;
         if (file == null)
             return;
+
+        // Dateiendung prüfen
+        if (selectedFormat == "bricklink" && !file.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+        {
+            uploadError = "Bitte eine XML-Datei für Bricklink auswählen.";
+            return;
+        }
+        if (selectedFormat == "rebrickable" && !file.Name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            uploadError = "Bitte eine CSV-Datei für Rebrickable auswählen.";
+            return;
+        }
+
         try
         {
             unmappedItems.Clear();
             using var stream = file.OpenReadStream();
             using var reader = new StreamReader(stream);
-            var xmlString = await reader.ReadToEndAsync();
-            var doc = XDocument.Parse(xmlString);
             var items = new List<MockItem>();
             using var scope = ServiceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-            foreach (var x in doc.Descendants("ITEM"))
+
+            if (selectedFormat == "bricklink")
             {
-                var partNum = x.Element("ITEMID")?.Value;
-                var colorId = int.TryParse(x.Element("COLOR")?.Value, out var cid) ? cid : (int?)null;
-                var qty = int.TryParse(x.Element("MINQTY")?.Value, out var q) ? q : 1;
-                int? mappedBrickId = null;
-                if (!string.IsNullOrEmpty(partNum))
+                var xmlString = await reader.ReadToEndAsync();
+                XDocument doc;
+                try
                 {
-                    var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
-                    if (mapped != null)
-                        mappedBrickId = mapped.Id;
+                    doc = XDocument.Parse(xmlString);
                 }
-                if (mappedBrickId == null)
+                catch
                 {
-                    unmappedItems.Add((partNum, colorId, qty));
+                    uploadError = "Die XML-Datei ist ungültig.";
+                    return;
                 }
-                items.Add(new MockItem
+                if (!doc.Descendants("ITEM").Any())
                 {
-                    ExternalPartNum = partNum,
-                    Quantity = qty,
-                    BrickColorId = colorId,
-                    MappedBrickId = mappedBrickId
-                });
+                    uploadError = "Die Bricklink-XML enthält keine Items.";
+                    return;
+                }
+                foreach (var x in doc.Descendants("ITEM"))
+                {
+                    var partNum = x.Element("ITEMID")?.Value;
+                    var colorId = int.TryParse(x.Element("COLOR")?.Value, out var cid) ? cid : (int?)null;
+                    var qty = int.TryParse(x.Element("MINQTY")?.Value, out var q) ? q : 1;
+                    int? mappedBrickId = null;
+                    if (!string.IsNullOrEmpty(partNum))
+                    {
+                        var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
+                        if (mapped != null)
+                            mappedBrickId = mapped.Id;
+                    }
+                    if (mappedBrickId == null)
+                    {
+                        unmappedItems.Add((partNum, colorId, qty));
+                    }
+                    items.Add(new MockItem
+                    {
+                        ExternalPartNum = partNum,
+                        Quantity = qty,
+                        BrickColorId = colorId,
+                        MappedBrickId = mappedBrickId
+                    });
+                }
             }
+            else if (selectedFormat == "rebrickable")
+            {
+                var csv = await reader.ReadToEndAsync();
+                var lines = csv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                if (lines.Length < 2)
+                {
+                    uploadError = "Die CSV-Datei enthält keine Daten.";
+                    return;
+                }
+                var header = lines[0].Split(',');
+                var expectedHeader = new[] { "Part", "Color", "Quantity", "Is Spare" };
+                if (header.Length != expectedHeader.Length || !expectedHeader.SequenceEqual(header))
+                {
+                    uploadError = $"Die CSV-Datei muss exakt die Spalten {string.Join(", ", expectedHeader)} enthalten.";
+                    return;
+                }
+                int partIdx = Array.IndexOf(header, "Part");
+                int colorIdx = Array.IndexOf(header, "Color");
+                int qtyIdx = Array.IndexOf(header, "Quantity");
+                for (int i = 1; i < lines.Length; i++)
+                {
+                    var cols = lines[i].Split(',');
+                    if (cols.Length != expectedHeader.Length)
+                    {
+                        uploadError = $"Zeile {i + 1} hat nicht die korrekte Anzahl an Spalten.";
+                        return;
+                    }
+                    var partNum = cols[partIdx];
+                    var colorId = int.TryParse(cols[colorIdx], out var cid) ? cid : (int?)null;
+                    var qty = int.TryParse(cols[qtyIdx], out var q) ? q : 1;
+                    int? mappedBrickId = null;
+                    if (!string.IsNullOrEmpty(partNum))
+                    {
+                        var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
+                        if (mapped != null)
+                            mappedBrickId = mapped.Id;
+                    }
+                    if (mappedBrickId == null)
+                    {
+                        unmappedItems.Add((partNum, colorId, qty));
+                    }
+                    items.Add(new MockItem
+                    {
+                        ExternalPartNum = partNum,
+                        Quantity = qty,
+                        BrickColorId = colorId,
+                        MappedBrickId = mappedBrickId
+                    });
+                }
+            }
+
             var name = string.IsNullOrWhiteSpace(newMockName) ? file.Name : newMockName.Trim();
             var userUuid = await UserService.GetTokenAsync();
             if (string.IsNullOrEmpty(userUuid))
@@ -177,12 +260,23 @@
                 uploadError = "Nicht eingeloggt.";
                 return;
             }
+            // Nur Items mit gültigen MappedBrickId und BrickColorId, die auch wirklich existieren, speichern
+            var validItems = new List<MockItem>();
+            foreach (var i in items)
+            {
+                if (i.MappedBrickId == null || i.BrickColorId == null)
+                    continue;
+                var mappedExists = db.MappedBricks.Any(b => b.Id == i.MappedBrickId);
+                var colorExists = db.BrickColors.Any(c => c.Id == i.BrickColorId);
+                if (mappedExists && colorExists)
+                    validItems.Add(i);
+            }
             var mock = new Mock
             {
                 Name = name,
                 UserUuid = userUuid,
                 MockType = selectedFormat,
-                Items = items
+                Items = validItems
             };
             db.Mocks.Add(mock);
             db.SaveChanges();
