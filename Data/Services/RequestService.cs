@@ -1,4 +1,5 @@
 
+
 using Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +16,29 @@ namespace Data.Services
                 .Where(r => r.RequestedByUserId == userId)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
+        }
+
+                public async Task<bool> UpdateNewSetRequestAsync(int id, string brand, string setNo, string setName, string? imagePath, List<NewSetRequestItem> items, NewSetRequestStatus status)
+        {
+            var request = await _db.NewSetRequests.Include(r => r.Items).FirstOrDefaultAsync(r => r.Id == id);
+            if (request == null) return false;
+            request.Brand = brand;
+            request.SetNo = setNo;
+            request.SetName = setName;
+            request.ImagePath = imagePath;
+            request.Status = status;
+            request.Items.Clear();
+            foreach (var item in items)
+            {
+                request.Items.Add(new NewSetRequestItem
+                {
+                    ItemIdOrName = item.ItemIdOrName,
+                    Quantity = item.Quantity,
+                    Color = item.Color
+                });
+            }
+            await _db.SaveChangesAsync();
+            return true;
         }
         public async Task<bool> DeleteNewSetRequestAsync(int id)
         {
@@ -149,12 +173,49 @@ namespace Data.Services
 
         public async Task ApproveNewSetRequestAsync(int requestId)
         {
-            var request = await _db.NewSetRequests.FindAsync(requestId);
+            var request = await _db.NewSetRequests
+                .Include(r => r.Items)
+                .FirstOrDefaultAsync(r => r.Id == requestId);
             if (request == null || request.Status != NewSetRequestStatus.Pending) return;
+
+            // ItemSet anlegen
+            var itemSet = new ItemSet
+            {
+                Name = request.SetName,
+                Brand = request.Brand,
+                LegoSetNum = request.SetNo,
+                ImageUrl = request.ImagePath,
+                Year = null // Optional: aus Request übernehmen, falls vorhanden
+            };
+            _db.ItemSets.Add(itemSet);
+            await _db.SaveChangesAsync();
+
+            // Bricks anlegen
+            foreach (var reqItem in request.Items)
+            {
+                int mappedBrickId = 0;
+                if (int.TryParse(reqItem.ItemIdOrName, out var id))
+                    mappedBrickId = id;
+
+                // BrickColorId auflösen (hier nach Name suchen)
+                var color = await _db.BrickColors.FirstOrDefaultAsync(c => c.Name == reqItem.Color);
+                int colorId = color?.Id ?? 1; // Fallback: 1
+
+                var setBrick = new ItemSetBrick
+                {
+                    ItemSetId = itemSet.Id,
+                    MappedBrickId = mappedBrickId,
+                    BrickColorId = colorId,
+                    Quantity = reqItem.Quantity
+                };
+                _db.ItemSetBricks.Add(setBrick);
+            }
+            // Request-Status setzen
             request.Status = NewSetRequestStatus.Approved;
             request.ReasonRejected = null;
             request.CreatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
+
             if (_notificationService != null)
             {
                 await _notificationService.AddNotificationAsync(

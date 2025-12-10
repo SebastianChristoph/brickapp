@@ -31,9 +31,11 @@ else
 		{
 			<li>
 				@set.SetName (@set.SetNo) - @set.Brand
+				<button class="btn btn-sm btn-primary ms-2" @onclick="() => EditDraftAsync(set.Id)">Edit</button>
 				<button class="btn btn-sm btn-danger ms-2" @onclick="() => DeleteDraftAsync(set.Id)">Löschen</button>
 			</li>
 		}
+		
 	</ul>
 }
 
@@ -157,6 +159,7 @@ else
 	private List<Data.Entities.NewSetRequest>? draftSets;
 	private List<string> brands = new();
 	private NewSetModel newSetModel = new();
+	private int? editingDraftId = null;
 	private string? errorMessage;
 
 	// Brick hinzufügen
@@ -177,6 +180,44 @@ else
 				return url;
 		}
 		return "/part_images/placeholder.png";
+	}
+
+	private async Task EditDraftAsync(int draftId)
+	{
+		var draft = draftSets?.FirstOrDefault(d => d.Id == draftId);
+		if (draft == null) return;
+		editingDraftId = draft.Id;
+		var bricks = new List<NewSetBrickModel>();
+		var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
+		foreach (var item in draft.Items)
+		{
+			int brickId = 0;
+			string brickName = item.ItemIdOrName;
+			if (int.TryParse(item.ItemIdOrName, out var id))
+			{
+				brickId = id;
+				var brick = allBricks.FirstOrDefault(b => b.Id == id);
+				if (brick != null)
+				{
+					brickName = brick.LegoName ?? brick.LegoPartNum ?? item.ItemIdOrName;
+				}
+			}
+			bricks.Add(new NewSetBrickModel
+			{
+				BrickId = brickId,
+				BrickName = brickName,
+				Color = item.Color,
+				Quantity = item.Quantity
+			});
+		}
+		newSetModel = new NewSetModel
+		{
+			SetName = draft.SetName,
+			SetNo = draft.SetNo,
+			Brand = draft.Brand,
+			Bricks = bricks
+		};
+		StateHasChanged();
 	}
 
 		private async Task LoadDraftsAndData()
@@ -290,11 +331,26 @@ else
 			StateHasChanged();
 			return;
 		}
-		await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, null,
-		user.Uuid, new List<Data.Entities.NewSetRequestItem>(), Data.Entities.NewSetRequestStatus.Draft);
-			await LoadDraftsAndData();
+		var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem
+		{
+			ItemIdOrName = b.BrickId != 0 ? b.BrickId.ToString() : b.BrickName,
+			Quantity = b.Quantity,
+			Color = b.Color
+		}).ToList();
+		if (editingDraftId.HasValue)
+		{
+			// Update existing draft in-place
+			await RequestService.UpdateNewSetRequestAsync(editingDraftId.Value, newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, null, items, Data.Entities.NewSetRequestStatus.Draft);
+		}
+		else
+		{
+			await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, null,
+				user.Uuid, items, Data.Entities.NewSetRequestStatus.Draft);
+		}
+		await LoadDraftsAndData();
 		newSetModel = new();
-		  NotificationService.Success("Set erfolgreich als Entwurf gespeichert.");
+		editingDraftId = null;
+		NotificationService.Success("Set erfolgreich als Entwurf gespeichert.");
 		StateHasChanged();
 	}
 
@@ -314,10 +370,27 @@ else
 			return;
 		}
 		// Veröffentlichen: Status Pending
+		var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem
+		{
+			ItemIdOrName = b.BrickId != 0 ? b.BrickId.ToString() : b.BrickName,
+			Quantity = b.Quantity,
+			Color = b.Color
+		}).ToList();
+		if (editingDraftId.HasValue)
+		{
+			// Update draft to Pending (publish)
+			var draft = draftSets?.FirstOrDefault(d => d.Id == editingDraftId.Value);
+			if (draft != null)
+			{
+				await RequestService.DeleteNewSetRequestAsync(draft.Id); // Remove old draft
+			}
+		}
 		await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, null,
-		user.Uuid, new List<Data.Entities.NewSetRequestItem>(), Data.Entities.NewSetRequestStatus.Pending);
-			await LoadDraftsAndData();
+			user.Uuid, items, Data.Entities.NewSetRequestStatus.Pending);
+		await LoadDraftsAndData();
 		newSetModel = new();
+		editingDraftId = null;
+		NotificationService.Success("Set erfolgreich zur Überprüfung eingereicht.");
 		StateHasChanged();
 	}
 
