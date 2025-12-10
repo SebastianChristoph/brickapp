@@ -19,6 +19,8 @@
             <!-- Weitere Formate später -->
         </MudSelect>
         <MudTextField @bind-Value="newMockName" Label="Mock-Name" Style="width:200px;margin-top:8px;" />
+        <MudTextField @bind-Value="newMockComment" Label="Kommentar" Style="width:200px;margin-top:8px;" />
+        <MudTextField @bind-Value="newMockWebSource" Label="Web-URL" Style="width:200px;margin-top:8px;" />
         <InputFile OnChange="OnFileSelected" accept="@(selectedFormat == "bricklink" ? ".xml" : ".csv")" />
         <MudText Color="Color.Error">@uploadError</MudText>
 </MudPaper>
@@ -53,11 +55,45 @@
         }
         else
         {
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+            var userUuid = UserService.GetTokenAsync().Result;
+            var inventory = db.InventoryItems.Where(i => i.AppUser.Uuid == userUuid).ToList();
+
             @foreach (var mock in userMocks)
             {
+                var totalParts = mock.Items?.Sum(i => i.Quantity) ?? 0;
+                // Besitzte Teile berechnen
+                int ownedParts = 0;
+                if (mock.Items != null)
+                {
+                    foreach (var item in mock.Items)
+                    {
+                        if (item.MappedBrickId != null && item.BrickColorId != null)
+                        {
+                            var inv = inventory.Where(invItem => invItem.MappedBrickId == item.MappedBrickId && invItem.BrickColorId == item.BrickColorId).Sum(invItem => invItem.Quantity);
+                            ownedParts += Math.Min(inv, item.Quantity);
+                        }
+                    }
+                }
+                var percent = (totalParts > 0) ? (int)Math.Floor(100.0 * ownedParts / totalParts) : 0;
+
                 <MudListItem T="string" Style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
                     <span style="flex:1" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
-                        <MudText>@mock.Name</MudText>
+                        <MudText><b>@mock.Name</b> <span style="color:#888;font-size:0.95em">(@mock.MockType)</span></MudText>
+                        <MudText Typo="Typo.caption">Teile: @totalParts</MudText>
+                        <MudText Typo="Typo.caption">Besitzt: @ownedParts / @totalParts (@percent%)</MudText>
+                        <MudProgressLinear Value="@percent" Color="@(percent == 100 ? Color.Success : Color.Primary)" Style="max-width:120px;height:8px;margin-top:2px;" />
+                        @if (!string.IsNullOrWhiteSpace(mock.WebSource))
+                        {
+                            <MudText Typo="Typo.caption">
+                                <a href="@mock.WebSource" target="_blank" rel="noopener noreferrer" style="color:#1976d2;text-decoration:underline;">Web-Quelle</a>
+                            </MudText>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(mock.Comment))
+                        {
+                            <MudText Typo="Typo.caption" Style="color:#666;"><br />Kommentar: @mock.Comment</MudText>
+                        }
                     </span>
                     <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" Style="margin-left:8px" OnClick="@(() => DeleteMock(mock.Id))">Löschen</MudButton>
                 </MudListItem>
@@ -72,6 +108,8 @@
     private List<(string? PartNum, int? ColorId, int Quantity)> unmappedItems = new();
     private string selectedFormat = "bricklink";
     private string newMockName = string.Empty;
+    private string newMockComment = string.Empty;
+    private string newMockWebSource = string.Empty;
 
     private async Task DeleteMock(int mockId)
     {
@@ -276,11 +314,15 @@
                 Name = name,
                 UserUuid = userUuid,
                 MockType = selectedFormat,
-                Items = validItems
+                Items = validItems,
+                Comment = string.IsNullOrWhiteSpace(newMockComment) ? null : newMockComment.Trim(),
+                WebSource = string.IsNullOrWhiteSpace(newMockWebSource) ? null : newMockWebSource.Trim()
             };
             db.Mocks.Add(mock);
             db.SaveChanges();
             newMockName = string.Empty;
+            newMockComment = string.Empty;
+            newMockWebSource = string.Empty;
             await LoadMocks();
         }
         catch (Exception ex)
