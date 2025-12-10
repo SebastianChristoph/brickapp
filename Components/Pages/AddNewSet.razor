@@ -103,15 +103,33 @@ else
 	<h6 class="mt-3">Bricks im Set</h6>
 	@if (newSetModel.Bricks.Any())
 	{
-		<ul class="list-group">
-			@foreach (var b in newSetModel.Bricks)
-			{
-				<li class="list-group-item">
-					@b.BrickName (@b.BrickId), Farbe: @b.Color, Menge: @b.Quantity
-				</li>
-			}
-		</ul>
+		<MudTable Items="newSetModel.Bricks" Hover="true" Striped="true">
+			<HeaderContent>
+				<MudTh>Brick</MudTh>
+				<MudTh>Color</MudTh>
+				<MudTh>Brand</MudTh>
+				<MudTh>Brand ID</MudTh>
+				<MudTh>Quantity</MudTh>
+				<MudTh>Image</MudTh>
+				<MudTh>Actions</MudTh>
+			</HeaderContent>
+			<RowTemplate Context="brick">
+				<MudTd DataLabel="Brick">@brick.BrickName</MudTd>
+				<MudTd DataLabel="Color">@brick.Color</MudTd>
+				<MudTd DataLabel="Brand">@newSetModel.Brand</MudTd>
+				<MudTd DataLabel="Brand ID">@brick.BrickId</MudTd>
+				<MudTd DataLabel="Quantity">@brick.Quantity</MudTd>
+				<MudTd DataLabel="Image">
+					<img src="@GetBrickImageUrlFromId(brick.BrickId)" alt="" style="width:48px;height:48px;border-radius:4px;border:1px solid #ccc;" />
+				</MudTd>
+				<MudTd DataLabel="Actions">
+
+					<MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" @onclick="() => RemoveBrick(brick)">Delete</MudButton>
+				</MudTd>
+			</RowTemplate>
+		</MudTable>
 	}
+	
 
 	<div class="mt-3">
 		<button type="submit" class="btn btn-secondary me-2">Als Entwurf speichern</button>
@@ -148,7 +166,25 @@ else
 		brands = await GetAllBrandsAsync();
 		brickColors = await MappedBrickService.GetAllColorsAsync();
 	}
+private string GetBrickImageUrlFromId(int brickId)
+	{
+		var brick = brickSearchResults.FirstOrDefault(b => b.Id == brickId);
+		if (brick != null)
+		{
+			var partNum = brick.LegoPartNum;
+			if (!string.IsNullOrWhiteSpace(partNum) && _brickImageCache.TryGetValue(partNum, out var url))
+				return url;
+		}
+		return "/part_images/placeholder.png";
+	}
 
+	private void RemoveBrick(NewSetBrickModel brick)
+	{
+		newSetModel.Bricks.Remove(brick);
+		StateHasChanged();
+	}
+
+	
 	private Dictionary<string, string> _brickImageCache = new();
 
 	private string GetBrickImageUrl(MappedBrick brick)
