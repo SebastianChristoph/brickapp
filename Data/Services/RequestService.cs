@@ -129,7 +129,7 @@ namespace Data.Services
                 .FirstOrDefaultAsync(r => r.Id == id);
         }
 
-        public async Task<NewSetRequest> CreateNewSetRequestAsync(string brand, string setNo, string setName, string? imagePath, string userId, List<NewSetRequestItem> items)
+        public async Task<NewSetRequest> CreateNewSetRequestAsync(string brand, string setNo, string setName, string? imagePath, string userId, List<NewSetRequestItem> items, NewSetRequestStatus status)
         {
             var request = new NewSetRequest
             {
@@ -139,7 +139,7 @@ namespace Data.Services
                 ImagePath = imagePath,
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow,
-                Status = NewSetRequestStatus.Pending,
+                Status = status,
                 Items = items
             };
             _db.NewSetRequests.Add(request);
