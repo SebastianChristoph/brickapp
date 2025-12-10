@@ -1,0 +1,159 @@
+
+@page "/add-new-set"
+@using Services
+@inject Data.Services.RequestService RequestService
+@inject UserService UserService
+@inject Services.ItemSetService ItemSetService
+
+<h3>Add New Set</h3>
+
+<!-- Formular für neues Set ...existing code... -->
+
+<h4>Deine Entwürfe</h4>
+@if (draftSets == null)
+{
+	<p><em>Lade Entwürfe...</em></p>
+}
+else if (!draftSets.Any())
+{
+	<p>Keine Entwürfe vorhanden.</p>
+}
+else
+{
+	<ul>
+		@foreach (var set in draftSets)
+		{
+			<li>
+				@set.SetName (@set.SetNo) - @set.Brand
+				<button class="btn btn-sm btn-danger ms-2" @onclick="() => DeleteDraftAsync(set.Id)">Löschen</button>
+			</li>
+		}
+	</ul>
+}
+
+
+<h4>Neues Set hinzufügen</h4>
+<EditForm Model="newSetModel" OnValidSubmit="HandleDraftSubmit">
+	@if (!string.IsNullOrEmpty(errorMessage))
+	{
+		<div class="alert alert-danger">@errorMessage</div>
+	}
+	<DataAnnotationsValidator />
+	<ValidationSummary />
+	<div class="mb-2">
+		<label for="setName">Name *</label>
+		<InputText id="setName" class="form-control" @bind-Value="newSetModel.SetName" required />
+	</div>
+	<div class="mb-2">
+		<label for="setId">Set ID *</label>
+		<InputText id="setId" class="form-control" @bind-Value="newSetModel.SetNo" required />
+	</div>
+	<div class="mb-2">
+		<label for="brand">Brand *</label>
+		<InputSelect id="brand" class="form-control" @bind-Value="newSetModel.Brand" required>
+			<option value="">Bitte wählen</option>
+			@foreach (var brand in brands)
+			{
+				<option value="Lego">Lego</option>
+                <option value="Cada">Cada</option>
+			}
+		</InputSelect>
+	</div>
+	<div class="mt-3">
+		<button type="submit" class="btn btn-secondary me-2">Als Entwurf speichern</button>
+		<button type="button" class="btn btn-primary" @onclick="HandlePublish">Veröffentlichen</button>
+	</div>
+</EditForm>
+
+@code {
+	private List<Data.Entities.NewSetRequest>? draftSets;
+	private List<string> brands = new();
+	private NewSetModel newSetModel = new();
+	private string? errorMessage;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+		var user = await UserService.GetCurrentUserAsync();
+		if (user == null)
+		{
+			draftSets = new List<Data.Entities.NewSetRequest>();
+			return;
+		}
+		var allSets = await RequestService.GetNewSetRequestsByUserAsync(user.Uuid);
+		draftSets = allSets.Where(s => s.Status == Data.Entities.NewSetRequestStatus.Draft).ToList();
+
+		// Brands aus ItemSets laden
+		brands = await GetAllBrandsAsync();
+	}
+
+	private async Task<List<string>> GetAllBrandsAsync()
+	{
+		// Hole alle Brands aus ItemSets
+		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
+		return itemSets.Items.Select(s => s.Brand).Distinct().OrderBy(b => b).ToList();
+	}
+
+	private async Task HandleDraftSubmit()
+	{
+		errorMessage = null;
+		var user = await UserService.GetCurrentUserAsync();
+		if (user == null) return;
+		// Prüfe auf Duplikat
+		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
+		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum == newSetModel.SetNo));
+		if (exists)
+		{
+			errorMessage = "Es existiert bereits ein Set mit dieser Brand und Name oder Set ID.";
+			StateHasChanged();
+			return;
+		}
+		await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, null, user.Uuid, new List<Data.Entities.NewSetRequestItem>());
+		// Nach dem Speichern neu laden
+		var allSets = await RequestService.GetNewSetRequestsByUserAsync(user.Uuid);
+		draftSets = allSets.Where(s => s.Status == Data.Entities.NewSetRequestStatus.Draft).ToList();
+		newSetModel = new();
+		StateHasChanged();
+	}
+
+	private async Task HandlePublish()
+	{
+		errorMessage = null;
+		var user = await UserService.GetCurrentUserAsync();
+		if (user == null) return;
+		// Prüfe auf Duplikat
+		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
+		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum == newSetModel.SetNo));
+		if (exists)
+		{
+			errorMessage = "Es existiert bereits ein Set mit dieser Brand und Name oder Set ID.";
+			StateHasChanged();
+			return;
+		}
+		// Veröffentlichen: Status Pending
+		await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, null, user.Uuid, new List<Data.Entities.NewSetRequestItem>());
+		// Nach dem Veröffentlichen neu laden
+		var allSets = await RequestService.GetNewSetRequestsByUserAsync(user.Uuid);
+		draftSets = allSets.Where(s => s.Status == Data.Entities.NewSetRequestStatus.Draft).ToList();
+		newSetModel = new();
+		StateHasChanged();
+	}
+
+	private async Task DeleteDraftAsync(int id)
+	{
+		await RequestService.DeleteNewSetRequestAsync(id);
+		var user = await UserService.GetCurrentUserAsync();
+		if (user != null)
+		{
+			var allSets = await RequestService.GetNewSetRequestsByUserAsync(user.Uuid);
+			draftSets = allSets.Where(s => s.Status == Data.Entities.NewSetRequestStatus.Draft).ToList();
+			StateHasChanged();
+		}
+	}
+
+	public class NewSetModel
+	{
+		public string SetName { get; set; } = string.Empty;
+		public string SetNo { get; set; } = string.Empty;
+		public string Brand { get; set; } = string.Empty;
+	}
+}

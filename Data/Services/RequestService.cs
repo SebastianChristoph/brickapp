@@ -1,3 +1,4 @@
+
 using Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +16,14 @@ namespace Data.Services
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
         }
-
+        public async Task<bool> DeleteNewSetRequestAsync(int id)
+        {
+            var request = await _db.NewSetRequests.FindAsync(id);
+            if (request == null) return false;
+            _db.NewSetRequests.Remove(request);
+            await _db.SaveChangesAsync();
+            return true;
+        }
         public async Task<List<NewItemRequest>> GetOpenNewItemRequestsAsync()
         {
             return await _db.NewItemRequests

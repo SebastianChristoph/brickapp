@@ -11,7 +11,8 @@ namespace Data.Entities
         public string SetName { get; set; }
         public string? ImagePath { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public NewSetRequestStatus Status { get; set; } = NewSetRequestStatus.Pending;
+        public NewSetRequestStatus Status { get; set; } = NewSetRequestStatus.Draft;
+        public bool IsDraft => Status == NewSetRequestStatus.Draft;
         public string? ReasonRejected { get; set; }
         public string UserId { get; set; }
         public List<NewSetRequestItem> Items { get; set; } = new();
@@ -28,6 +29,7 @@ namespace Data.Entities
 
     public enum NewSetRequestStatus
     {
+        Draft,
         Pending,
         Approved,
         Rejected

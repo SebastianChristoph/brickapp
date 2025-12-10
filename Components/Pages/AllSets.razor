@@ -4,6 +4,7 @@
 
 @inject UserService UserService
 @inject ItemSetService SetService
+@inject NavigationManager NavigationManager
 
 <PageTitle>All Sets</PageTitle>
 
@@ -14,7 +15,7 @@
 <MudText Typo="Typo.h6" GutterBottom="true">
     All available sets
 </MudText>
-<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenAddSetDialog" Class="mb-4">Add New Set</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => NavigationManager.NavigateTo("/add-new-set"))" Class="mb-4">Add New Set</MudButton>
 
 
 <MudTextField @bind-Value="_searchText" Label="Search by name or ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true" Placeholder="At least 3 characters..." Class="mb-4" />
