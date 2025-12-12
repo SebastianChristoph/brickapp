@@ -8,7 +8,9 @@
 @inject Services.ItemSetService ItemSetService
 @inject Services.MappedBrickService MappedBrickService
 @inject Services.RebrickablePartImageService PartImageService
+
 @inject Services.NotificationService NotificationService
+@inject Data.Services.ImageService ImageService
 
 
 <h3>Add New Set</h3>
@@ -43,6 +45,20 @@ else
 
 <h4>Neues Set hinzufügen</h4>
 <EditForm Model="newSetModel" OnValidSubmit="HandleDraftSubmit">
+	<div class="mb-2">
+		<label for="setImage">Set-Bild *</label>
+		<InputFile id="setImage" OnChange="OnImageSelected" accept="image/*" />
+		@if (!string.IsNullOrEmpty(imageError))
+		{
+			<div class="alert alert-danger">@imageError</div>
+		}
+		@if (!string.IsNullOrEmpty(imagePreviewUrl))
+		{
+			<div class="mt-2">
+				<img src="@imagePreviewUrl" alt="Set-Bild Vorschau" style="max-width: 300px; max-height: 300px; border: 1px solid #ccc; border-radius: 6px;" />
+			</div>
+		}
+	</div>
 	@if (!string.IsNullOrEmpty(errorMessage))
 	{
 		<div class="alert alert-danger">@errorMessage</div>
@@ -147,6 +163,43 @@ else
 </EditForm>
 
 @code {
+	private string? imagePreviewUrl;
+	private string? imageError;
+	private IBrowserFile? uploadedImageFile;
+
+	private async Task OnImageSelected(InputFileChangeEventArgs e)
+	{
+		imageError = null;
+		imagePreviewUrl = null;
+		uploadedImageFile = null;
+		var file = e.File;
+		if (file == null)
+		{
+			imageError = "Bitte wähle ein Bild aus.";
+			StateHasChanged();
+			return;
+		}
+		if (file.Size > 3 * 1024 * 1024)
+		{
+			imageError = "Das Bild darf maximal 3MB groß sein.";
+			StateHasChanged();
+			return;
+		}
+		try
+		{
+			using var stream = file.OpenReadStream(3 * 1024 * 1024);
+			var buffer = new byte[file.Size];
+			await stream.ReadAsync(buffer, 0, (int)file.Size);
+			var base64 = Convert.ToBase64String(buffer);
+			imagePreviewUrl = $"data:{file.ContentType};base64,{base64}";
+			uploadedImageFile = file;
+		}
+		catch (Exception ex)
+		{
+			imageError = $"Fehler beim Laden des Bildes: {ex.Message}";
+		}
+		StateHasChanged();
+	}
 	private bool _hasLoaded = false;
 		protected override async Task OnAfterRenderAsync(bool firstRender)
 		{
@@ -217,6 +270,9 @@ else
 			Brand = draft.Brand,
 			Bricks = bricks
 		};
+		// Bildvorschau aus ImagePath laden (falls vorhanden)
+		imagePreviewUrl = !string.IsNullOrWhiteSpace(draft.ImagePath) ? draft.ImagePath : null;
+		uploadedImageFile = null;
 		StateHasChanged();
 	}
 
@@ -316,18 +372,32 @@ else
 		errorMessage = null;
 		var user = await UserService.GetCurrentUserAsync();
 		if (user == null){
-			  NotificationService.Error("Kein User gefunden. Bitte melde dich an.");
-			  
-			  return;
-			  }
-
+			NotificationService.Error("Kein User gefunden. Bitte melde dich an.");
+			return;
+		}
+		if (uploadedImageFile == null)
+		{
+			errorMessage = "Bitte lade ein Bild für das Set hoch.";
+			StateHasChanged();
+			return;
+		}
 		// Prüfe auf Duplikat
 		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum ==
-		newSetModel.SetNo));
+		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum == newSetModel.SetNo));
 		if (exists)
 		{
 			errorMessage = "Es existiert bereits ein Set mit dieser Brand und Name oder Set ID.";
+			StateHasChanged();
+			return;
+		}
+		string? imagePath = null;
+		try
+		{
+			imagePath = await ImageService.SaveSetImageAsync(uploadedImageFile, newSetModel.Brand, newSetModel.SetNo);
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"Fehler beim Speichern des Bildes: {ex.Message}";
 			StateHasChanged();
 			return;
 		}
@@ -340,16 +410,18 @@ else
 		if (editingDraftId.HasValue)
 		{
 			// Update existing draft in-place
-			await RequestService.UpdateNewSetRequestAsync(editingDraftId.Value, newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, null, items, Data.Entities.NewSetRequestStatus.Draft);
+			await RequestService.UpdateNewSetRequestAsync(editingDraftId.Value, newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath, items, Data.Entities.NewSetRequestStatus.Draft);
 		}
 		else
 		{
-			await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, null,
+			await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath,
 				user.Uuid, items, Data.Entities.NewSetRequestStatus.Draft);
 		}
 		await LoadDraftsAndData();
 		newSetModel = new();
 		editingDraftId = null;
+		uploadedImageFile = null;
+		imagePreviewUrl = null;
 		NotificationService.Success("Set erfolgreich als Entwurf gespeichert.");
 		StateHasChanged();
 	}
@@ -359,16 +431,53 @@ else
 		errorMessage = null;
 		var user = await UserService.GetCurrentUserAsync();
 		if (user == null) return;
+
 		// Prüfe auf Duplikat
 		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum ==
-		newSetModel.SetNo));
+		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum == newSetModel.SetNo));
 		if (exists)
 		{
 			errorMessage = "Es existiert bereits ein Set mit dieser Brand und Name oder Set ID.";
 			StateHasChanged();
 			return;
 		}
+
+		string? imagePath = null;
+		if (uploadedImageFile != null)
+		{
+			try
+			{
+				imagePath = await ImageService.SaveSetImageAsync(uploadedImageFile, newSetModel.Brand, newSetModel.SetNo);
+			}
+			catch (Exception ex)
+			{
+				errorMessage = $"Fehler beim Speichern des Bildes: {ex.Message}";
+				StateHasChanged();
+				return;
+			}
+		}
+		else if (editingDraftId.HasValue)
+		{
+			// Wenn kein neues Bild hochgeladen wurde, aber ein Entwurfsbild existiert, verwende dieses
+			var draft = draftSets?.FirstOrDefault(d => d.Id == editingDraftId.Value);
+			if (draft != null && !string.IsNullOrWhiteSpace(draft.ImagePath))
+			{
+				imagePath = draft.ImagePath;
+			}
+			else
+			{
+				errorMessage = "Bitte lade ein Bild für das Set hoch.";
+				StateHasChanged();
+				return;
+			}
+		}
+		else
+		{
+			errorMessage = "Bitte lade ein Bild für das Set hoch.";
+			StateHasChanged();
+			return;
+		}
+
 		// Veröffentlichen: Status Pending
 		var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem
 		{
@@ -385,11 +494,13 @@ else
 				await RequestService.DeleteNewSetRequestAsync(draft.Id); // Remove old draft
 			}
 		}
-		await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, null,
+		await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath,
 			user.Uuid, items, Data.Entities.NewSetRequestStatus.Pending);
 		await LoadDraftsAndData();
 		newSetModel = new();
 		editingDraftId = null;
+		uploadedImageFile = null;
+		imagePreviewUrl = null;
 		NotificationService.Success("Set erfolgreich zur Überprüfung eingereicht.");
 		StateHasChanged();
 	}

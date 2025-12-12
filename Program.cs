@@ -41,9 +41,14 @@ builder.Services.AddSingleton<LoadingService>();
 // Rebrickable API Part Image Service
 builder.Services.AddHttpClient<RebrickablePartImageService>();
 
+
 // ItemUploadService: needs wwwroot path
 builder.Services.AddScoped<ItemUploadService>(sp =>
     new ItemUploadService(Path.Combine(builder.Environment.ContentRootPath, "wwwroot")));
+
+// ImageService: needs wwwroot path
+builder.Services.AddScoped<ImageService>(sp =>
+    new ImageService(Path.Combine(builder.Environment.ContentRootPath, "wwwroot")));
 
 // MudBlazor
 builder.Services.AddMudServices();

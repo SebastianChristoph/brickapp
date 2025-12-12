@@ -1,4 +1,6 @@
 
+
+
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -33,6 +35,20 @@ namespace Data.Services
             return $"/{userUuid}/{fileName}";
         }
 
+                public string GetSetImage(string? imagePath)
+        {
+            if (!string.IsNullOrWhiteSpace(imagePath))
+                return imagePath;
+            return "/placeholder-image.png";
+        }
+
+        public string GetItemImage(string? imagePath)
+        {
+            if (!string.IsNullOrWhiteSpace(imagePath))
+                return imagePath;
+            return "/placeholder-image.png";
+        }
+
         public void DeleteMockImage(string? imagePath)
         {
             if (string.IsNullOrWhiteSpace(imagePath))
@@ -51,6 +67,26 @@ namespace Data.Services
             if (!string.IsNullOrWhiteSpace(imagePath))
                 return imagePath;
             return "/placeholder-image.png";
+        }
+
+                public async Task<string?> SaveSetImageAsync(IBrowserFile uploadedImage, string brand, string setId)
+        {
+            if (uploadedImage == null) return null;
+            var ext = Path.GetExtension(uploadedImage.Name);
+            var safeBrand = brand.ToLower().Replace(" ", "_");
+            var safeSetId = setId.ToLower().Replace(" ", "_");
+            var fileName = safeSetId + ext;
+            var setDir = Path.Combine(_wwwrootPath, "setimages", safeBrand);
+            if (!Directory.Exists(setDir))
+                Directory.CreateDirectory(setDir);
+            var savePath = Path.Combine(setDir, fileName);
+            using (var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024))
+            using (var fs = File.Create(savePath))
+            {
+                await stream.CopyToAsync(fs);
+            }
+            // Relativer Pfad für Webzugriff
+            return $"/setimages/{safeBrand}/{fileName}";
         }
     }
 }
