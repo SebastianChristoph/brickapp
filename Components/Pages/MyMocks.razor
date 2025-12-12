@@ -6,6 +6,7 @@
 @inject NavigationManager Nav
 @inject IServiceProvider ServiceProvider
 @inject UserService UserService
+@using IBrowserFile = Microsoft.AspNetCore.Components.Forms.IBrowserFile
 
 <h3>My Mocks</h3>
 
@@ -21,7 +22,18 @@
         <MudTextField @bind-Value="newMockName" Label="Mock-Name" Style="width:200px;margin-top:8px;" />
         <MudTextField @bind-Value="newMockComment" Label="Kommentar" Style="width:200px;margin-top:8px;" />
         <MudTextField @bind-Value="newMockWebSource" Label="Web-URL" Style="width:200px;margin-top:8px;" />
+        <div style="margin-top:8px;">
+            <label>Mock-Bild hochladen (max 3MB): </label>
+            <InputFile OnChange="OnImageSelected" accept="image/*" />
+        </div>
+        @if (!string.IsNullOrEmpty(imagePreviewUrl))
+        {
+            <div style="margin-top:8px;">
+                <img src="@imagePreviewUrl" alt="Mock Bild Vorschau" style="max-width:200px;max-height:200px;border:1px solid #ccc;padding:2px;" />
+            </div>
+        }
         <InputFile OnChange="OnFileSelected" accept="@(selectedFormat == "bricklink" ? ".xml" : ".csv")" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateMockFromUpload" Disabled="@(!fileReadyForUpload)" Class="ml-2 mt-2">Neuen Mock erstellen</MudButton>
         <MudText Color="Color.Error">@uploadError</MudText>
 </MudPaper>
 
@@ -79,22 +91,25 @@
                 var percent = (totalParts > 0) ? (int)Math.Floor(100.0 * ownedParts / totalParts) : 0;
 
                 <MudListItem T="string" Style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
-                    <span style="flex:1" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
-                        <MudText><b>@mock.Name</b> <span style="color:#888;font-size:0.95em">(@mock.MockType)</span></MudText>
-                        <MudText Typo="Typo.caption">Teile: @totalParts</MudText>
-                        <MudText Typo="Typo.caption">Besitzt: @ownedParts / @totalParts (@percent%)</MudText>
-                        <MudProgressLinear Value="@percent" Color="@(percent == 100 ? Color.Success : Color.Primary)" Style="max-width:120px;height:8px;margin-top:2px;" />
-                        @if (!string.IsNullOrWhiteSpace(mock.WebSource))
-                        {
-                            <MudText Typo="Typo.caption">
-                                <a href="@mock.WebSource" target="_blank" rel="noopener noreferrer" style="color:#1976d2;text-decoration:underline;">Web-Quelle</a>
-                            </MudText>
-                        }
-                        @if (!string.IsNullOrWhiteSpace(mock.Comment))
-                        {
-                            <MudText Typo="Typo.caption" Style="color:#666;"><br />Kommentar: @mock.Comment</MudText>
-                        }
-                    </span>
+                    <div style="display:flex;align-items:center;flex:1;gap:12px;">
+                        <img src="@(string.IsNullOrWhiteSpace(mock.MockImagePath) ? "/placeholder-image.png" : mock.MockImagePath)" alt="Mock Bild" style="width:48px;height:48px;object-fit:cover;border:1px solid #ccc;background:#fafafa;" />
+                        <span style="flex:1" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
+                            <MudText><b>@mock.Name</b> <span style="color:#888;font-size:0.95em">(@mock.MockType)</span></MudText>
+                            <MudText Typo="Typo.caption">Teile: @totalParts</MudText>
+                            <MudText Typo="Typo.caption">Besitzt: @ownedParts / @totalParts (@percent%)</MudText>
+                            <MudProgressLinear Value="@percent" Color="@(percent == 100 ? Color.Success : Color.Primary)" Style="max-width:120px;height:8px;margin-top:2px;" />
+                            @if (!string.IsNullOrWhiteSpace(mock.WebSource))
+                            {
+                                <MudText Typo="Typo.caption">
+                                    <a href="@mock.WebSource" target="_blank" rel="noopener noreferrer" style="color:#1976d2;text-decoration:underline;">Web-Quelle</a>
+                                </MudText>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(mock.Comment))
+                            {
+                                <MudText Typo="Typo.caption" Style="color:#666;"><br />Kommentar: @mock.Comment</MudText>
+                            }
+                        </span>
+                    </div>
                     <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" Style="margin-left:8px" OnClick="@(() => DeleteMock(mock.Id))">Löschen</MudButton>
                 </MudListItem>
             }
@@ -106,10 +121,52 @@
     private List<Mock>? userMocks;
     private string uploadError = string.Empty;
     private List<(string? PartNum, int? ColorId, int Quantity)> unmappedItems = new();
+    
     private string selectedFormat = "bricklink";
     private string newMockName = string.Empty;
     private string newMockComment = string.Empty;
     private string newMockWebSource = string.Empty;
+    private List<MockItem> uploadedItems = new();
+    private IBrowserFile? uploadedFile = null;
+    private bool fileReadyForUpload = false;
+    private IBrowserFile? uploadedImage = null;
+    private string imagePreviewUrl = string.Empty;
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        uploadError = string.Empty;
+        imagePreviewUrl = string.Empty;
+        uploadedImage = null;
+        var file = e.File;
+        if (file == null)
+            return;
+        if (file.Size > 3 * 1024 * 1024)
+        {
+            uploadError = "Das Bild darf maximal 3MB groß sein.";
+            return;
+        }
+        uploadedImage = file;
+        try
+        {
+            // Read as base64 for preview
+            using var stream = file.OpenReadStream(3 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            var base64 = Convert.ToBase64String(bytes);
+            var ext = Path.GetExtension(file.Name)?.ToLowerInvariant().TrimStart('.') ?? "png";
+            var mime = file.ContentType;
+            if (string.IsNullOrEmpty(mime))
+            {
+                // fallback
+                mime = ext == "jpg" || ext == "jpeg" ? "image/jpeg" : ext == "png" ? "image/png" : "image/*";
+            }
+            imagePreviewUrl = $"data:{mime};base64,{base64}";
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"Fehler beim Laden des Bildes: {ex.Message}";
+        }
+    }
 
     private async Task DeleteMock(int mockId)
     {
@@ -121,6 +178,10 @@
         var mock = db.Mocks.FirstOrDefault(m => m.Id == mockId && m.UserUuid == userUuid);
         if (mock != null)
         {
+            // Bild löschen
+            var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var imageService = new Data.Services.ImageService(wwwroot);
+            imageService.DeleteMockImage(mock.MockImagePath);
             db.Mocks.Remove(mock);
             db.SaveChanges();
         }
@@ -137,6 +198,12 @@
         var mocks = db.Mocks.Where(m => m.UserUuid == userUuid).ToList();
         if (mocks.Any())
         {
+            var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var imageService = new Data.Services.ImageService(wwwroot);
+            foreach (var mock in mocks)
+            {
+                imageService.DeleteMockImage(mock.MockImagePath);
+            }
             db.Mocks.RemoveRange(mocks);
             db.SaveChanges();
         }
@@ -172,17 +239,20 @@
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
         uploadError = string.Empty;
-        var file = e.File;
-        if (file == null)
+        uploadedFile = e.File;
+        fileReadyForUpload = false;
+        uploadedItems.Clear();
+        unmappedItems.Clear();
+        if (uploadedFile == null)
             return;
 
         // Dateiendung prüfen
-        if (selectedFormat == "bricklink" && !file.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+        if (selectedFormat == "bricklink" && !uploadedFile.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
         {
             uploadError = "Bitte eine XML-Datei für Bricklink auswählen.";
             return;
         }
-        if (selectedFormat == "rebrickable" && !file.Name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+        if (selectedFormat == "rebrickable" && !uploadedFile.Name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
         {
             uploadError = "Bitte eine CSV-Datei für Rebrickable auswählen.";
             return;
@@ -190,8 +260,7 @@
 
         try
         {
-            unmappedItems.Clear();
-            using var stream = file.OpenReadStream();
+            using var stream = uploadedFile.OpenReadStream();
             using var reader = new StreamReader(stream);
             var items = new List<MockItem>();
             using var scope = ServiceProvider.CreateScope();
@@ -291,7 +360,35 @@
                 }
             }
 
-            var name = string.IsNullOrWhiteSpace(newMockName) ? file.Name : newMockName.Trim();
+            uploadedItems = items;
+            fileReadyForUpload = true;
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"Fehler beim Verarbeiten der Datei: {ex.Message}";
+            fileReadyForUpload = false;
+        }
+    }
+
+    private async Task CreateMockFromUpload()
+    {
+        uploadError = string.Empty;
+        // Pflichtfelder prüfen
+        if (string.IsNullOrWhiteSpace(newMockName))
+        {
+            uploadError = "Bitte einen Mock-Namen angeben.";
+            return;
+        }
+        if (uploadedFile == null || uploadedItems == null || uploadedItems.Count == 0)
+        {
+            uploadError = "Bitte eine gültige Mock-Liste hochladen.";
+            return;
+        }
+        try
+        {
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+            var name = string.IsNullOrWhiteSpace(newMockName) ? uploadedFile.Name : newMockName.Trim();
             var userUuid = await UserService.GetTokenAsync();
             if (string.IsNullOrEmpty(userUuid))
             {
@@ -300,7 +397,7 @@
             }
             // Nur Items mit gültigen MappedBrickId und BrickColorId, die auch wirklich existieren, speichern
             var validItems = new List<MockItem>();
-            foreach (var i in items)
+            foreach (var i in uploadedItems)
             {
                 if (i.MappedBrickId == null || i.BrickColorId == null)
                     continue;
@@ -309,6 +406,7 @@
                 if (mappedExists && colorExists)
                     validItems.Add(i);
             }
+
             var mock = new Mock
             {
                 Name = name,
@@ -316,19 +414,46 @@
                 MockType = selectedFormat,
                 Items = validItems,
                 Comment = string.IsNullOrWhiteSpace(newMockComment) ? null : newMockComment.Trim(),
-                WebSource = string.IsNullOrWhiteSpace(newMockWebSource) ? null : newMockWebSource.Trim()
+                WebSource = string.IsNullOrWhiteSpace(newMockWebSource) ? null : newMockWebSource.Trim(),
+                MockImagePath = null
             };
             db.Mocks.Add(mock);
             db.SaveChanges();
+
+            // Bild speichern, falls vorhanden, über ImageService
+            if (uploadedImage != null)
+            {
+                try
+                {
+                    var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                    var imageService = new Data.Services.ImageService(wwwroot);
+                    var imagePath = await imageService.SaveMockImageAsync(uploadedImage, userUuid, mock.Id);
+                    if (!string.IsNullOrEmpty(imagePath))
+                    {
+                        mock.MockImagePath = imagePath;
+                        db.SaveChanges();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    uploadError = $"Bild konnte nicht gespeichert werden: {ex.Message}";
+                }
+            }
+
             newMockName = string.Empty;
             newMockComment = string.Empty;
             newMockWebSource = string.Empty;
+            uploadedFile = null;
+            uploadedItems.Clear();
+            fileReadyForUpload = false;
+            unmappedItems.Clear();
+            uploadedImage = null;
+            imagePreviewUrl = string.Empty;
             await LoadMocks();
         }
         catch (Exception ex)
         {
-            uploadError = $"Fehler beim Hochladen: {ex.Message}";
+            uploadError = $"Fehler beim Speichern: {ex.Message}";
         }
-    
     }
 }
