@@ -23,6 +23,8 @@ public class MappedBrick
     public string? UnknownPartNum { get; set; }
     public string? UnknownName { get; set; }
 
+    public string? ImagePath { get; set; } // Pfad zum Bild, falls vorhanden (z.B. für neue Items)
+
     public ICollection<InventoryItem> InventoryItems { get; set; } = new List<InventoryItem>();
     // Navigation: MappingRequests zu diesem Brick
     public ICollection<MappingRequest> MappingRequests { get; set; } = new List<MappingRequest>();

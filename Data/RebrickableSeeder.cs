@@ -60,14 +60,23 @@ public static class RebrickableSeeder
 
         var records = csv.GetRecords<RebrickablePart>();
 
+
         foreach (var p in records)
         {
+            string? imagePath = null;
+            var pngPath = Path.Combine("wwwroot", "part_images", p.part_num + ".png");
+            var jpgPath = Path.Combine("wwwroot", "part_images", p.part_num + ".jpg");
+            if (File.Exists(pngPath))
+                imagePath = $"/part_images/{p.part_num}.png";
+            else if (File.Exists(jpgPath))
+                imagePath = $"/part_images/{p.part_num}.jpg";
+
             var brick = new MappedBrick
             {
-                // Id lässt du weg -> DB vergibt Identity
                 LegoPartNum = p.part_num,
                 LegoName = p.name,
-                Name = p.name  // erstmal neutral = LEGO-Name
+                Name = p.name,  // erstmal neutral = LEGO-Name
+                ImagePath = imagePath
             };
 
             db.MappedBricks.Add(brick);

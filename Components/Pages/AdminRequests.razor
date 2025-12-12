@@ -65,6 +65,7 @@
                     <MudTh>Id</MudTh>
                     <MudTh>Brand</MudTh>
                     <MudTh>Name</MudTh>
+                    <MudTh>Image</MudTh>
                     <MudTh>Requested By</MudTh>
                     <MudTh>Created At</MudTh>
                     <MudTh>Status</MudTh>
@@ -74,6 +75,9 @@
                     <MudTd DataLabel="Id">@context.Id</MudTd>
                     <MudTd DataLabel="Brand">@context.Brand</MudTd>
                     <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Image">
+                        <img src="@ImageService.GetItemImage(context.ImagePath)" alt="Item-Bild" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;" />
+                    </MudTd>
                     <MudTd DataLabel="Requested By">@context.RequestedByUser?.Name ?? @context.RequestedByUserId</MudTd>
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>

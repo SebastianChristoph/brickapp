@@ -88,7 +88,44 @@ namespace Data.Services
             request.Status = NewItemRequestStatus.Approved;
             request.ApprovedByUserId = adminUserId;
             request.ApprovedAt = DateTime.UtcNow;
+
+            // Create new MappedBrick for the approved item
+            var mappedBrick = new MappedBrick
+            {
+                Name = request.Name,
+            };
+            // Set the brand-specific fields
+            switch (request.Brand?.Trim().ToLower())
+            {
+                case "bb":
+                case "bluebrixx":
+                    mappedBrick.BbName = request.Name;
+                    break;
+                case "cada":
+                    mappedBrick.CadaName = request.Name;
+                    break;
+                case "pantasy":
+                    mappedBrick.PantasyName = request.Name;
+                    break;
+                case "mould king":
+                case "mouldking":
+                    mappedBrick.MouldKingName = request.Name;
+                    break;
+                case "unknown":
+                    mappedBrick.UnknownName = request.Name;
+                    break;
+                default:
+                    // fallback: set as unknown
+                    mappedBrick.UnknownName = request.Name;
+                    break;
+            }
+
+            // Optionally, store image path in a custom field or extend MappedBrick if needed
+            // (If you want to show the image in AllBricks, you may need to add an ImagePath property to MappedBrick)
+
+            _db.MappedBricks.Add(mappedBrick);
             await _db.SaveChangesAsync();
+
             if (_notificationService != null)
             {
                 await _notificationService.AddNotificationAsync(

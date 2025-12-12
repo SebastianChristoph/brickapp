@@ -160,6 +160,9 @@ namespace Migrations
                     b.Property<string>("CadaPartNum")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ImagePath")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("LegoName")
                         .HasColumnType("TEXT");
 
