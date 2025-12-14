@@ -1,7 +1,7 @@
 @page "/allsets"
 @using Services
 @using Data.Entities
-
+@inject Data.Services.ImageService ImageService
 @inject UserService UserService
 @inject ItemSetService SetService
 @inject NavigationManager NavigationManager
@@ -38,9 +38,13 @@
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Image">
-                    @if (!string.IsNullOrEmpty(context.ImageUrl))
+                    
+                    @{
+                        var setImgUrl = ImageService.GetSetImagePath(context);
+                    }
+                    @if (!string.IsNullOrEmpty(setImgUrl) && setImgUrl != "/placeholder-image.png")
                     {
-                        <img src="@context.ImageUrl" alt="@context.Name" style="height:50px; width:auto; object-fit:contain;" />
+                        <img src="@setImgUrl" alt="@context.Name" style="height:50px; width:auto; object-fit:contain;" />
                     }
                     else
                     {

@@ -32,10 +32,13 @@ else
 {
     <MudPaper Class="pa-4 mb-4">
         <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Start">
-            @if (!string.IsNullOrEmpty(_itemSet.ImageUrl))
+            @{
+                var setImgUrl = ImageService.GetSetImagePath(_itemSet);
+            }
+            @if (!string.IsNullOrEmpty(setImgUrl) && setImgUrl != "/placeholder-image.png")
             {
                 <div style="flex-shrink:0;">
-                    <img src="@_itemSet.ImageUrl" alt="@_itemSet.Name"
+                    <img src="@setImgUrl" alt="@_itemSet.Name"
                         style="height:200px; width:auto; object-fit:contain; border-radius:4px;" />
                 </div>
             }

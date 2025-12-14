@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Processing;
 namespace Data.Services
 {
     public class ImageService
+           
     {
         private readonly string _wwwrootPath;
         private readonly NotificationService _notificationService;
@@ -123,13 +124,35 @@ namespace Data.Services
             // Fallback: Platzhalter
             return "/placeholder-image.png";
         }
-        
-        
+
+
 
 
         // SET IMAGES
 
-     
+        public string GetSetImagePath(ItemSet itemSet)
+        {
+            if (itemSet == null)
+                return "/placeholder-image.png";
+
+            // 1. Falls ImageUrl gesetzt ist, verwende diese
+            if (!string.IsNullOrWhiteSpace(itemSet.ImageUrl))
+                return itemSet.ImageUrl;
+
+            // 2. Prüfe auf lokales Bild
+            if (!string.IsNullOrWhiteSpace(itemSet.LegoSetNum) && !string.IsNullOrWhiteSpace(itemSet.Brand))
+            {
+                var safeBrand = itemSet.Brand.ToLower().Replace(" ", "_");
+                var safeSetNum = itemSet.LegoSetNum.ToLower().Replace(" ", "_");
+                var fileName = safeSetNum + ".png";
+                var filePath = Path.Combine(_wwwrootPath, "setimages", safeBrand, fileName);
+                if (File.Exists(filePath))
+                    return $"/setimages/{safeBrand}/{fileName}";
+            }
+
+            // 3. Fallback: Platzhalter
+            return "/placeholder-image.png";
+        }
 
         // OTHER IMAGES
         
