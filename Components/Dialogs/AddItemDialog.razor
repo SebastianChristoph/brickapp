@@ -9,9 +9,9 @@
 @inject Services.NotificationService NotificationService
 @inject ILogger<AddItemDialog> Logger
 
+
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.h6">Add New Item</MudText>
         <MudSelect T="string" Label="Brand" @bind-Value="Brand" Required="true">
             <MudSelectItem Value="@("Lego")">Lego</MudSelectItem>
             <MudSelectItem Value="@("BB")">BB</MudSelectItem>
@@ -37,8 +37,9 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="OnSave" Color="Color.Primary">Save</MudButton>
+       
         <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
+         <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" OnClick="OnSave" Color="Color.Primary">Save</MudButton>
     </DialogActions>
 </MudDialog>
 

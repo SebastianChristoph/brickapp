@@ -45,6 +45,9 @@ builder.Services.AddScoped<ImageService>(sp =>
     )
 );
 
+// Global Notification Service
+builder.Services.AddScoped<NotificationService>();
+
 // MudBlazor
 builder.Services.AddMudServices();
 // MappedBrickExportService für DI registrieren
@@ -54,8 +57,7 @@ builder.Services.AddScoped<MappedBrickExportService>(sp =>
         Path.Combine(builder.Environment.ContentRootPath, "mappedData", "exported_mappedbricks.json")
     )
 );
-// Global Notification Service
-builder.Services.AddScoped<NotificationService>();
+
 
 // Blazor
 builder.Services.AddRazorComponents()

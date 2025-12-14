@@ -13,6 +13,12 @@
 
 <PageTitle>All Mapped Bricks</PageTitle>
 
+  <style>
+            .my-custom-class {
+            backdrop-filter: blur(3px);
+            }
+        </style>
+
 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddItemDialog" Class="mb-4">
     Add Item
 </MudButton>
@@ -34,7 +40,7 @@
     else
     {
         <MudTable Items="bricks" Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize"
-                    OnPageChanged="OnPageChanged" OnRowsPerPageChanged="OnRowsPerPageChanged">
+        OnPageChanged="OnPageChanged" OnRowsPerPageChanged="OnRowsPerPageChanged">
             <HeaderContent>
                 <MudTh></MudTh>
                 <MudTh>Image</MudTh>
@@ -50,7 +56,7 @@
             <RowTemplate>
                 <MudTd>
                     <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                        OnClick="@(() => OpenAddInventoryDialog(context))">
+                    OnClick="@(() => OpenAddInventoryDialog(context))">
                         <MudIcon Icon="@Icons.Material.Filled.Add" />
                     </MudButton>
                 </MudTd>
@@ -59,7 +65,7 @@
                         var imageUrl = ImageService.GetMappedBrickImagePath(context);
                     }
                     <img src="@imageUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
-                        onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                    onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
                 </MudTd>
                 <MudTd DataLabel="Item Name">
                     @context.Name
@@ -84,135 +90,141 @@
                         else
                         {
                             <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                OnClick="@(() => OpenHelpMappingDialog(context, "Lego"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Lego"))">Help Mapping</MudButton>
                         }
                     }
                 </MudTd>
                 <MudTd DataLabel="BB">
                     @if (!string.IsNullOrWhiteSpace(context.BbName))
                     {
-                        @context.BbName@if (!string.IsNullOrWhiteSpace(context.BbPartNum)) {
-                        <span> [@context.BbPartNum]</span>
+                        @context.BbName@if (!string.IsNullOrWhiteSpace(context.BbPartNum))
+                        {
+                            <span> [@context.BbPartNum]</span>
+                        }
                     }
-                }
-                @if (string.IsNullOrWhiteSpace(context.BbName))
-                {
-                    var bbRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "BB" && r.Status ==
-                    MappingRequestStatus.Pending);
-                    if (bbRequest != null)
+                    @if (string.IsNullOrWhiteSpace(context.BbName))
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @bbRequest.RequestedByUserId pending</MudChip>
-                    }
-                    else
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                        var bbRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "BB" && r.Status ==
+                        MappingRequestStatus.Pending);
+                        if (bbRequest != null)
+                        {
+                            <MudChip T="string" Color="Color.Warning">Mapping request by @bbRequest.RequestedByUserId pending</MudChip>
+                        }
+                        else
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
                             OnClick="@(() => OpenHelpMappingDialog(context, "BB"))">Help Mapping</MudButton>
+                        }
                     }
-                }
-            </MudTd>
-            <MudTd DataLabel="Cada">
-                @if (!string.IsNullOrWhiteSpace(context.CadaName))
-                {
-                    @context.CadaName@if (!string.IsNullOrWhiteSpace(context.CadaPartNum)) {
-                    <span>
-                        [@context.CadaPartNum]</span>
-                }
-            }
-            @if (string.IsNullOrWhiteSpace(context.CadaName))
-            {
-                var cadaRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Cada" && r.Status ==
-                MappingRequestStatus.Pending);
-                if (cadaRequest != null)
-                {
-                    <MudChip T="string" Color="Color.Warning">Mapping request by @cadaRequest.RequestedByUserId pending
-                    </MudChip>
-                }
-                else
-                {
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                        OnClick="@(() => OpenHelpMappingDialog(context, "Cada"))">Help Mapping</MudButton>
-                }
-            }
-        </MudTd>
-        <MudTd DataLabel="Pantasy">
-            @if (!string.IsNullOrWhiteSpace(context.PantasyName))
-            {
-                @context.PantasyName@if (!string.IsNullOrWhiteSpace(context.PantasyPartNum)) {
-                <span>
-                    [@context.PantasyPartNum]</span>
-            }
+                </MudTd>
+                <MudTd DataLabel="Cada">
+                    @if (!string.IsNullOrWhiteSpace(context.CadaName))
+                    {
+                        @context.CadaName@if (!string.IsNullOrWhiteSpace(context.CadaPartNum))
+                        {
+                            <span>
+                                [@context.CadaPartNum]</span>
                         }
-            @if (string.IsNullOrWhiteSpace(context.PantasyName))
-            {
-                var pantasyRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status ==
-                MappingRequestStatus.Pending);
-                if (pantasyRequest != null)
-                {
-                    <MudChip T="string" Color="Color.Warning">Mapping request by @pantasyRequest.RequestedByUserId pending
-                    </MudChip>
-                }
-                else
-                {
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                        OnClick="@(() => OpenHelpMappingDialog(context, "Pantasy"))">Help Mapping</MudButton>
-                }
-            }
-        </MudTd>
-        <MudTd DataLabel="Mould King">
-            @if (!string.IsNullOrWhiteSpace(context.MouldKingName))
-            {
-                @context.MouldKingName@if (!string.IsNullOrWhiteSpace(context.MouldKingPartNum)) {
-                <span>
-                    [@context.MouldKingPartNum]</span>
-            }
+                    }
+                    @if (string.IsNullOrWhiteSpace(context.CadaName))
+                    {
+                        var cadaRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Cada" && r.Status ==
+                        MappingRequestStatus.Pending);
+                        if (cadaRequest != null)
+                        {
+                            <MudChip T="string" Color="Color.Warning">Mapping request by @cadaRequest.RequestedByUserId pending
+                            </MudChip>
                         }
-            @if (string.IsNullOrWhiteSpace(context.MouldKingName))
-            {
-                var mkRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status ==
-                MappingRequestStatus.Pending);
-                if (mkRequest != null)
-                {
-                    <MudChip T="string" Color="Color.Warning">Mapping request by @mkRequest.RequestedByUserId pending</MudChip>
-                }
-                else
-                {
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                        OnClick="@(() => OpenHelpMappingDialog(context, "Mould King"))">Help Mapping</MudButton>
-                }
-            }
-        </MudTd>
-        <MudTd DataLabel="Unknown">
-            @if (!string.IsNullOrWhiteSpace(context.UnknownName))
-            {
-                @context.UnknownName@if (!string.IsNullOrWhiteSpace(context.UnknownPartNum)) {
-                <span>
-                    [@context.UnknownPartNum]</span>
-            }
+                        else
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Cada"))">Help Mapping</MudButton>
                         }
-            @if (string.IsNullOrWhiteSpace(context.UnknownName))
-            {
-                var unknownRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status ==
-                MappingRequestStatus.Pending);
-                if (unknownRequest != null)
-                {
-                    <MudChip T="string" Color="Color.Warning">Mapping request by @unknownRequest.RequestedByUserId pending
-                    </MudChip>
-                }
-                else
-                {
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                        OnClick="@(() => OpenHelpMappingDialog(context, "Unknown"))">Help Mapping</MudButton>
-                }
-            }
-        </MudTd>
-    </RowTemplate>
-    <PagerContent>
-        <MudTablePager PageSizeOptions="new int[] { 25, 50, 100 }" />
-    </PagerContent>
-</MudTable>
-}
-}
+                    }
+                </MudTd>
+                <MudTd DataLabel="Pantasy">
+                    @if (!string.IsNullOrWhiteSpace(context.PantasyName))
+                    {
+                        @context.PantasyName@if (!string.IsNullOrWhiteSpace(context.PantasyPartNum))
+                        {
+                            <span>
+                                [@context.PantasyPartNum]</span>
+                        }
+                    }
+                    @if (string.IsNullOrWhiteSpace(context.PantasyName))
+                    {
+                        var pantasyRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status ==
+                        MappingRequestStatus.Pending);
+                        if (pantasyRequest != null)
+                        {
+                            <MudChip T="string" Color="Color.Warning">Mapping request by @pantasyRequest.RequestedByUserId pending
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Pantasy"))">Help Mapping</MudButton>
+                        }
+                    }
+                </MudTd>
+                <MudTd DataLabel="Mould King">
+                    @if (!string.IsNullOrWhiteSpace(context.MouldKingName))
+                    {
+                        @context.MouldKingName
 
+                        @if (!string.IsNullOrWhiteSpace(context.MouldKingPartNum))
+                        {
+                            <span>
+                                [@context.MouldKingPartNum]</span>
+                        }
+                    }
+                    @if (string.IsNullOrWhiteSpace(context.MouldKingName))
+                    {
+                        var mkRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status ==
+                        MappingRequestStatus.Pending);
+                        if (mkRequest != null)
+                        {
+                            <MudChip T="string" Color="Color.Warning">Mapping request by @mkRequest.RequestedByUserId pending</MudChip>
+                        }
+                        else
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Mould King"))">Help Mapping</MudButton>
+                        }
+                    }
+                </MudTd>
+                <MudTd DataLabel="Unknown">
+                    @if (!string.IsNullOrWhiteSpace(context.UnknownName))
+                    {
+                        @context.UnknownName@if (!string.IsNullOrWhiteSpace(context.UnknownPartNum))
+                        {
+                            <span>
+                                [@context.UnknownPartNum]</span>
+                        }
+                    }
+                    @if (string.IsNullOrWhiteSpace(context.UnknownName))
+                    {
+                        var unknownRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status ==
+                        MappingRequestStatus.Pending);
+                        if (unknownRequest != null)
+                        {
+                            <MudChip T="string" Color="Color.Warning">Mapping request by @unknownRequest.RequestedByUserId pending
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Unknown"))">Help Mapping</MudButton>
+                        }
+                    }
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[] { 25, 50, 100 }" />
+            </PagerContent>
+        </MudTable>
+    }
+}
 @code {
     private string? _username;
     private List<MappedBrick> bricks = new();
@@ -220,6 +232,8 @@
     private string _searchText = string.Empty;
     private int _currentPage = 0;
     private int _pageSize = 25;
+
+       private readonly DialogOptions dialogOptions = new() { BackdropClick = false,  CloseButton = true , BackgroundClass = "my-custom-class",  CloseOnEscapeKey = true};
 
     [Inject]
     private IDialogService DialogService { get; set; } = default!;
@@ -231,7 +245,7 @@
     {
         var parameters = new DialogParameters<AddInventoryItemDialog>();
         parameters.Add(x => x.SelectedBrick, brick);
-        var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>("Add item to inventory", parameters);
+        var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>("Add item to inventory", parameters, dialogOptions);
         var result = await dialog.Result;
         if (result is not null && result.Data is bool b && b)
         {
@@ -241,7 +255,8 @@
 
     private async Task OpenAddItemDialog()
     {
-        var dialog = await DialogService.ShowAsync<AddItemDialog>("Add New Item");
+        
+        var dialog = await DialogService.ShowAsync<AddItemDialog>("Add New Item", dialogOptions);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
         {

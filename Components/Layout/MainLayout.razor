@@ -5,21 +5,25 @@
 @inject UserService UserService
 @inject Data.Services.UserNotificationService NotificationService
 
+@implements IDisposable
+
 <MudThemeProvider Theme="@_theme" IsDarkMode="false" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudLayout>
    <MudAppBar Elevation="1">
-    <MudIconButton Icon="@Icons.Material.Filled.Menu"
+    @* <MudIconButton Icon="@Icons.Material.Filled.ArrowRight"
                    Color="Color.Inherit"
                    Edge="Edge.Start"
                    OnClick="@((e) => DrawerToggle())" />
+                   *@
+                    <MudIcon Icon="@Icons.Material.Filled.BlurLinear" Title="Favorite" />
     <MudText Typo="Typo.h5" Class="ml-3">BrickIsBrick</MudText>
     <MudSpacer />
  <MudBadge Content="@_newNotificationCount" Color="Color.Error" Overlap="true" Class="mr-2">
 
- <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Email" Size="Size.Small"  OnClick="GoToNotifications" Class="mr-2"/>
+ <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Email" Size="Size.Small"  OnClick="@GoToNotifications" Class="mr-2"/>
    
     </MudBadge>
 
@@ -33,7 +37,7 @@
     <MudIconButton Icon="@Icons.Material.Filled.ExitToApp"
                    Color="Color.Inherit"
                    Edge="Edge.End"
-                   OnClick="Logout" />
+                   OnClick="@Logout" />
 </MudAppBar>
 
 
@@ -142,12 +146,42 @@ private async Task Logout()
 
     private readonly PaletteLight _lightPalette = new()
     {
-        Black = "#110e2d",
-        AppbarText = "#424242",
-        AppbarBackground = "rgba(255,255,255,0.8)",
-        DrawerBackground = "#ffffff",
-        GrayLight = "#e8e8e8",
-        GrayLighter = "#f9f9f9",
+      // === Grundfarben ===
+    Secondary = "#C29E69",        // Senfgelb / warmes Gold (Hauptakzent, Buttons)
+    Primary = "#69c295",      // Mintgrün / gedämpftes Türkis (Sekundärakzent)
+    Background = "#fafaf9",     // Warmes Creme / Off-White (Seitenhintergrund)
+    Surface = "#FFFFFF",        // Reines Weiß (Cards, Dialoge)
+
+    // === Textfarben ===
+    TextPrimary = "#162A41",    // Dunkles Anthrazit / Blau-Schwarz (Haupttext)
+    TextSecondary = "#4F657A",  // Gedämpftes Blau-Grau (Sekundärtext)
+    TextDisabled = "#9FAFB5",   // Helles Grau-Blau (deaktivierter Text)
+
+    // === AppBar ===
+    AppbarBackground = "#ddf0e3", // Warmes Creme (AppBar-Hintergrund)
+    AppbarText = "#162A41",       // Dunkles Anthrazit (AppBar-Text & Icons)
+
+    // === Navigation / Drawer ===
+    DrawerBackground = "#FFFFFF", // Weiß (Navigation-Hintergrund)
+    DrawerText = "#162A41",       // Dunkles Anthrazit (Nav-Text)
+    DrawerIcon = "#69c295",       // Dunkles Anthrazit (Nav-Icons)
+
+    // === Grautöne ===
+    GrayLight = "#E4E0D6",       // Helles Warmgrau (Hover, leichte Hintergründe)
+    GrayLighter = "#F4F1E9",     // Sehr helles Creme-Grau (Sektionen, Flächen)
+
+    // === Statusfarben ===
+    Info = "#4A8DA8",            // Ruhiges Blau (Info-Hinweise)
+    Success = "#6FB98F",         // Sanftes Grün (Erfolg / OK)
+    Warning = "#EFBB3F",         // Senfgelb (Warnungen)
+    Error = "#D96C5F",           // Warmes Ziegelrot (Fehler)
+
+    // === Linien & Divider ===
+    LinesDefault = "#DDD6C7",    // Warmes Hellgrau (Tabellenlinien)
+    Divider = "#DDD6C7",         // Warmes Hellgrau (Trennlinien)
+
+    // === Overlay ===
+    OverlayLight = "#162A4114",  // Sehr transparentes Anthrazit (Modals / Overlays)
     };
 
     private readonly PaletteDark _darkPalette = new()

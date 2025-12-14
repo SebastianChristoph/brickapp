@@ -141,12 +141,14 @@ public static class RebrickableSeeder
         // Mapping: set_num -> ItemSet Id
         var setMapping = await db.ItemSets
             .AsNoTracking()
-            .ToDictionaryAsync(s => s.LegoSetNum, s => s.Id);
+            .Where(s => s.LegoSetNum != null)
+            .ToDictionaryAsync(s => s.LegoSetNum!, s => s.Id);
 
         // Mapping: part_num -> MappedBrick Id
         var partMapping = await db.MappedBricks
             .AsNoTracking()
-            .ToDictionaryAsync(b => b.LegoPartNum, b => b.Id);
+            .Where(b => b.LegoPartNum != null)
+            .ToDictionaryAsync(b => b.LegoPartNum!, b => b.Id);
 
         // Mapping: color_id -> BrickColor Id
         var colorMapping = await db.BrickColors
