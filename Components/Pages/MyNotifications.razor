@@ -8,7 +8,7 @@
 
 <PageTitle>My Notifications</PageTitle>
 
-<MudText Typo="Typo.h5" GutterBottom="true">My Notifications</MudText>
+<MudText Typo="Typo.h4" GutterBottom="true">My Notifications</MudText>
 
 @if (_notifications == null)
 {
@@ -20,19 +20,31 @@ else if (!_notifications.Any())
 }
 else
 {
-    <MudButton Color="Color.Primary" Variant="Variant.Filled" Style="margin-bottom: 16px;" OnClick="@MarkAllAsRead">Alle als gelesen markieren</MudButton>
+    <MudStack Row="true" Justify="Justify.FlexEnd"Spacing="2" Style="margin-bottom: 16px;">
+        <MudButton  StartIcon="@Icons.Material.Filled.MarkEmailRead" Color="Color.Primary" Variant="Variant.Outlined" OnClick="@MarkAllAsRead">Mark all as read</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Outlined" OnClick="@DeleteAllNotifications">Delete all</MudButton>
+    </MudStack>
     <MudList T="UserNotification">
         @foreach (var n in _notifications)
         {
             <MudListItem T="UserNotification">
-                <MudText Typo="Typo.subtitle2">@n.Title</MudText>
+              
+                <MudText Typo="Typo.subtitle2">   @if (!n.IsRead)
+                    {
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small">New</MudChip>
+                       
+                    }
+                    @n.Title</MudText>
+                     <MudText Typo="Typo.caption">@n.CreatedAt.ToLocalTime().ToString("g")</MudText>
                 <MudText>@n.Message</MudText>
-                <MudText Typo="Typo.caption">@n.CreatedAt.ToLocalTime().ToString("g")</MudText>
-                @if (!n.IsRead)
-                {
-                    <MudChip T="string" Color="Color.Info">New</MudChip>
-                    <MudButton Size="Size.Small" Color="Color.Primary" OnClick="@(() => MarkAsRead(n))">Als gelesen markieren</MudButton>
-                }
+               
+                <MudStack Row="true" Spacing="1">
+                    @if (!n.IsRead)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.MarkEmailRead" Size="Size.Small" Color="Color.Primary" OnClick="@(() => MarkAsRead(n))">Als gelesen markieren</MudIconButton>
+                    }
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Primary"  OnClick="@(() => DeleteNotification(n))">Löschen</MudIconButton>
+                </MudStack>
             </MudListItem>
         }
     </MudList>
@@ -41,13 +53,11 @@ else
 @code {
     private List<UserNotification>? _notifications;
 
-    private bool _hasRendered = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_hasRendered)
+        if (firstRender)
         {
             await LoadNotificationsAsync();
-            _hasRendered = true;
             StateHasChanged();
         }
     }
@@ -59,6 +69,28 @@ else
         {
             _notifications = await NotificationService.GetNotificationsForUserAsync(userUuid);
         }
+        else
+        {
+            _notifications = new();
+        }
+    }
+
+    private async Task DeleteNotification(UserNotification notification)
+    {
+        await NotificationService.DeleteNotificationAsync(notification.Id);
+        await LoadNotificationsAsync();
+        StateHasChanged();
+    }
+
+    private async Task DeleteAllNotifications()
+    {
+        var userUuid = await UserService.GetTokenAsync();
+        if (!string.IsNullOrEmpty(userUuid))
+        {
+            await NotificationService.DeleteAllNotificationsAsync(userUuid);
+            await LoadNotificationsAsync();
+            StateHasChanged();
+        }
     }
 
     private async Task MarkAsRead(UserNotification notification)
@@ -66,7 +98,8 @@ else
         await NotificationService.MarkAsReadAsync(notification.Id);
         await LoadNotificationsAsync();
         StateHasChanged();
-        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+        // dieses forceLoad brauchst du meist nicht:
+        // NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
     }
 
     private async Task MarkAllAsRead()
@@ -77,7 +110,7 @@ else
             await NotificationService.MarkAllAsReadAsync(userUuid);
             await LoadNotificationsAsync();
             StateHasChanged();
-            NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+            // NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
         }
     }
 }

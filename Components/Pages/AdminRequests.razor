@@ -5,9 +5,14 @@
 
 <PageTitle>Admin Requests</PageTitle>
 
+<MudText Typo="Typo.h4" GutterBottom="true">Admin Requests</MudText>
 
-<h3>Admin Requests</h3>
-<MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="ReloadData" Class="mb-3">Reload Data</MudButton>
+
+ <MudStack Row="true" Justify="Justify.FlexEnd"Spacing="2" Style="margin-bottom: 16px;">
+    
+<MudButton StartIcon="Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Color="Color.Primary" OnClick="ReloadData" Class="mb-3">Reload Data</MudButton>
+
+ </MudStack>
 
 <MudTabs>
     <MudTabPanel Text="@(openMappingRequests == null ? "Mapping Requests" : $"Mapping Requests ({openMappingRequests.Count})")">

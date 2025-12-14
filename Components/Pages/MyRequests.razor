@@ -6,11 +6,13 @@
 @inject UserService UserService
 @inject RequestService RequestService
 @inject Data.Services.ImageService ImageService
+
 <PageTitle>My Requests</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">My Requests</MudText>
 
 <MudTabs>
     <MudTabPanel Text="Mapping requests">
-        <MudText Typo="Typo.h5" GutterBottom="true">My Mapping Requests</MudText>
         @if (_mappingRequests == null)
         {
             <MudProgressCircular Indeterminate="true" />
@@ -46,7 +48,7 @@
         }
     </MudTabPanel>
     <MudTabPanel Text="New Item Requests">
-        <MudText Typo="Typo.h5">My Item Requests</MudText>
+      
         @if (_itemRequests == null)
         {
             <MudProgressCircular Indeterminate="true" />
@@ -59,24 +61,41 @@
         {
             <MudTable Items="_itemRequests" Hover="true" Striped="true">
                 <HeaderContent>
+                      <MudTh>Image</MudTh>
                     <MudTh>Brand</MudTh>
                     <MudTh>Name</MudTh>
+                    <MudTh>Item Number</MudTh>
                     <MudTh>Status</MudTh>
-                    <MudTh>Image</MudTh>
+                  
                     <MudTh>Reason (if rejected)</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Brand">@context.Brand</MudTd>
-                    <MudTd DataLabel="Name">@context.Name</MudTd>
-                    <MudTd DataLabel="Status">
-                        @context.Status.ToString()
-                    </MudTd>
-                    <MudTd DataLabel="Image">
+                     <MudTd DataLabel="Image">
                         @{
                             var imageUrl = ImageService.GetItemRequestImagePath(context);
                         }
                         <img src="@imageUrl" alt="Item Image" style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;" />
                     </MudTd>
+                    <MudTd DataLabel="Brand">@context.Brand</MudTd>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd>to be implmenented</MudTd>
+                    <MudTd DataLabel="Status">
+                        @if (context.Status.ToString() == "Approved")
+                        {
+                           <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Success" Title="Favorite" />
+                        }
+                        else  if (context.Status.ToString() == "Rejected")
+                        {
+                           <MudIcon Icon="@Icons.Material.Filled.HeartBroken" Color="Color.Error" Title="Rejected" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Pending" Color="Color.Warning" Title="Pending" />
+                            
+                        }
+                        @context.Status.ToString()
+                    </MudTd>
+                   
                     <MudTd DataLabel="Reason">
                         @if (context.Status == NewItemRequestStatus.Rejected && !string.IsNullOrWhiteSpace(context.ReasonRejected))
                         {

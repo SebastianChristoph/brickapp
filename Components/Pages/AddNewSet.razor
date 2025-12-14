@@ -12,41 +12,47 @@
 @inject Data.Services.ImageService ImageService
 
 
-<h3>Add New Set</h3>
+<MudText Typo="Typo.h4" GutterBottom="true">Add new sets</MudText>
 
-<!-- Formular für neues Set ...existing code... -->
 
-<h4>Deine Entwürfe</h4>
+<MudText Typo="Typo.h6" GutterBottom="true">Your drafts</MudText>
+
 @if (draftSets == null)
 {
-	<p><em>Lade Entwürfe...</em></p>
+	<p><em>Loading drafts...</em></p>
 }
 else if (!draftSets.Any())
 {
-	<p>Keine Entwürfe vorhanden.</p>
+	<MudAlert Severity="Severity.Info">You don't have any drafts.</MudAlert>
 }
 else
 {
-	<ul>
-		@foreach (var set in draftSets)
-		{
-			<li>
-				@set.SetName (@set.SetNo) - @set.Brand
-				<button class="btn btn-sm btn-primary ms-2" @onclick="() => EditDraftAsync(set.Id)">Edit</button>
-				<button class="btn btn-sm btn-danger ms-2" @onclick="() => DeleteDraftAsync(set.Id)">Löschen</button>
-			</li>
-		}
-		
-	</ul>
+	<MudTable Items="draftSets" Hover="true" Striped="true">
+		<HeaderContent>
+			<MudTh>Name</MudTh>
+			<MudTh>Brand</MudTh>
+			<MudTh>Actions</MudTh>
+		</HeaderContent>
+		<RowTemplate Context="set">
+			<MudTd DataLabel="Name">@set.SetName (@set.SetNo)</MudTd>
+			<MudTd DataLabel="Brand">@set.Brand</MudTd>
+			<MudTd DataLabel="Actions">
+				<MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="me-2" OnClick="@(() => EditDraftAsync(set.Id))">Edit</MudButton>
+				<MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteDraftAsync(set.Id))">Delete</MudButton>
+			</MudTd>
+		</RowTemplate>
+	</MudTable>
 }
 
+<br />
+<MudPaper Class="pa-4" >
+<MudText Typo="Typo.h6" GutterBottom="true">Add a new set</MudText>
 
-
-<h4>Neues Set hinzufügen</h4>
 <EditForm Model="newSetModel" OnValidSubmit="HandleDraftSubmit">
 	<div class="mb-2">
-		<label for="setImage">Set-Bild *</label>
+		<label for="setImage">Set image *</label>
 		<InputFile id="setImage" OnChange="OnImageSelected" accept="image/*" />
+		
 		@if (!string.IsNullOrEmpty(imageError))
 		{
 			<div class="alert alert-danger">@imageError</div>
@@ -54,7 +60,7 @@ else
 		@if (!string.IsNullOrEmpty(imagePreviewUrl))
 		{
 			<div class="mt-2">
-				<img src="@imagePreviewUrl" alt="Set-Bild Vorschau" style="max-width: 300px; max-height: 300px; border: 1px solid #ccc; border-radius: 6px;" />
+				<img src="@imagePreviewUrl" alt="set image preview" style="max-width: 300px; max-height: 300px; border: 1px solid #ccc; border-radius: 6px;" />
 			</div>
 		}
 	</div>
@@ -64,23 +70,20 @@ else
 	}
 	<DataAnnotationsValidator />
 	<ValidationSummary />
-	<div class="mb-2">
-		<label for="setName">Name *</label>
-		<InputText id="setName" class="form-control" @bind-Value="newSetModel.SetName" required />
-	</div>
-	<div class="mb-2">
-		<label for="setId">Set ID *</label>
-		<InputText id="setId" class="form-control" @bind-Value="newSetModel.SetNo" required />
-	</div>
-	<div class="mb-2">
-		<label for="brand">Brand *</label>
-		<InputSelect id="brand" class="form-control" @bind-Value="newSetModel.Brand" required>
-			<option value="">Bitte wählen</option>
-			<option value="Lego">Lego</option>
-			<option value="Cada">Cada</option>
 
-		</InputSelect>
-	</div>
+	
+
+
+	<MudTextField @bind-Value="newSetModel.SetName" HelperText="Set Name" Variant="Variant.Text" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Style="max-width:800px;" AdornmentColor="Color.Primary"/>
+
+	 <MudTextField @bind-Value="newSetModel.SetNo" HelperText="Set Number" Variant="Variant.Text" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Style="max-width:800px;" AdornmentColor="Color.Primary"/>
+
+	<MudSelect T="string" @bind-Value="newSetModel.Brand" Label="Select brand" Placeholder="Please select" AdornmentIcon="@Icons.Material.Filled.Fastfood" AdornmentColor="Color.Primary" Style="max-width:800px;"">
+		<MudSelectItem Value="@("Lego")">Lego</MudSelectItem>
+		<MudSelectItem Value="@("Cada")">Cada</MudSelectItem>
+		<MudSelectItem Value="@("Unknown")">Unknown</MudSelectItem>
+	</MudSelect>
+
 
 	<hr />
 	<h5>Bricks zum Set hinzufügen</h5>
@@ -160,6 +163,7 @@ else
 		<button type="button" class="btn btn-primary" @onclick="HandlePublish">Veröffentlichen</button>
 	</div>
 </EditForm>
+</MudPaper>
 
 @code {
 	private string? imagePreviewUrl;

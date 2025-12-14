@@ -9,23 +9,25 @@
 @inject RequestService RequestService
 @inject Data.Services.ImageService ImageService
 
+<style>
+        .my-custom-class {
+        backdrop-filter: blur(3px);
+        }
+</style>
 
 
 <PageTitle>All Mapped Bricks</PageTitle>
 
-  <style>
-            .my-custom-class {
-            backdrop-filter: blur(3px);
-            }
-        </style>
+ <MudText Typo="Typo.h4" GutterBottom="true">All Bricks</MudText>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddItemDialog" Class="mb-4">
+
+ <MudStack Row="true" Justify="Justify.FlexEnd"Spacing="2" Style="margin-bottom: 16px;">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddItemDialog" Class="mb-4">
     Add Item
 </MudButton>
 
-<MudText Typo="Typo.h5" GutterBottom="true">
-    @(_username is null ? "Welcome to BrickIsBrick!" : $"Hello, {_username}")
-</MudText>
+ </MudStack>
+
 
 <MudTextField Value="_searchText" ValueChanged="@(async (string e) => await OnSearchTextChanged(e))"
     Label="Search by name or ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true"
@@ -77,7 +79,7 @@
                         @context.LegoName
                         @if (!string.IsNullOrWhiteSpace(context.LegoPartNum))
                         {
-                            <MudText Typo="Typo.caption"> [@context.LegoPartNum]</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.LegoPartNum]</MudText>
                         }
                     }
                     else
@@ -99,7 +101,8 @@
                     {
                         @context.BbName@if (!string.IsNullOrWhiteSpace(context.BbPartNum))
                         {
-                            <span> [@context.BbPartNum]</span>
+                          
+                              <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.BbPartNum]</MudText>
                         }
                     }
                     @if (string.IsNullOrWhiteSpace(context.BbName))
@@ -122,8 +125,8 @@
                     {
                         @context.CadaName@if (!string.IsNullOrWhiteSpace(context.CadaPartNum))
                         {
-                            <span>
-                                [@context.CadaPartNum]</span>
+                        
+                                 <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.CadaPartNum]</MudText>
                         }
                     }
                     @if (string.IsNullOrWhiteSpace(context.CadaName))
@@ -147,8 +150,7 @@
                     {
                         @context.PantasyName@if (!string.IsNullOrWhiteSpace(context.PantasyPartNum))
                         {
-                            <span>
-                                [@context.PantasyPartNum]</span>
+                                  <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.PantasyPartNum]</MudText>
                         }
                     }
                     @if (string.IsNullOrWhiteSpace(context.PantasyName))
@@ -174,8 +176,7 @@
 
                         @if (!string.IsNullOrWhiteSpace(context.MouldKingPartNum))
                         {
-                            <span>
-                                [@context.MouldKingPartNum]</span>
+                             <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.UnknownPartNum]</MudText>
                         }
                     }
                     @if (string.IsNullOrWhiteSpace(context.MouldKingName))
@@ -198,8 +199,7 @@
                     {
                         @context.UnknownName@if (!string.IsNullOrWhiteSpace(context.UnknownPartNum))
                         {
-                            <span>
-                                [@context.UnknownPartNum]</span>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.UnknownPartNum]</MudText>
                         }
                     }
                     @if (string.IsNullOrWhiteSpace(context.UnknownName))

@@ -13,19 +13,22 @@
 @inject Data.Services.ImageService ImageService
 
 <PageTitle>My Inventory</PageTitle>
+<MudText Typo="Typo.h4" GutterBottom="true">My Inventory</MudText>
 
-<MudText Typo="Typo.h5" GutterBottom="true">
-    @(_username is null ? "Welcome to BrickIsBrick!" : $"Hello, {_username}")
-</MudText>
-
-<MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="OpenDeleteAllDialog" Class="mb-4">
-    <MudIcon Icon="@Icons.Material.Filled.Delete" /> Delete entire inventory
-</MudButton>
-
-<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@OpenAddItemDialog" Class="mb-4">
-    <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
+ <MudStack Row="true" Justify="Justify.FlexEnd"Spacing="2" Style="margin-bottom: 16px;">
+    <MudButton StartIcon="@Icons.Material.Filled.Add"  Variant="Variant.Filled" Color="Color.Primary" OnClick="@OpenAddItemDialog" Class="mb-4">
+   
     Add item
 </MudButton>
+    <MudButton StartIcon="@Icons.Material.Filled.Delete" Variant="Variant.Filled" Color="Color.Error" OnClick="OpenDeleteAllDialog" Class="mb-4">
+    Delete entire inventory
+</MudButton>
+
+
+ </MudStack>
+
+
+
 
 @if (!_authChecked)
 {

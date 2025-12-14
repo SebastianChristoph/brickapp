@@ -19,14 +19,17 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+     <MudStack Justify="Justify.Center"Spacing="2" Style="margin-bottom: 16px; margin-top:16px;">
+         <MudText>Loading set details...</MudText>
+         <MudProgressLinear Color="Color.Primary"  Indeterminate="true" />
+        
+     </MudStack>
+
 }
 else if (_itemSet is null)
 {
-    <MudText Typo="Typo.h5" Color="Color.Error">
-        Set wurde nicht gefunden.
-    </MudText>
-    <MudButton Variant="Variant.Outlined" OnClick="@GoBack">Zurück</MudButton>
+   <MudAlert Severity="Severity.Error">Set was not found.</MudAlert>
+    <MudButton Variant="Variant.Outlined" OnClick="@GoBack">Back</MudButton>
 }
 else
 {
@@ -50,18 +53,12 @@ else
                     Brand: @_itemSet.Brand
                 </MudText>
                 <MudText Typo="Typo.subtitle2">
-                    Set Nr: @_itemSet.LegoSetNum | Jahr: @_itemSet.Year
+                    Set Nr: @_itemSet.LegoSetNum | Year: @_itemSet.Year
                 </MudText>
-                @if (_userItemSet != null)
-                {
-                    <MudText Typo="Typo.subtitle2">
-                        Du besitzt: @_userItemSet.Quantity x
-                    </MudText>
-                }
-                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="@OpenAddSetDialog" Size="Size.Large"
+               
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Success" OnClick="@OpenAddSetDialog" Size="Size.Large"
                     Class="mt-2">
-                    <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
-                    Alle Teile hinzufügen
+                    Add all items to my inventory
                 </MudButton>
             </MudStack>
         </MudStack>
@@ -69,7 +66,9 @@ else
 
     <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudProgressLinear Value="@Percent" Color="@(HasAll? Color.Success: Color.Primary)"
+            <MudText Typo="Typo.subtitle1">
+                Can you build this set?</MudText>
+            <MudProgressLinear Color="Color.Primary" Striped="true" Size="Size.Large"  Value="@Percent")"
                 Style="min-width:200px;max-width:300px;width:30vw;" />
             <MudText Typo="Typo.body1" Class="ml-4">
                 @if (HasAll)
@@ -78,7 +77,7 @@ else
                 }
                 else
                 {
-                    <span>@TotalOwned von @TotalNeeded Steinen im Inventar (@Percent%)</span>
+                    <span>You have <strong>@TotalOwned</strong> of <strong>@TotalNeeded</strong> items in your inventory (@Percent%)</span>
                 }
             </MudText>
         </MudStack>
@@ -112,17 +111,17 @@ else
 
     <MudTable Items="(_itemSet.Bricks ?? Enumerable.Empty<ItemSetBrick>()).OrderBy(b => b.BrickColor?.Name)">
         <HeaderContent>
-            <MudTh>Bild</MudTh>
-            <MudTh>Standard-Name</MudTh>
-            <MudTh>Farbe</MudTh>
+            <MudTh>Image</MudTh>
+            <MudTh>Standard Name</MudTh>
+            <MudTh>Color</MudTh>
             <MudTh>Lego</MudTh>
             <MudTh>BlueBrixx</MudTh>
             <MudTh>Cada</MudTh>
             <MudTh>Pantasy</MudTh>
             <MudTh>Mould King</MudTh>
             <MudTh>Unknown</MudTh>
-            <MudTh>Anzahl im Set</MudTh>
-            <MudTh>Hast du?</MudTh>
+            <MudTh>Quantity</MudTh>
+            <MudTh>Do you have this in your inventory?</MudTh>
         </HeaderContent>
 
         <RowTemplate>
@@ -242,7 +241,7 @@ else
     <MudButton Class="mt-4" Variant="Variant.Outlined" OnClick="@GoBack">
         Zurück
     </MudButton>
-}
+
 
 @code{
     

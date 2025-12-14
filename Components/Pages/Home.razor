@@ -8,11 +8,28 @@
 
 @if (_username is null)
 {
-    <MudText Typo="Typo.h5">Willkommen bei BrickIsBrick!</MudText>
+    <MudText Typo="Typo.h4">Welcome to BrickIsBrick!</MudText>
 }
 else
 {
-    <MudText Typo="Typo.h5">Hallo, @_username</MudText>
+    <MudText Typo="Typo.h4">Hello @_username</MudText>
+    <MudText Typo="Typo.body1" Class="mt-4">
+        BrickIsBrick is a community-driven project!<br />
+        <br />
+        To make this platform better for everyone, there are two main ways you can help:
+        <MudList T="string">
+            <MudListItem T="string">
+                <b>Map Bricks:</b> Help us connect and match bricks across different brands.<br />
+                <MudLink Href="/allbricks" Color="Color.Primary">Go to All Mapped Bricks</MudLink>
+            </MudListItem>
+            <MudListItem T="string">
+                <b>Add New Sets:</b> Contribute by entering new sets into the database.<br />
+                <MudLink Href="/add-new-set" Color="Color.Primary">Add a New Set</MudLink>
+            </MudListItem>
+        </MudList>
+        <br />
+        Thank you for supporting and growing the BrickIsBrick community!
+    </MudText>
 }
 @code {
     private string? _username;

@@ -21,12 +21,7 @@
                     <MudIcon Icon="@Icons.Material.Filled.BlurLinear" Title="Favorite" />
     <MudText Typo="Typo.h5" Class="ml-3">BrickIsBrick</MudText>
     <MudSpacer />
- <MudBadge Content="@_newNotificationCount" Color="Color.Error" Overlap="true" Class="mr-2">
-
- <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Email" Size="Size.Small"  OnClick="@GoToNotifications" Class="mr-2"/>
-   
-    </MudBadge>
-
+    
     @if (!string.IsNullOrEmpty(_username))
     {
         <MudAvatar Class="mr-2" Size="Size.Medium" Color="Color.Primary">
@@ -34,9 +29,15 @@
         </MudAvatar>
     }
 
-    <MudIconButton Icon="@Icons.Material.Filled.ExitToApp"
-                   Color="Color.Inherit"
-                   Edge="Edge.End"
+ <MudBadge Content="@_newNotificationCount" Color="Color.Error" Overlap="true" Class="mr-2">
+
+ <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Email" Size="Size.Small"  OnClick="@GoToNotifications" Class="mr-2"/>
+   
+    </MudBadge>
+
+    <MudFab StartIcon="@Icons.Material.Filled.ExitToApp"
+                   Color="Color.Secondary"
+                   Size="Size.Small" 
                    OnClick="@Logout" />
 </MudAppBar>
 
