@@ -9,7 +9,7 @@ namespace Data.Entities
         public string Brand { get; set; }
         public string SetNo { get; set; }
         public string SetName { get; set; }
-        public string? ImagePath { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public NewSetRequestStatus Status { get; set; } = NewSetRequestStatus.Draft;
         public bool IsDraft => Status == NewSetRequestStatus.Draft;

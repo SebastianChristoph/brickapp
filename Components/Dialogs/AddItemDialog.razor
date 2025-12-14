@@ -3,10 +3,11 @@
 @using Data.Entities
 @using Data.Services
 @inject Data.Services.RequestService RequestService
-@inject Data.Services.ItemUploadService ItemUploadService
+@inject Data.Services.ImageService ImageService
 @inject Services.MappedBrickService BrickService
 @inject Services.UserService UserService
 @inject Services.NotificationService NotificationService
+@inject ILogger<AddItemDialog> Logger
 
 <MudDialog>
     <DialogContent>
@@ -20,6 +21,11 @@
             <MudSelectItem Value="@("Unknown")">Unknown</MudSelectItem>
         </MudSelect>
         <MudTextField @bind-Value="Name" Label="Item Name" Required="true" />
+        <MudTextField @bind-Value="PartNum" Label="Part Number" Required="@(Brand == "Lego")" />
+        @if (Brand == "Lego" && string.IsNullOrWhiteSpace(PartNum))
+        {
+            <MudAlert Severity="Severity.Warning">For LEGO, the part number is required!</MudAlert>
+        }
         <InputFile OnChange="OnInputFileChange" />
         @if (!string.IsNullOrWhiteSpace(_errorMessage))
         {
@@ -40,6 +46,7 @@
     [CascadingParameter] private MudBlazor.IMudDialogInstance? MudDialog { get; set; }
     private string Brand { get; set; } = string.Empty;
     private string Name { get; set; } = string.Empty;
+    private string PartNum { get; set; } = string.Empty;
     private IBrowserFile? _file;
     private string? _imagePreviewUrl;
     private string _errorMessage = string.Empty;
@@ -52,15 +59,24 @@
             var buffer = new byte[_file.Size];
             await _file.OpenReadStream().ReadAsync(buffer);
             _imagePreviewUrl = $"data:{_file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+            Logger.LogInformation("🟡 [AddItemDialog] File selected: Name={Name}, Size={Size}, ContentType={ContentType}", _file.Name, _file.Size, _file.ContentType);
         }
     }
 
     private async Task OnSave()
     {
         _errorMessage = string.Empty;
+        Logger.LogInformation("🟡 [AddItemDialog] OnSave called: Brand={Brand}, Name={Name}, PartNum={PartNum}", Brand, Name, PartNum);
         if (string.IsNullOrWhiteSpace(Brand) || string.IsNullOrWhiteSpace(Name))
         {
             _errorMessage = "Brand and Name are required.";
+            Logger.LogWarning("🟡 [AddItemDialog] Validation failed: Brand or Name missing.");
+            return;
+        }
+        if (Brand == "Lego" && string.IsNullOrWhiteSpace(PartNum))
+        {
+            _errorMessage = "For LEGO, the part number is required.";
+            Logger.LogWarning("🟡 [AddItemDialog] LEGO PartNum required but missing.");
             return;
         }
         // Check for duplicate item
@@ -76,21 +92,21 @@
         if (exists)
         {
             _errorMessage = $"An item with the name '{Name}' already exists for brand '{Brand}'.";
+            Logger.LogWarning("🟡 [AddItemDialog] Duplicate item: Brand={Brand}, Name={Name}", Brand, Name);
             return;
         }
-        string? imagePath = null;
-        if (_file != null)
-        {
-            imagePath = await ItemUploadService.SaveResizedImageAsync(_file, Brand, Name);
-        }
+
         var userId = await UserService.GetTokenAsync();
         if (userId is null)
         {
             _errorMessage = "User not authenticated.";
+            Logger.LogWarning("🟡 [AddItemDialog] User not authenticated.");
             return;
         }
-        await RequestService.CreateNewItemRequestAsync(Brand, Name, imagePath, userId);
-        NotificationService.Success($"Item '{Name}' added successfully as a request! An admin has to approve it. You will be notified in your notification area once it's approved.");
+        Logger.LogInformation("🟡 [AddItemDialog] Creating new item request: Brand={Brand}, Name={Name}, PartNum={PartNum}, UserId={UserId}", Brand, Name, PartNum, userId);
+        await RequestService.CreateNewItemRequestAsync(Brand, Name, userId, PartNum, _file);
+        Logger.LogInformation("🟡 [AddItemDialog] Item request created successfully for Brand={Brand}, Name={Name}, PartNum={PartNum}", Brand, Name, PartNum);
+        NotificationService.Success($"Item '{Name}/{PartNum}' added successfully as a request! An admin has to approve it. You will be notified in your notification area once it's approved.");
         MudDialog?.Close(DialogResult.Ok(true));
     }
 

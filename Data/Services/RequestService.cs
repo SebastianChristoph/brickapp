@@ -1,14 +1,66 @@
 
 
+using System.Runtime.CompilerServices;
 using Data.Entities;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 
 namespace Data.Services
 {
     public class RequestService
     {
-        // --- NewItemRequest Methoden ---
-        public async Task<List<NewItemRequest>> GetNewItemRequestsByUserAsync(string userId)
+        private readonly AppDbContext _db;
+        private readonly UserNotificationService _notificationService;
+        private readonly ImageService _imageService;
+        private readonly ILogger<RequestService> _logger;
+
+        public RequestService(AppDbContext db, UserNotificationService notificationService, ImageService imageService, ILogger<RequestService> logger)
+        {
+            _db = db;
+            _notificationService = notificationService;
+            _imageService = imageService;
+            _logger = logger;
+        }
+        
+        
+        // NEW ITEM REQUESTS
+
+          public async Task<NewItemRequest> CreateNewItemRequestAsync(string brand, string name, string userId, string? partNum, IBrowserFile? imageFile = null)
+        {
+            _logger.LogInformation("🟡 [RequestService] CreateNewItemRequestAsync called: Brand={Brand}, Name={Name}, UserId={UserId}, PartNum={PartNum}, ImageFileNull={ImageFileNull}", brand, name, userId, partNum, imageFile == null);
+            var request = new NewItemRequest
+            {
+                Uuid = Guid.NewGuid().ToString(),
+                Brand = brand,
+                Name = name,
+                PartNum = partNum ?? string.Empty,
+                RequestedByUserId = userId,
+                CreatedAt = DateTime.UtcNow,
+                Status = NewItemRequestStatus.Pending
+            };
+            _db.NewItemRequests.Add(request);
+
+            if (imageFile != null)
+            {
+                _logger.LogInformation("🟡 [RequestService] Image file provided. Brand={Brand}, PartNum={PartNum}, Uuid={Uuid}", brand, partNum, request.Uuid);
+                if (brand.ToLower().Trim() == "lego" && !string.IsNullOrEmpty(partNum))
+                {
+                    _logger.LogInformation("🟡 Saving LEGO image for PartNum={PartNum}", partNum);
+                    await _imageService.SaveResizedItemImageAsync(imageFile, brand, partNum, null);
+                }
+                else
+                {
+                    _logger.LogInformation("🟡 [RequestService] Saving non-LEGO image for Uuid={Uuid}", request.Uuid);
+                    await _imageService.SaveResizedItemImageAsync(imageFile, brand, null, request.Uuid);
+                }
+            }
+
+            await _db.SaveChangesAsync();
+            _logger.LogInformation("🟡 [RequestService] NewItemRequest created with Id={Id} and Uuid={Uuid}", request.Id, request.Uuid);
+            return request;
+        }
+
+        public async Task<List<NewItemRequest>> GetAllNewItemRequestsByUserAsync(string userId)
         {
             return await _db.NewItemRequests
                 .Include(r => r.RequestedByUser)
@@ -18,27 +70,14 @@ namespace Data.Services
                 .ToListAsync();
         }
 
-                public async Task<bool> UpdateNewSetRequestAsync(int id, string brand, string setNo, string setName, string? imagePath, List<NewSetRequestItem> items, NewSetRequestStatus status)
+       
+         public async Task<List<NewItemRequest>> GetOpenNewItemRequestsAsync()
         {
-            var request = await _db.NewSetRequests.Include(r => r.Items).FirstOrDefaultAsync(r => r.Id == id);
-            if (request == null) return false;
-            request.Brand = brand;
-            request.SetNo = setNo;
-            request.SetName = setName;
-            request.ImagePath = imagePath;
-            request.Status = status;
-            request.Items.Clear();
-            foreach (var item in items)
-            {
-                request.Items.Add(new NewSetRequestItem
-                {
-                    ItemIdOrName = item.ItemIdOrName,
-                    Quantity = item.Quantity,
-                    Color = item.Color
-                });
-            }
-            await _db.SaveChangesAsync();
-            return true;
+            return await _db.NewItemRequests
+                .Include(r => r.RequestedByUser)
+                .Where(r => r.Status == NewItemRequestStatus.Pending)
+                .OrderBy(r => r.CreatedAt)
+                .ToListAsync();
         }
         public async Task<bool> DeleteNewSetRequestAsync(int id)
         {
@@ -48,39 +87,7 @@ namespace Data.Services
             await _db.SaveChangesAsync();
             return true;
         }
-        public async Task<List<NewItemRequest>> GetOpenNewItemRequestsAsync()
-        {
-            return await _db.NewItemRequests
-                .Include(r => r.RequestedByUser)
-                .Where(r => r.Status == NewItemRequestStatus.Pending)
-                .OrderBy(r => r.CreatedAt)
-                .ToListAsync();
-        }
-
-        public async Task<NewItemRequest?> GetNewItemRequestByIdAsync(int id)
-        {
-            return await _db.NewItemRequests
-                .Include(r => r.RequestedByUser)
-                .Include(r => r.ApprovedByUser)
-                .FirstOrDefaultAsync(r => r.Id == id);
-        }
-
-        public async Task<NewItemRequest> CreateNewItemRequestAsync(string brand, string name, string? imagePath, string userId)
-        {
-            var request = new NewItemRequest
-            {
-                Brand = brand,
-                Name = name,
-                ImagePath = imagePath,
-                RequestedByUserId = userId,
-                CreatedAt = DateTime.UtcNow,
-                Status = NewItemRequestStatus.Pending
-            };
-            _db.NewItemRequests.Add(request);
-            await _db.SaveChangesAsync();
-            return request;
-        }
-
+       
         public async Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
         {
             var request = await _db.NewItemRequests.FindAsync(requestId);
@@ -93,6 +100,7 @@ namespace Data.Services
             var mappedBrick = new MappedBrick
             {
                 Name = request.Name,
+                Uuid = request.Uuid
             };
             // Set the brand-specific fields
             switch (request.Brand?.Trim().ToLower())
@@ -100,28 +108,31 @@ namespace Data.Services
                 case "bb":
                 case "bluebrixx":
                     mappedBrick.BbName = request.Name;
+                    mappedBrick.BbPartNum = request.PartNum;
                     break;
                 case "cada":
                     mappedBrick.CadaName = request.Name;
+                    mappedBrick.CadaPartNum = request.PartNum;
                     break;
                 case "pantasy":
                     mappedBrick.PantasyName = request.Name;
+                    mappedBrick.PantasyPartNum = request.PartNum;
                     break;
                 case "mould king":
                 case "mouldking":
                     mappedBrick.MouldKingName = request.Name;
+                    mappedBrick.MouldKingPartNum = request.PartNum;
                     break;
                 case "unknown":
                     mappedBrick.UnknownName = request.Name;
+                    mappedBrick.UnknownPartNum = request.PartNum;
                     break;
                 default:
                     // fallback: set as unknown
                     mappedBrick.UnknownName = request.Name;
+                    mappedBrick.UnknownPartNum = request.PartNum;
                     break;
             }
-
-            // Optionally, store image path in a custom field or extend MappedBrick if needed
-            // (If you want to show the image in AllBricks, you may need to add an ImagePath property to MappedBrick)
 
             _db.MappedBricks.Add(mappedBrick);
             await _db.SaveChangesAsync();
@@ -165,6 +176,29 @@ namespace Data.Services
         }
 
         // --- NewSetRequest Methoden ---
+
+         public async Task<bool> UpdateNewSetRequestAsync(int id, string brand, string setNo, string setName, string? imagePath, List<NewSetRequestItem> items, NewSetRequestStatus status)
+        {
+            var request = await _db.NewSetRequests.Include(r => r.Items).FirstOrDefaultAsync(r => r.Id == id);
+            if (request == null) return false;
+            request.Brand = brand;
+            request.SetNo = setNo;
+            request.SetName = setName;
+            request.Status = status;
+            request.Items.Clear();
+            foreach (var item in items)
+            {
+                request.Items.Add(new NewSetRequestItem
+                {
+                    ItemIdOrName = item.ItemIdOrName,
+                    Quantity = item.Quantity,
+                    Color = item.Color
+                });
+            }
+            await _db.SaveChangesAsync();
+            return true;
+        }
+        
         public async Task<List<NewSetRequest>> GetNewSetRequestsByUserAsync(string userId)
         {
             return await _db.NewSetRequests
@@ -197,7 +231,6 @@ namespace Data.Services
                 Brand = brand,
                 SetNo = setNo,
                 SetName = setName,
-                ImagePath = imagePath,
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow,
                 Status = status,
@@ -221,7 +254,6 @@ namespace Data.Services
                 Name = request.SetName,
                 Brand = request.Brand,
                 LegoSetNum = request.SetNo,
-                ImageUrl = request.ImagePath,
                 Year = null // Optional: aus Request übernehmen, falls vorhanden
             };
             _db.ItemSets.Add(itemSet);
@@ -288,14 +320,9 @@ namespace Data.Services
         {
             return await _db.NewSetRequests.AnyAsync(r => r.SetNo == setNo && r.Brand == brand && r.Status == NewSetRequestStatus.Pending);
         }
-        private readonly AppDbContext _db;
-        private readonly UserNotificationService _notificationService;
-        public RequestService(AppDbContext db, UserNotificationService notificationService)
-        {
-            _db = db;
-            _notificationService = notificationService;
-        }
+   
     
+        // --- Mapping Requests Methoden ---
         public async Task<List<MappingRequest>> GetMappingRequestsByUserAsync(string userId)
         {
             return await _db.MappingRequests
@@ -314,15 +341,6 @@ namespace Data.Services
                 .Where(mr => mr.Status == MappingRequestStatus.Pending)
                 .OrderBy(mr => mr.CreatedAt)
                 .ToListAsync();
-        }
-
-        public async Task<MappingRequest?> GetMappingRequestByIdAsync(int id)
-        {
-            return await _db.MappingRequests
-                .Include(mr => mr.Brick)
-                .Include(mr => mr.RequestedByUser)
-                .Include(mr => mr.ApprovedByUser)
-                .FirstOrDefaultAsync(mr => mr.Id == id);
         }
 
         public async Task<MappingRequest> CreateMappingRequestAsync(int brickId, string brand, string mappingName, string mappingItemId, string userId)

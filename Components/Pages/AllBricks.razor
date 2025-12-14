@@ -7,12 +7,13 @@
 @inject UserService UserService
 @inject MappedBrickService BrickService
 @inject RequestService RequestService
+@inject Data.Services.ImageService ImageService
 
 
 
 <PageTitle>All Mapped Bricks</PageTitle>
 
-<MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddItemDialog" Class="mb-4">
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddItemDialog" Class="mb-4">
     Add Item
 </MudButton>
 
@@ -54,8 +55,11 @@
                     </MudButton>
                 </MudTd>
                 <MudTd DataLabel="Image">
-                    <img src="@(_imageUrls.ContainsKey(context.Id) ? _imageUrls[context.Id] : Services.RebrickablePartImageService.PlaceholderUrl)" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
-                        onerror="if(this.src!== '@Services.RebrickablePartImageService.PlaceholderUrl'){this.src='@Services.RebrickablePartImageService.PlaceholderUrl';this.style.opacity='0.5';}" />
+                    @{
+                        var imageUrl = ImageService.GetMappedBrickImagePath(context);
+                    }
+                    <img src="@imageUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
+                        onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
                 </MudTd>
                 <MudTd DataLabel="Item Name">
                     @context.Name
@@ -214,11 +218,8 @@
     private List<MappedBrick> bricks = new();
     private int totalCount = 0;
     private string _searchText = string.Empty;
-    private Dictionary<int, string> _imageUrls = new();
     private int _currentPage = 0;
     private int _pageSize = 25;
-
-    // Paging is handled by MudTable, no custom pagination needed
 
     [Inject]
     private IDialogService DialogService { get; set; } = default!;
@@ -255,29 +256,6 @@
         await LoadBricksAsync();
     }
 
-    private async Task LoadImageUrlsAsync()
-    {
-        var imageService = new Services.RebrickablePartImageService(new System.Net.Http.HttpClient());
-        _imageUrls.Clear();
-        foreach (var brick in bricks)
-        {
-            var partNum = brick.LegoPartNum;
-            if (string.IsNullOrWhiteSpace(partNum))
-            {
-                _imageUrls[brick.Id] = Services.RebrickablePartImageService.PlaceholderUrl;
-                continue;
-            }
-            var brand = brick.BbName != null ? "BB" :
-                       brick.CadaName != null ? "Cada" :
-                       brick.PantasyName != null ? "Pantasy" :
-                       brick.MouldKingName != null ? "Mould King" :
-                       brick.UnknownName != null ? "Unknown" : null;
-            var name = brick.Name;
-            var imgUrl = await imageService.GetPartImageUrlAsync(partNum, brand, name);
-            var placeholder = Services.RebrickablePartImageService.PlaceholderUrl;
-            _imageUrls[brick.Id] = string.IsNullOrWhiteSpace(imgUrl) ? placeholder : imgUrl;
-        }
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -306,7 +284,7 @@
         var result = await BrickService.GetPaginatedMappedBricksAsync(_currentPage + 1, _pageSize, _searchText);
         bricks = result.Items;
         totalCount = result.TotalCount;
-        await LoadImageUrlsAsync();
+        // Image URLs werden jetzt direkt aus dem ImageService geholt
         StateHasChanged();
     }
 

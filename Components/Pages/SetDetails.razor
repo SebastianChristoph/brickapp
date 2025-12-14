@@ -13,6 +13,7 @@
 @inject InventoryService InventoryService
 @inject IDialogService DialogService
 @inject Services.NotificationService NotificationService
+@inject Data.Services.ImageService ImageService
 
 <PageTitle>Set Details</PageTitle>
 
@@ -124,27 +125,25 @@ else
         <RowTemplate>
             <MudTd DataLabel="Bild">
                 @{
-                    var partNum = context.MappedBrick.LegoPartNum ?? "";
-                    var url = _partImageUrls.TryGetValue(partNum, out var u) ? u : null;
-                    var placeholder = Services.RebrickablePartImageService.PlaceholderUrl;
+                    var imgUrl = ImageService.GetMappedBrickImagePath(context.MappedBrick);
                     var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
                 }
                 <div style="position:relative;display:inline-block;min-width:48px;min-height:48px;">
-                    @if (!string.IsNullOrWhiteSpace(url))
+                    @if (!string.IsNullOrWhiteSpace(imgUrl) && imgUrl != "/placeholder-image.png")
                     {
-                        @if (overlay != null)
+                        if (overlay != null)
                         {
                             <div class="brick" style="--brick-overlay:@overlay">
-                                <img src="@url" alt=""
+                                <img src="@imgUrl" alt=""
                                     style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
-                                    onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                                    onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
                             </div>
                         }
                         else
                         {
-                            <img src="@url" alt=""
+                            <img src="@imgUrl" alt=""
                                 style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
-                                onerror="if(this.src!== '@placeholder'){this.src='@placeholder';this.style.opacity='0.5';}" />
+                                onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
                         }
                     }
                     else
@@ -244,15 +243,6 @@ else
 
 @code{
     
-
-    [Inject]
-    public LoadingService? LoadingService { get; set; }
-
-    [Inject]
-    public RebrickablePartImageService RebrickablePartImageService { get; set; } = default!;
-
-
-        private Dictionary<string, string> _partImageUrls = new();
         protected int TotalNeeded => _itemSet?.Bricks?.Sum(b => b.Quantity) ?? 0;
         protected int TotalOwned => _itemSet?.Bricks?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
         protected int Percent => (TotalNeeded > 0 && TotalOwned == TotalNeeded)
@@ -266,10 +256,6 @@ else
         private UserItemSet? _userItemSet;
         private bool _loading = true;
 
-        // Images temporarily disabled due to API ban
-
-        // Menge, die der User pro (Brick, Farbe) besitzt
-        // Für jede (Brick, Farbe): Dictionary<Brand, Menge>
         private Dictionary<(int BrickId, int ColorId), Dictionary<string, int>> _ownedByBrand = new();
 
         private enum BrickOwnershipState
@@ -310,30 +296,6 @@ else
                             bg => bg.Sum(i => i.Quantity)
                         )
                 );
-
-            // Lade die Bild-URLs für die Bricks des Sets
-
-            if (_itemSet?.Bricks != null && _itemSet.Bricks.Any())
-            {
-                var partNumsToLoad = _itemSet.Bricks
-                    .Select(b => b.MappedBrick.LegoPartNum)
-                    .Where(p => !string.IsNullOrEmpty(p) && !_partImageUrls.ContainsKey(p))
-                    .Distinct()
-                    .Select(p => p!)
-                    .ToList();
-                if (partNumsToLoad.Count > 0)
-                {
-                    // Bilder asynchron laden, aber Seite schon anzeigen (Lazy Loading)
-                    _ = Task.Run(async () => {
-                        var urls = await RebrickablePartImageService.GetPartImageUrlsBatchAsync(partNumsToLoad);
-                        foreach (var kv in urls)
-                        {
-                            _partImageUrls[kv.Key] = kv.Value;
-                        }
-                        await InvokeAsync(StateHasChanged);
-                    });
-                }
-            }
 
             _loading = false;
 
@@ -392,8 +354,5 @@ else
                 ? brandDict.Values.Sum()
                 : 0;
         }
-
-
-
     }
 }

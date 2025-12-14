@@ -75,8 +75,7 @@ public static class RebrickableSeeder
             {
                 LegoPartNum = p.part_num,
                 LegoName = p.name,
-                Name = p.name,  // erstmal neutral = LEGO-Name
-                ImagePath = imagePath
+                Name = p.name,
             };
 
             db.MappedBricks.Add(brick);

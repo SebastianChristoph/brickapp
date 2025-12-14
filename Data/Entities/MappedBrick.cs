@@ -3,6 +3,7 @@ namespace Data.Entities;
 public class MappedBrick
 {
     public int Id { get; set; }
+     public string Uuid { get; set; } = string.Empty;
 
     // dein „neutraler“ Name
     public string Name { get; set; } = default!;
@@ -22,8 +23,6 @@ public class MappedBrick
     public string? MouldKingName { get; set; }
     public string? UnknownPartNum { get; set; }
     public string? UnknownName { get; set; }
-
-    public string? ImagePath { get; set; } // Pfad zum Bild, falls vorhanden (z.B. für neue Items)
 
     public ICollection<InventoryItem> InventoryItems { get; set; } = new List<InventoryItem>();
     // Navigation: MappingRequests zu diesem Brick

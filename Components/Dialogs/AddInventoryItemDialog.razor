@@ -4,7 +4,7 @@
 @using Data.Entities
 @inject MappedBrickService BrickService
 @inject InventoryService InventoryService
-@inject Services.RebrickablePartImageService PartImageService
+@inject Data.Services.ImageService ImageService
 @inject Services.NotificationService NotificationService
 
 <MudDialog>
@@ -15,22 +15,23 @@
                 var overlay = SelectedColor != null ? Helpers.BrickColorHelper.GetHexForColor(SelectedColor.Name) : null;
             }
             <div style="margin-bottom:8px; min-height:68px; text-align:center;">
-                @if (!string.IsNullOrWhiteSpace(_imageUrl))
+                @if (SelectedBrick != null)
                 {
+                    var imgUrl = ImageService.GetMappedBrickImagePath(SelectedBrick);
                     if (overlay != null)
                     {
                         <div class="brick" style="--brick-overlay:@overlay">
-                            <img src="@_imageUrl" alt="" style="max-width:64px;max-height:64px;border-radius:4px;border:1px solid #ccc;" />
+                            <img src="@imgUrl" alt="" style="max-width:64px;max-height:64px;border-radius:4px;border:1px solid #ccc;" />
                         </div>
                     }
                     else
                     {
-                        <img src="@_imageUrl" alt="" style="max-width:64px;max-height:64px;border-radius:4px;border:1px solid #ccc;" />
+                        <img src="@imgUrl" alt="" style="max-width:64px;max-height:64px;border-radius:4px;border:1px solid #ccc;" />
                     }
                 }
                 else
                 {
-                    <img src="/part_images/placeholder.png" alt="" style="max-width:64px;max-height:64px;opacity:0.5;border-radius:4px;border:1px solid #ccc;" />
+                    <img src="/placeholder-image.png" alt="" style="max-width:64px;max-height:64px;opacity:0.5;border-radius:4px;border:1px solid #ccc;" />
                 }
             </div>
             <style>
@@ -134,7 +135,6 @@
     private IMudDialogInstance? MudDialog { get; set; }
 
     private string Brand = "Lego";
-    private string? _imageUrl;
     [Parameter]
     public MappedBrick? SelectedBrick { get; set; }
     private BrickColor? SelectedColor;
@@ -165,29 +165,18 @@
     protected override async Task OnInitializedAsync()
     {
         Colors = await BrickService.GetAllColorsAsync();
-        await UpdateImageUrl();
-    }
-
-    private async Task UpdateImageUrl()
-    {
-        _imageUrl = null;
-        if (SelectedBrick != null && !string.IsNullOrWhiteSpace(SelectedBrick.LegoPartNum))
-        {
-            _imageUrl = await PartImageService.GetPartImageUrlAsync(SelectedBrick.LegoPartNum);
-        }
-        StateHasChanged();
     }
 
     private async Task OnSelectedBrickChanged(MappedBrick? brick)
     {
         SelectedBrick = brick;
-        await UpdateImageUrl();
+        StateHasChanged();
     }
 
     private async Task OnBrandChanged(string brand)
     {
         Brand = brand ?? "Lego";
-        await UpdateImageUrl();
+        StateHasChanged();
     }
 
 
@@ -218,22 +207,20 @@
         var results = await SearchBricksByBrand(searchText, cancellationToken);
         foreach (var brick in results)
         {
-            var partNum = brick.LegoPartNum;
-            if (!string.IsNullOrWhiteSpace(partNum) && !_brickImageCache.ContainsKey(partNum))
-            {
-                var url = await PartImageService.GetPartImageUrlAsync(partNum);
-                _brickImageCache[partNum] = string.IsNullOrWhiteSpace(url) ? "/part_images/placeholder.png" : url;
-            }
+            // Nutze ImageService für das Bild
+            var url = ImageService.GetMappedBrickImagePath(brick);
+            var cacheKey = $"{brick.Id}";
+            _brickImageCache[cacheKey] = string.IsNullOrWhiteSpace(url) ? "/placeholder-image.png" : url;
         }
         return results;
     }
 
     private string GetBrickImageUrl(MappedBrick brick)
     {
-        var partNum = brick.LegoPartNum;
-        if (!string.IsNullOrWhiteSpace(partNum) && _brickImageCache.TryGetValue(partNum, out var url))
+        var cacheKey = $"{brick.Id}";
+        if (_brickImageCache.TryGetValue(cacheKey, out var url))
             return url;
-        return "/part_images/placeholder.png";
+        return "/placeholder-image.png";
     }
 
     private string GetBrickDisplay(MappedBrick b)

@@ -6,9 +6,11 @@ namespace Data.Entities
     public class NewItemRequest
     {
         public int Id { get; set; }
+        public string Uuid { get; set; } = string.Empty;
         public string Brand { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public string? ImagePath { get; set; }
+        public string PartNum { get; set; } = string.Empty;
+
         public string RequestedByUserId { get; set; } = string.Empty; // AppUser.Uuid
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public NewItemRequestStatus Status { get; set; } = NewItemRequestStatus.Pending;

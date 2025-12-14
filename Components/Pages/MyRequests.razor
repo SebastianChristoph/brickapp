@@ -5,6 +5,7 @@
 @using Services
 @inject UserService UserService
 @inject RequestService RequestService
+@inject Data.Services.ImageService ImageService
 <PageTitle>My Requests</PageTitle>
 
 <MudTabs>
@@ -71,10 +72,10 @@
                         @context.Status.ToString()
                     </MudTd>
                     <MudTd DataLabel="Image">
-                        @if (!string.IsNullOrWhiteSpace(context.ImagePath))
-                        {
-                            <img src="/@context.ImagePath" style="max-width:64px;max-height:64px;" />
+                        @{
+                            var imageUrl = ImageService.GetItemRequestImagePath(context);
                         }
+                        <img src="@imageUrl" alt="Item Image" style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;" />
                     </MudTd>
                     <MudTd DataLabel="Reason">
                         @if (context.Status == NewItemRequestStatus.Rejected && !string.IsNullOrWhiteSpace(context.ReasonRejected))
@@ -101,7 +102,7 @@
         if (userId != null)
         {
             _mappingRequests = await RequestService.GetMappingRequestsByUserAsync(userId);
-            _itemRequests = await RequestService.GetNewItemRequestsByUserAsync(userId);
+            _itemRequests = await RequestService.GetAllNewItemRequestsByUserAsync(userId);
         }
     }
 }

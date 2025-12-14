@@ -7,7 +7,6 @@
 @inject UserService UserService
 @inject Services.ItemSetService ItemSetService
 @inject Services.MappedBrickService MappedBrickService
-@inject Services.RebrickablePartImageService PartImageService
 
 @inject Services.NotificationService NotificationService
 @inject Data.Services.ImageService ImageService
@@ -270,8 +269,6 @@ else
 			Brand = draft.Brand,
 			Bricks = bricks
 		};
-		// Bildvorschau aus ImagePath laden (falls vorhanden)
-		imagePreviewUrl = !string.IsNullOrWhiteSpace(draft.ImagePath) ? draft.ImagePath : null;
 		uploadedImageFile = null;
 		StateHasChanged();
 	}
@@ -320,16 +317,17 @@ else
 		var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
 		brickSearchResults = allBricks.Where(b => (b.LegoPartNum?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase)
 		?? false) || (b.LegoName?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false)).Take(10).ToList();
-		foreach (var brick in brickSearchResults)
-		{
-			var partNum = brick.LegoPartNum;
-			if (!string.IsNullOrWhiteSpace(partNum) && !_brickImageCache.ContainsKey(partNum))
-			{
-				var url = await PartImageService.GetPartImageUrlAsync(partNum);
-				_brickImageCache[partNum] = string.IsNullOrWhiteSpace(url) ? "/part_images/placeholder.png" : url;
-			}
-		}
-		StateHasChanged();
+		   foreach (var brick in brickSearchResults)
+		   {
+			   var partNum = brick.LegoPartNum;
+			   if (!string.IsNullOrWhiteSpace(partNum) && !_brickImageCache.ContainsKey(partNum))
+			   {
+				   // Use ImageService to get the image path
+				   var url = ImageService.GetMappedBrickImagePath(brick);
+				   _brickImageCache[partNum] = string.IsNullOrWhiteSpace(url) ? "/part_images/placeholder.png" : url;
+			   }
+		   }
+		   StateHasChanged();
 	}
 
 	private void SelectBrick(MappedBrick brick)
@@ -460,7 +458,7 @@ else
 		{
 			// Wenn kein neues Bild hochgeladen wurde, aber ein Entwurfsbild existiert, verwende dieses
 			var draft = draftSets?.FirstOrDefault(d => d.Id == editingDraftId.Value);
-			if (draft != null && !string.IsNullOrWhiteSpace(draft.ImagePath))
+			@* if (draft != null && !string.IsNullOrWhiteSpace(draft.ImagePath))
 			{
 				imagePath = draft.ImagePath;
 			}
@@ -469,7 +467,7 @@ else
 				errorMessage = "Bitte lade ein Bild für das Set hoch.";
 				StateHasChanged();
 				return;
-			}
+			} *@
 		}
 		else
 		{

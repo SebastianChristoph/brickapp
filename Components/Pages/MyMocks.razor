@@ -5,6 +5,7 @@
 @using Services
 @inject NavigationManager Nav
 @inject IServiceProvider ServiceProvider
+@inject Data.Services.ImageService ImageService
 @inject UserService UserService
 @using IBrowserFile = Microsoft.AspNetCore.Components.Forms.IBrowserFile
 
@@ -92,7 +93,7 @@
 
                 <MudListItem T="string" Style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
                     <div style="display:flex;align-items:center;flex:1;gap:12px;">
-                        <img src="@(string.IsNullOrWhiteSpace(mock.MockImagePath) ? "/placeholder-image.png" : mock.MockImagePath)" alt="Mock Bild" style="width:48px;height:48px;object-fit:cover;border:1px solid #ccc;background:#fafafa;" />
+                      <MudText>Hier MockImage</MudText>
                         <span style="flex:1" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
                             <MudText><b>@mock.Name</b> <span style="color:#888;font-size:0.95em">(@mock.MockType)</span></MudText>
                             <MudText Typo="Typo.caption">Teile: @totalParts</MudText>
@@ -179,9 +180,7 @@
         if (mock != null)
         {
             // Bild löschen
-            var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            var imageService = new Data.Services.ImageService(wwwroot);
-            imageService.DeleteMockImage(mock.MockImagePath);
+            //ImageService.DeleteMockImage(mock.MockImagePath);
             db.Mocks.Remove(mock);
             db.SaveChanges();
         }
@@ -198,12 +197,10 @@
         var mocks = db.Mocks.Where(m => m.UserUuid == userUuid).ToList();
         if (mocks.Any())
         {
-            var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            var imageService = new Data.Services.ImageService(wwwroot);
-            foreach (var mock in mocks)
+            @* foreach (var mock in mocks)
             {
-                imageService.DeleteMockImage(mock.MockImagePath);
-            }
+                ImageService.DeleteMockImage(mock.MockImagePath);
+            } *@
             db.Mocks.RemoveRange(mocks);
             db.SaveChanges();
         }
@@ -415,7 +412,6 @@
                 Items = validItems,
                 Comment = string.IsNullOrWhiteSpace(newMockComment) ? null : newMockComment.Trim(),
                 WebSource = string.IsNullOrWhiteSpace(newMockWebSource) ? null : newMockWebSource.Trim(),
-                MockImagePath = null
             };
             db.Mocks.Add(mock);
             db.SaveChanges();
@@ -425,12 +421,9 @@
             {
                 try
                 {
-                    var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-                    var imageService = new Data.Services.ImageService(wwwroot);
-                    var imagePath = await imageService.SaveMockImageAsync(uploadedImage, userUuid, mock.Id);
+                    var imagePath = await ImageService.SaveMockImageAsync(uploadedImage, userUuid, mock.Id);
                     if (!string.IsNullOrEmpty(imagePath))
                     {
-                        mock.MockImagePath = imagePath;
                         db.SaveChanges();
                     }
                 }
