@@ -49,7 +49,10 @@ builder.Services.AddScoped<ImageService>(sp =>
 builder.Services.AddScoped<NotificationService>();
 
 // MudBlazor
-builder.Services.AddMudServices();
+builder.Services.AddMudServices(config =>
+{
+    config.SnackbarConfiguration.VisibleStateDuration = 5000; // 5 Sekunden
+});
 // MappedBrickExportService für DI registrieren
 builder.Services.AddScoped<MappedBrickExportService>(sp =>
     new MappedBrickExportService(
