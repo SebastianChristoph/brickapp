@@ -44,9 +44,9 @@ else if (items is null)
 }
 else if (items.Count == 0)
 {
-    <MudText Typo="Typo.body1">
+    <MudAlert Severity="Severity.Info" Typo="Typo.body1">
         You do not have any items in your inventory yet.
-    </MudText>
+    </MudAlert>
 }
 else
 {
@@ -58,7 +58,7 @@ else
     <MudExpansionPanels>
         @foreach (var brandGroup in grouped)
         {
-            <MudExpansionPanel Text="@brandGroup.Key">
+            <MudExpansionPanel Text="@brandGroup.Key" Expanded="true">
                 @{
                     List<InventoryItem> brandItems = brandGroup.ToList();
                 }

@@ -74,7 +74,7 @@
                     @context.LegoName
                     @if (!string.IsNullOrWhiteSpace(context.LegoPartNum))
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.LegoPartNum]</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.LegoPartNum]</MudText>
                     }
                 }
                 else
@@ -96,7 +96,7 @@
                 {
                     @context.BbName@if (!string.IsNullOrWhiteSpace(context.BbPartNum))
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.BbPartNum]</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.BbPartNum]</MudText>
                     }
                 }
                 @if (string.IsNullOrWhiteSpace(context.BbName))
@@ -118,7 +118,7 @@
                 {
                     @context.CadaName@if (!string.IsNullOrWhiteSpace(context.CadaPartNum))
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.CadaPartNum]</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.CadaPartNum]</MudText>
                     }
                 }
                 @if (string.IsNullOrWhiteSpace(context.CadaName))
@@ -140,7 +140,7 @@
                 {
                     @context.PantasyName@if (!string.IsNullOrWhiteSpace(context.PantasyPartNum))
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.PantasyPartNum]</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.PantasyPartNum]</MudText>
                     }
                 }
                 @if (string.IsNullOrWhiteSpace(context.PantasyName))
@@ -163,7 +163,7 @@
                     @context.MouldKingName
                     @if (!string.IsNullOrWhiteSpace(context.MouldKingPartNum))
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.UnknownPartNum]</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.MouldKingPartNum]</MudText>
                     }
                 }
                 @if (string.IsNullOrWhiteSpace(context.MouldKingName))
@@ -185,7 +185,7 @@
                 {
                     @context.UnknownName@if (!string.IsNullOrWhiteSpace(context.UnknownPartNum))
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.UnknownPartNum]</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.UnknownPartNum]</MudText>
                     }
                 }
                 @if (string.IsNullOrWhiteSpace(context.UnknownName))

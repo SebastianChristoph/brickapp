@@ -46,7 +46,8 @@ public class InventoryService
             return false;
 
         // Wenn bricklink-Mock, Brand auf "Lego" setzen
-        var brand = (mock.MockType?.ToLower() == "bricklink") ? "Lego" : "Mock";
+        var mockType = mock.MockType?.ToLower();
+        var brand = (mockType == "bricklink" || mockType == "rebrickable") ? "Lego" : "Mock";
 
         foreach (var item in mock.Items)
         {

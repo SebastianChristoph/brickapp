@@ -123,8 +123,8 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Save" Disabled="@(SelectedBrick == null || SelectedColor == null)">
+        <MudButton Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="@(SelectedBrick == null || SelectedColor == null)">
             Add
         </MudButton>
     </DialogActions>
@@ -186,7 +186,7 @@
             return new List<MappedBrick>();
 
         var all = await BrickService.GetAllMappedBricksAsync();
-        return Brand switch
+        IEnumerable<MappedBrick> filtered = Brand switch
         {
             "Lego" => all.Where(b => (b.LegoPartNum?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
                                 || (b.LegoName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
@@ -200,6 +200,21 @@
                                 || (b.MouldKingName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
             _ => Enumerable.Empty<MappedBrick>()
         };
+
+        // Sortierung: Nach Länge der PartNum, dann Wert
+        Func<MappedBrick, string?> getPartNum = Brand switch
+        {
+            "Lego" => b => b.LegoPartNum,
+            "BlueBrixx" => b => b.BbPartNum,
+            "Cada" => b => b.CadaPartNum,
+            "Pantasy" => b => b.PantasyPartNum,
+            "Mould King" => b => b.MouldKingPartNum,
+            _ => b => null
+        };
+        filtered = filtered
+            .OrderBy(b => getPartNum(b) == null ? 99 : getPartNum(b)!.Length)
+            .ThenBy(b => getPartNum(b));
+        return filtered;
     }
 
     private async Task<IEnumerable<MappedBrick>> SearchBricksByBrandWithImages(string searchText, CancellationToken cancellationToken)

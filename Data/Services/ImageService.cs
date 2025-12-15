@@ -126,6 +126,25 @@ namespace Data.Services
 
         // SET IMAGES
 
+        public async Task<string?> SaveSetImageAsync(IBrowserFile uploadedImage, string brand, string setId)
+        {
+            if (uploadedImage == null) return null;
+            var ext = Path.GetExtension(uploadedImage.Name);
+            var safeBrand = brand.ToLower().Replace(" ", "_");
+            var safeSetId = setId.ToLower().Replace(" ", "_");
+            var fileName = safeSetId + ext;
+            var setDir = Path.Combine(_wwwrootPath, "setimages", safeBrand);
+            if (!Directory.Exists(setDir))
+                Directory.CreateDirectory(setDir);
+            var savePath = Path.Combine(setDir, fileName);
+            using (var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024))
+            using (var fs = File.Create(savePath))
+            {
+                await stream.CopyToAsync(fs);
+            }
+            // Relativer Pfad für Webzugriff
+            return $"/setimages/{safeBrand}/{fileName}";
+        }
         public string GetSetImagePath(ItemSet itemSet)
         {
             if (itemSet == null)
@@ -193,46 +212,39 @@ namespace Data.Services
         }
 
 
-        public void DeleteMockImage(string? imagePath)
+        public void DeleteMockImage(Mock mock)
         {
-            if (string.IsNullOrWhiteSpace(imagePath))
+            if (mock == null)
                 return;
-            // imagePath ist z.B. /useruuid/123.png
-            var relativePath = imagePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-            var fullPath = Path.Combine(_wwwrootPath, relativePath);
+            var usertoken = mock.UserUuid;
+            var mockid = mock.Id;
+            var fileName = mockid + ".png";
+            var fullPath = Path.Combine(_wwwrootPath, usertoken, fileName);
             if (File.Exists(fullPath))
             {
                 try { File.Delete(fullPath); } catch { /* ignore */ }
             }
         }
+    
 
-        public string GetMockImage(string? imagePath)
+        public string GetMockImagePath(Mock mock)
         {
-            if (!string.IsNullOrWhiteSpace(imagePath))
-                return imagePath;
-            return "/placeholder-image.png";
-        }
-
-        // Gibt immer den Platzhalter für ein Item zurück
-
-        public async Task<string?> SaveSetImageAsync(IBrowserFile uploadedImage, string brand, string setId)
-        {
-            if (uploadedImage == null) return null;
-            var ext = Path.GetExtension(uploadedImage.Name);
-            var safeBrand = brand.ToLower().Replace(" ", "_");
-            var safeSetId = setId.ToLower().Replace(" ", "_");
-            var fileName = safeSetId + ext;
-            var setDir = Path.Combine(_wwwrootPath, "setimages", safeBrand);
-            if (!Directory.Exists(setDir))
-                Directory.CreateDirectory(setDir);
-            var savePath = Path.Combine(setDir, fileName);
-            using (var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024))
-            using (var fs = File.Create(savePath))
+            if (mock == null)
+                return "/placeholder-image.png";
+            var usertoken = mock.UserUuid;
+            var mockid = mock.Id;
+            string[] extensions = new[] { ".png", ".jpg", ".jpeg" };
+            foreach (var ext in extensions)
             {
-                await stream.CopyToAsync(fs);
+                var fileName = mockid + ext;
+                var relativePath = $"/{usertoken}/{fileName}";
+                var fullPath = Path.Combine(_wwwrootPath, usertoken, fileName);
+                if (File.Exists(fullPath))
+                {
+                    return relativePath;
+                }
             }
-            // Relativer Pfad für Webzugriff
-            return $"/setimages/{safeBrand}/{fileName}";
+            return "/placeholder-image.png";
         }
     }
 }

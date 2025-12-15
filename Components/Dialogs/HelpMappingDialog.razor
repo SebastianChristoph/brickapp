@@ -7,7 +7,13 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.h6">Mapping for @Brick?.Name (@Brick?.LegoPartNum)</MudText>
+        <MudText Typo="Typo.h6">
+            Mapping for @Brick?.Name
+            @if (!string.IsNullOrWhiteSpace(Brick?.LegoPartNum))
+            {
+                <span> (@Brick.LegoPartNum)</span>
+            }
+        </MudText>
         <div style="margin-bottom:12px; min-height:68px;">
             @{
                 var imgUrl = Brick != null ? ImageService.GetMappedBrickImagePath(Brick) : "/placeholder-image.png";
@@ -15,16 +21,35 @@
             <img src="@imgUrl" alt="" style="max-width:64px;max-height:64px;border-radius:4px;border:1px solid #ccc;@(imgUrl == "/placeholder-image.png" ? ";opacity:0.5" : "")" />
         </div>
         <MudTextField Value="@Brand" Label="Brand" Disabled="true" />
-        <MudTextField @bind-Value="MappingName" Label="Mapping Name" />
-        <MudTextField @bind-Value="MappingItemId" Label="Item ID" />
+        <MudTextField @bind-Value="MappingName" Label="Item name for this brand" Disabled="@(Brand == "Lego")" />
+        <MudTextField Value="@MappingItemId" ValueChanged="@((string v) => OnMappingItemIdChanged(v))" ValueExpression="@(() => MappingItemId)" Label="Item Part Number" Immediate="true" />
+        @if (Brand == "Lego" && !string.IsNullOrWhiteSpace(MappingItemId) && MappingItemId.Length >= 3 && _legoPreviewBricks.Any())
+        {
+            <div style="margin-top:8px;">
+                <MudText Typo="Typo.subtitle2">Live-Vorschau existierender LEGO Bricks:</MudText>
+                <MudList T="string">
+                    @foreach (var b in _legoPreviewBricks)
+                    {
+                        <MudListItem T="string" Style="cursor:pointer;" OnClick="@(() => SelectPreviewBrick(b))">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <img src="@ImageService.GetMappedBrickImagePath(b)" alt="" style="width:32px;height:32px;border-radius:4px;border:1px solid #ccc;" />
+                                <span>@b.LegoPartNum - @b.LegoName</span>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+                
+            </div>
+        }
         @if (!string.IsNullOrWhiteSpace(_errorMessage))
         {
             <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="OnSave" Color="Color.Primary">Save</MudButton>
-        <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
+            <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Save" Variant="Variant.Filled" OnClick="OnSave" Color="Color.Primary">Save</MudButton>
+    
     </DialogActions>
 </MudDialog>
 
@@ -35,11 +60,40 @@
     private IMudDialogInstance? MudDialog { get; set; }
     private string _errorMessage = string.Empty;
     private List<MappedBrick> _allBricks = new();
+    private List<MappedBrick> _legoPreviewBricks = new();
     protected override async Task OnInitializedAsync()
     {
         // Load all mapped bricks for duplicate check
         _allBricks = await BrickService.GetAllMappedBricksAsync();
+        _legoPreviewBricks = new List<MappedBrick>();
     }
+        private void OnMappingItemIdChanged(string value)
+        {
+            MappingItemId = value;
+            if (Brand == "Lego" && !string.IsNullOrWhiteSpace(MappingItemId) && MappingItemId.Length >= 3)
+            {
+                // Suche nach LEGO-PartNum
+                _legoPreviewBricks = _allBricks
+                    .Where(b => !string.IsNullOrWhiteSpace(b.LegoPartNum) && b.LegoPartNum.Contains(MappingItemId, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(b => b.LegoPartNum.Length)
+                    .ThenBy(b => b.LegoPartNum)
+                    .Take(10)
+                    .ToList();
+            }
+            else
+            {
+                _legoPreviewBricks = new List<MappedBrick>();
+            }
+            StateHasChanged();
+        }
+
+        private void SelectPreviewBrick(MappedBrick b)
+        {
+            MappingItemId = b.LegoPartNum ?? string.Empty;
+            MappingName = b.LegoName ?? string.Empty;
+            _legoPreviewBricks = new List<MappedBrick>();
+            StateHasChanged();
+        }
     private string MappingName { get; set; } = string.Empty;
     private string MappingItemId { get; set; } = string.Empty;
 

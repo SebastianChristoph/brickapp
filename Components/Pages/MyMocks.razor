@@ -1,5 +1,6 @@
-@page "/mymocks"
+@page "/mymocs"
 @using System.Xml.Linq
+@using Microsoft.EntityFrameworkCore
 @using Data.Entities
 @using Microsoft.AspNetCore.Components.Forms
 @using Services
@@ -9,22 +10,29 @@
 @inject UserService UserService
 @using IBrowserFile = Microsoft.AspNetCore.Components.Forms.IBrowserFile
 
-<h3>My Mocks</h3>
 
+ <MudText Typo="Typo.h4" GutterBottom="true">My MOCs</MudText>
+
+ <MudStack Row="true" Justify="Justify.FlexEnd"Spacing="2" Style="margin-bottom: 16px;">
+    <MudButton StartIcon="@Icons.Material.Filled.Delete" Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAllMocks" Class="ml-2">Delete all MOCs</MudButton>
+
+ </MudStack>
 
 <MudPaper Class="pa-4 mb-4">
-        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAllMocks" Class="ml-2">Alle Mocks löschen</MudButton>
-        <MudText Typo="Typo.h6">Neues Mock hochladen</MudText>
-        <MudSelect @bind-Value="selectedFormat" Label="Dateiformat" Style="width:200px;">
-            <MudSelectItem Value="@("bricklink")">bricklink List (XML)</MudSelectItem>
+       
+        <MudText Typo="Typo.h6">Upload a new MOC</MudText>
+        <MudSelect @bind-Value="selectedFormat" Label="Item List Source" Style="width:200px;">
             <MudSelectItem Value="@("rebrickable")">Rebrickable List (CSV)</MudSelectItem>
-            <!-- Weitere Formate später -->
+            <MudSelectItem Value="@("bricklink")">Bricklink List (XML)</MudSelectItem>
         </MudSelect>
-        <MudTextField @bind-Value="newMockName" Label="Mock-Name" Style="width:200px;margin-top:8px;" />
-        <MudTextField @bind-Value="newMockComment" Label="Kommentar" Style="width:200px;margin-top:8px;" />
-        <MudTextField @bind-Value="newMockWebSource" Label="Web-URL" Style="width:200px;margin-top:8px;" />
+        <MudTextField @bind-Value="newMockName" Label="MOC name" Style="width:200px;margin-top:8px;" />
+
+        <MudTextField @bind-Value="newMockComment" Label="Comment" HelperText="optional (e.g., This is my custom MOC)" Style="width:200px;margin-top:8px;" Lines="3" TextFieldStyle="MudBlazor.TextFieldStyle.Multiline" />
+
+        <MudTextField @bind-Value="newMockWebSource" Label="Web Source"  HelperText="optional (e.g., https://example.com)" Class="width:200px;  margin-top:8px;" />
+
         <div style="margin-top:8px;">
-            <label>Mock-Bild hochladen (max 3MB): </label>
+            <label>Upload MOC image (max 3MB)</label>
             <InputFile OnChange="OnImageSelected" accept="image/*" />
         </div>
         @if (!string.IsNullOrEmpty(imagePreviewUrl))
@@ -33,38 +41,57 @@
                 <img src="@imagePreviewUrl" alt="Mock Bild Vorschau" style="max-width:200px;max-height:200px;border:1px solid #ccc;padding:2px;" />
             </div>
         }
+        <br>
+        <MudText variant="body1">Upload Item List File:</MudText>
         <InputFile OnChange="OnFileSelected" accept="@(selectedFormat == "bricklink" ? ".xml" : ".csv")" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateMockFromUpload" Disabled="@(!fileReadyForUpload)" Class="ml-2 mt-2">Neuen Mock erstellen</MudButton>
-        <MudText Color="Color.Error">@uploadError</MudText>
-</MudPaper>
+        <br>
+        <br>
 
-@if (unmappedItems.Count > 0)
+        @if (unmappedItems.Count > 0)
     {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            Some items could not be mapped to existing MappedBricks. Please review the list below and consider adding mappings for these items first. Missing mapped items will be ignored when creating the MOC.</MudAlert>
+        <MudExpansionPanels>
+             <MudExpansionPanel Text="Click here to see unmapped items" MaxHeight="450" Expanded="false">
         <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
             <MudText Color="Color.Warning" Typo="Typo.subtitle2">
-                Für folgende Items wurde kein MappedBrick gefunden:
+                For the following items no MappedBrick was found:
             </MudText>
             <MudList T="string">
                 @foreach (var item in unmappedItems)
                 {
                     <MudListItem T="string">
-                        <MudText>ITEMID: <b>@item.PartNum</b>, COLOR: <b>@item.ColorId</b>, QTY: <b>@item.Quantity</b></MudText>
+                        <MudText>Part Number: <b>@item.PartNum</b>, Color: <b>@item.ColorId</b>, Quantity: <b>@item.Quantity</b></MudText>
                     </MudListItem>
                 }
             </MudList>
         </MudPaper>
+        </MudExpansionPanel>
+        </MudExpansionPanels>
+    }else if (unmappedItems.Count == 0 && uploadedItems.Count > 0){
+         <MudAlert Severity="Severity.Success" Class="mb-4">
+            All items were successfully mapped to existing MappedBricks.</MudAlert>
     }
+        
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateMockFromUpload" Disabled="@(!fileReadyForUpload)" Class="ml-2 mt-2">
+            @(unmappedItems.Count > 0 ? "Create new MOC anyway" : "Create new MOC")
+        </MudButton>
+
+        <MudText Color="Color.Error">@uploadError</MudText>
+</MudPaper>
+
+
 
 <MudPaper Class="pa-4">
-    <MudText Typo="Typo.h6">Deine Mocks</MudText>
+    <MudText Typo="Typo.h6">Your MOCs</MudText>
     <MudList T="string">
         @if (userMocks == null)
         {
-            <MudText>Wird geladen...</MudText>
+            <MudText>Loading...</MudText>
         }
         else if (!userMocks.Any())
         {
-            <MudText>Keine Mocks gefunden.</MudText>
+            <MudAlert Severity="Severity.Info">No MOCs found.</MudAlert>
         }
         else
         {
@@ -93,25 +120,25 @@
 
                 <MudListItem T="string" Style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
                     <div style="display:flex;align-items:center;flex:1;gap:12px;">
-                      <MudText>Hier MockImage</MudText>
+                        <img src="@ImageService.GetMockImagePath(mock)" alt="Mock Bild" style="width:56px;height:56px;object-fit:contain;border:1px solid #ccc;background:#fff;padding:2px;border-radius:6px;" />
                         <span style="flex:1" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
                             <MudText><b>@mock.Name</b> <span style="color:#888;font-size:0.95em">(@mock.MockType)</span></MudText>
-                            <MudText Typo="Typo.caption">Teile: @totalParts</MudText>
-                            <MudText Typo="Typo.caption">Besitzt: @ownedParts / @totalParts (@percent%)</MudText>
+                            <MudText Typo="Typo.caption">Items: @totalParts</MudText>
+                            <MudText Typo="Typo.caption">Owned: @ownedParts / @totalParts (@percent%)</MudText>
                             <MudProgressLinear Value="@percent" Color="@(percent == 100 ? Color.Success : Color.Primary)" Style="max-width:120px;height:8px;margin-top:2px;" />
                             @if (!string.IsNullOrWhiteSpace(mock.WebSource))
                             {
                                 <MudText Typo="Typo.caption">
-                                    <a href="@mock.WebSource" target="_blank" rel="noopener noreferrer" style="color:#1976d2;text-decoration:underline;">Web-Quelle</a>
+                                    <a href="@mock.WebSource" target="_blank" rel="noopener noreferrer" style="color:#1976d2;text-decoration:underline;">Web-Source</a>
                                 </MudText>
                             }
                             @if (!string.IsNullOrWhiteSpace(mock.Comment))
                             {
-                                <MudText Typo="Typo.caption" Style="color:#666;"><br />Kommentar: @mock.Comment</MudText>
+                                <MudText Typo="Typo.caption" Style="color:#666;"><br />Comment: @mock.Comment</MudText>
                             }
                         </span>
                     </div>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" Style="margin-left:8px" OnClick="@(() => DeleteMock(mock.Id))">Löschen</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" Style="margin-left:8px" OnClick="@(() => DeleteMock(mock.Id))">Delete </MudButton>
                 </MudListItem>
             }
         }
@@ -123,7 +150,7 @@
     private string uploadError = string.Empty;
     private List<(string? PartNum, int? ColorId, int Quantity)> unmappedItems = new();
     
-    private string selectedFormat = "bricklink";
+    private string selectedFormat = "rebrickable";
     private string newMockName = string.Empty;
     private string newMockComment = string.Empty;
     private string newMockWebSource = string.Empty;
@@ -180,7 +207,7 @@
         if (mock != null)
         {
             // Bild löschen
-            //ImageService.DeleteMockImage(mock.MockImagePath);
+            ImageService.DeleteMockImage(mock);
             db.Mocks.Remove(mock);
             db.SaveChanges();
         }
@@ -197,10 +224,10 @@
         var mocks = db.Mocks.Where(m => m.UserUuid == userUuid).ToList();
         if (mocks.Any())
         {
-            @* foreach (var mock in mocks)
+            foreach (var mock in mocks)
             {
-                ImageService.DeleteMockImage(mock.MockImagePath);
-            } *@
+                ImageService.DeleteMockImage(mock);
+            }
             db.Mocks.RemoveRange(mocks);
             db.SaveChanges();
         }
@@ -230,7 +257,10 @@
             userMocks = new();
             return;
         }
-        userMocks = db.Mocks.Where(m => m.UserUuid == userUuid).ToList();
+        userMocks = db.Mocks
+            .Where(m => m.UserUuid == userUuid)
+            .Include(m => m.Items)
+            .ToList();
     }
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
@@ -246,12 +276,12 @@
         // Dateiendung prüfen
         if (selectedFormat == "bricklink" && !uploadedFile.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
         {
-            uploadError = "Bitte eine XML-Datei für Bricklink auswählen.";
+            uploadError = "Please select an XML file for Bricklink.";
             return;
         }
         if (selectedFormat == "rebrickable" && !uploadedFile.Name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
         {
-            uploadError = "Bitte eine CSV-Datei für Rebrickable auswählen.";
+            uploadError = "Please select a CSV file for Rebrickable.";
             return;
         }
 
@@ -373,12 +403,12 @@
         // Pflichtfelder prüfen
         if (string.IsNullOrWhiteSpace(newMockName))
         {
-            uploadError = "Bitte einen Mock-Namen angeben.";
+            uploadError = "Please provide a name for the mock.";
             return;
         }
         if (uploadedFile == null || uploadedItems == null || uploadedItems.Count == 0)
         {
-            uploadError = "Bitte eine gültige Mock-Liste hochladen.";
+            uploadError = "Please upload a valid mock list.";
             return;
         }
         try

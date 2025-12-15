@@ -2,12 +2,12 @@
 @using MudBlazor
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.h6">Mapping-Request ablehnen</MudText>
-        <MudTextField @bind-Value="_reason" Label="Ablehnungsgrund" Variant="Variant.Outlined" Margin="Margin.Normal" />
+        <MudText Typo="Typo.h6">Reject Mapping-Request</MudText>
+        <MudTextField @bind-Value="_reason" Label="Rejection Reason" Variant="Variant.Outlined" Margin="Margin.Normal" />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@(() => MudDialog?.Close(DialogResult.Ok(_reason)))" Color="Color.Error">Reject</MudButton>
-        <MudButton OnClick="@(() => MudDialog?.Cancel())">Cancel</MudButton>
+        <MudButton Color="Color.Secondary"  OnClick="@(() => MudDialog?.Cancel())">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
 

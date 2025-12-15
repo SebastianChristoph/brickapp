@@ -13,11 +13,10 @@
 @inject Data.Services.ImageService ImageService
 
 @code {
-    private Data.Services.ImageService? _imageService;
     private string? _mockImageUrl;
 }
 
-<h3>Mock Details</h3>
+ <MudText Typo="Typo.h4" GutterBottom="true">MOC Detail</MudText>
 
 @if (_loading)
 {
@@ -26,36 +25,42 @@
 
 else if (_mock == null)
 {
-    <MudText>Mock nicht gefunden.</MudText>
-    <MudButton OnClick="GoBack">Zurück</MudButton>
+    <MudAlert Severity="Severity.Error">MOC not found.</MudAlert>
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="GoBack">Back</MudButton>
 }
 else
-{
-    <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudProgressLinear Value="@Percent" Color="@(HasAll ? Color.Success : Color.Primary)" Style="min-width:200px;max-width:300px;width:30vw;" />
+{ <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
+    <MudStack Row="true" Spacing="8">
+   
+     <div style="margin:16px 0;">
+        <img src="@_mockImageUrl" alt="MOC Image" style="max-width:180px;max-height:180px;border:1px solid #ccc;background:#fafafa;" />
+    </div>
+
+
+        <MudStack  AlignItems="AlignItems.Center" Spacing="2" Class="mt-16">
+             <MudProgressLinear Color="@(Percent == 100 ? Color.Success : Color.Primary)" Striped="true" Size="Size.Large" Value="@Percent"
+                Style="min-width:200px;max-width:300px;width:30vw;" />
             <MudText Typo="Typo.body1" Class="ml-4">
                 @if (HasAll)
                 {
-                    <b>Du hast alle Steine, du kannst es bauen!</b>
+                    <b>You own all the bricks, you can build it!</b>
                 }
                 else
                 {
-                    <span>@TotalOwned von @TotalNeeded Steinen im Inventar (@Percent%)<br />Fehlend: @TotalMissing</span>
+                    <span>@TotalOwned of @TotalNeeded bricks in inventory (@Percent%)<br />Missing: @TotalMissing</span>
                 }
             </MudText>
         </MudStack>
+        </MudStack>
     </MudPaper>
 
-    <div style="margin:16px 0;">
-        <img src="@_mockImageUrl" alt="Mock Bild" style="max-width:180px;max-height:180px;border:1px solid #ccc;background:#fafafa;" />
-    </div>
 
+  
     <MudText Typo="Typo.h5">@_mock.Name</MudText>
-    <MudText Typo="Typo.subtitle2" Class="mb-2">Typ: @_mock.MockType</MudText>
+    <MudText Typo="Typo.subtitle2" Class="mb-2">Type: @_mock.MockType</MudText>
     <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OpenAddMockDialog" Size="Size.Large" Class="mt-2">
         <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
-        Alle Mock-Teile ins Inventar
+        Add all MOC parts to inventory
     </MudButton>
 
 
@@ -70,7 +75,7 @@ else
                         var bricklinkUrl = $"https://www.bricklink.com/v2/search.page?q={item.ExternalPartNum}#T=P";
                         <MudListItem T="string">
                             <MudText>
-                                ITEMID:
+                                Item Number:
                                 @if (_mock.MockType == "bricklink" && !string.IsNullOrWhiteSpace(item.ExternalPartNum))
                                 {
                     
@@ -83,8 +88,8 @@ else
                                 {
                                     <b>@item.ExternalPartNum blop</b>
                                 }
-                                , COLOR: <b>@item.BrickColorId</b>,
-                                QTY: <b>@item.Quantity</b>
+                                , Color: <b>@item.BrickColorId</b>,
+                                Quantity: <b>@item.Quantity</b>
                             </MudText>
                         </MudListItem>
                     }
@@ -119,20 +124,20 @@ else
 
     <MudTable Items="GetFilteredItems()">
         <HeaderContent>
-            <MudTh>Bild</MudTh>
-            <MudTh>Standard-Name</MudTh>
-            <MudTh>Farbe</MudTh>
+            <MudTh>Image</MudTh>
+            <MudTh>Standard Name</MudTh>
+            <MudTh>Color</MudTh>
             <MudTh>Lego</MudTh>
             <MudTh>BlueBrixx</MudTh>
             <MudTh>Cada</MudTh>
             <MudTh>Pantasy</MudTh>
             <MudTh>Mould King</MudTh>
             <MudTh>Unknown</MudTh>
-            <MudTh>Anzahl</MudTh>
-            <MudTh>Hast du?</MudTh>
+            <MudTh>Quantity</MudTh>
+            <MudTh>Do you have it?</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Bild">
+            <MudTd DataLabel="Image">
                 @{
                     var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
                     var url = ImageService.GetMappedBrickImagePath(context.MappedBrick);
@@ -217,8 +222,8 @@ else
             </MudTd>
         </RowTemplate>
     </MudTable>
-    <MudButton Class="mt-4" Variant="Variant.Outlined" OnClick="GoBack">
-        Zurück
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-4" Variant="Variant.Outlined" OnClick="GoBack">
+        Back
     </MudButton>
     }
 }
@@ -246,12 +251,30 @@ else
             : 0;
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMock();
+    }
+
+    private async Task LoadMock()
+    {
+        _loading = true;
+        using var scope = ServiceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+        _mock = db.Mocks
+            .Include(m => m.Items)
+            .FirstOrDefault(m => m.Id == mockId);
+        _mockImageUrl = _mock != null ? ImageService.GetMockImagePath(_mock) : "/placeholder-image.png";
+        // ...evtl. weitere Initialisierung...
+        _loading = false;
+    }
+
     private async Task OpenAddMockDialog()
     {
         var parameters = new DialogParameters { ["MockId"] = mockId };
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
 
-        var dialog = await DialogService.ShowAsync<Components.Dialogs.AddMockToInventoryDialog>("Mock-Teile ins Inventar",
+        var dialog = await DialogService.ShowAsync<Components.Dialogs.AddMockToInventoryDialog>("",
         parameters, options);
         var result = await dialog.Result;
 
@@ -302,9 +325,6 @@ else
             .Include(i => i.BrickColor)
             .Load();
         }
-
-        // Bild für Mock laden
-        _mockImageUrl = ImageService.GetPlaceHolder();
 
         // Inventory laden
         var inventory = await InventoryService.GetCurrentUserInventoryAsync();
