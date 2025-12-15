@@ -45,7 +45,7 @@
             <MudTh>Image</MudTh>
             <MudTh>Name</MudTh>
             <MudTh>Lego</MudTh>
-            <MudTh>BB</MudTh>
+            <MudTh>Bluebrixx</MudTh>
             <MudTh>Cada</MudTh>
             <MudTh>Pantasy</MudTh>
             <MudTh>Mould King</MudTh>
@@ -210,7 +210,9 @@
 }
 else if (_showMappedOnly)
 {
-    <MudTable Items="bricks.Where(b => b.HasAtLeastOneMapping).ToList()" Hover="true" Striped="true" Dense="false">
+    <MudTable Items="bricks.Where(b => b.HasAtLeastOneMapping).Skip(_currentPage * _pageSize).Take(_pageSize).ToList()"
+              Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize"
+              OnPageChanged="OnPageChanged" OnRowsPerPageChanged="OnRowsPerPageChanged">
         <HeaderContent>
             <MudTh></MudTh>
             <MudTh>Image</MudTh>
@@ -374,6 +376,9 @@ else if (_showMappedOnly)
                 }
             </MudTd>
         </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[] { 25, 50, 100 }" />
+        </PagerContent>
     </MudTable>
 }
 @code {

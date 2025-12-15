@@ -56,32 +56,40 @@ public class MappedBrickService
 
     public async Task<(List<MappedBrick> Items, int TotalCount)> GetPaginatedMappedBricksAsync(int pageNumber, int pageSize = 25, string? searchText = null)
         {
+
             var query = _db.MappedBricks
                 .Include(b => b.MappingRequests)
                 .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(searchText) && searchText.Length >= 3)
             {
+                var normalized = searchText.Replace(" ", "").ToLower();
                 query = query.Where(b =>
-                    (b.Name != null && b.Name.Contains(searchText)) ||
-                    (b.LegoPartNum != null && b.LegoPartNum.Contains(searchText)) ||
-                    (b.BbName != null && b.BbName.Contains(searchText)) ||
-                    (b.CadaName != null && b.CadaName.Contains(searchText)) ||
-                    (b.PantasyName != null && b.PantasyName.Contains(searchText)) ||
-                    (b.MouldKingName != null && b.MouldKingName.Contains(searchText)) ||
-                    (b.UnknownName != null && b.UnknownName.Contains(searchText)) ||
-                    b.Id.ToString().Contains(searchText)
+                    (b.Name != null && b.Name.Replace(" ", "").ToLower().Contains(normalized)) ||
+                    (b.LegoPartNum != null && b.LegoPartNum.Replace(" ", "").ToLower().Contains(normalized)) ||
+                    (b.LegoName != null && b.LegoName.Replace(" ", "").ToLower().Contains(normalized)) ||
+                    (b.BbName != null && b.BbName.Replace(" ", "").ToLower().Contains(normalized)) ||
+                    (b.CadaName != null && b.CadaName.Replace(" ", "").ToLower().Contains(normalized)) ||
+                    (b.PantasyName != null && b.PantasyName.Replace(" ", "").ToLower().Contains(normalized)) ||
+                    (b.MouldKingName != null && b.MouldKingName.Replace(" ", "").ToLower().Contains(normalized)) ||
+                    (b.UnknownName != null && b.UnknownName.Replace(" ", "").ToLower().Contains(normalized)) ||
+                    b.Id.ToString().Contains(normalized)
                 );
             }
 
-            query = query.OrderBy(b => b.Name);
+            // Sortierung: Wenn LegoPartNum vorhanden, nach Länge und Wert, sonst nach Name
+            query = query
+                .OrderBy(b => string.IsNullOrEmpty(b.LegoPartNum) ? 99 : b.LegoPartNum.Length)
+                .ThenBy(b => b.LegoPartNum)
+                .ThenBy(b => b.Name);
+
             var totalCount = await query.CountAsync();
             var items = await query
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-                return (items, totalCount);
+            return (items, totalCount);
         }
 
     

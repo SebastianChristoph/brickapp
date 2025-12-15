@@ -29,7 +29,7 @@
         {
             <MudTable Items="openMappingRequests" Hover="true">
                 <HeaderContent>
-                    <MudTh>Id</MudTh>
+                
                     <MudTh>Brick</MudTh>
                     <MudTh>Brand</MudTh>
                     <MudTh>Mapping Name</MudTh>
@@ -40,7 +40,7 @@
                     <!-- Actions column entfernt -->
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Id">@context.Id</MudTd>
+              
                     <MudTd DataLabel="Brick">@context.Brick?.Name</MudTd>
                     <MudTd DataLabel="Brand">@context.Brand</MudTd>
                     <MudTd DataLabel="Mapping Name">@context.MappingName</MudTd>
@@ -48,9 +48,9 @@
                     <MudTd DataLabel="Requested By">@context.RequestedByUser?.Name</MudTd>
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Actions">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                        <MudButton Variant="Variant.Filled" Color="Color.Success"
                             OnClick="() => ApproveMappingRequest(context.Id)">Approve</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                        <MudButton Variant="Variant.Filled" Color="Color.Error"
                             OnClick="() => RejectMappingRequest(context.Id)">Reject</MudButton>
                     </MudTd>
                 </RowTemplate>
@@ -94,9 +94,9 @@
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
                     <MudTd DataLabel="Actions">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                        <MudButton Variant="Variant.Filled" Color="Color.Success"
                             OnClick="() => ApproveNewItemRequest(context.Id)">Approve</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                        <MudButton Variant="Variant.Filled" Color="Color.Error"
                             OnClick="() => RejectNewItemRequest(context.Id)">Reject</MudButton>
                     </MudTd>
                 </RowTemplate>
@@ -140,9 +140,9 @@
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
                     <MudTd DataLabel="Actions">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                        <MudButton Variant="Variant.Filled" Color="Color.Success"
                             OnClick="() => ApproveNewSetRequest(context.Id)">Approve</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                        <MudButton Variant="Variant.Filled" Color="Color.Error"
                             OnClick="() => RejectNewSetRequest(context.Id)">Reject</MudButton>
                     </MudTd>
                 </RowTemplate>
