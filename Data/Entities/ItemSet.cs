@@ -7,7 +7,7 @@ public class ItemSet
     public string Name { get; set; } = default!;
     public string Brand { get; set; } = "Lego";
 
-    public string? LegoSetNum { get; set; }    // sets.set_num
+    public string? SetNum { get; set; }    // sets.set_num
     public int? Year { get; set; }
     public string? ImageUrl { get; set; }      // sets.img_url
 

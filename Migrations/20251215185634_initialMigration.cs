@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
-namespace Migrations
+namespace brickapp.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class initialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -36,7 +36,7 @@ namespace Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     Brand = table.Column<string>(type: "TEXT", nullable: false),
-                    LegoSetNum = table.Column<string>(type: "TEXT", nullable: true),
+                    SetNum = table.Column<string>(type: "TEXT", nullable: true),
                     Year = table.Column<int>(type: "INTEGER", nullable: true),
                     ImageUrl = table.Column<string>(type: "TEXT", nullable: true)
                 },
@@ -51,6 +51,8 @@ namespace Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    HasAtLeastOneMapping = table.Column<bool>(type: "INTEGER", nullable: false),
+                    Uuid = table.Column<string>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     LegoPartNum = table.Column<string>(type: "TEXT", nullable: true),
                     LegoName = table.Column<string>(type: "TEXT", nullable: true),
@@ -79,7 +81,6 @@ namespace Migrations
                     Brand = table.Column<string>(type: "TEXT", nullable: false),
                     SetNo = table.Column<string>(type: "TEXT", nullable: false),
                     SetName = table.Column<string>(type: "TEXT", nullable: false),
-                    ImagePath = table.Column<string>(type: "TEXT", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     Status = table.Column<int>(type: "INTEGER", nullable: false),
                     ReasonRejected = table.Column<string>(type: "TEXT", nullable: true),
@@ -239,14 +240,39 @@ namespace Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "mocks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", nullable: false),
+                    Description = table.Column<string>(type: "TEXT", nullable: true),
+                    Comment = table.Column<string>(type: "TEXT", nullable: true),
+                    WebSource = table.Column<string>(type: "TEXT", nullable: true),
+                    MockType = table.Column<string>(type: "TEXT", nullable: false),
+                    UserUuid = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_mocks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_mocks_users_UserUuid",
+                        column: x => x.UserUuid,
+                        principalTable: "users",
+                        principalColumn: "Uuid",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "newItemRequests",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    Uuid = table.Column<string>(type: "TEXT", nullable: false),
                     Brand = table.Column<string>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
-                    ImagePath = table.Column<string>(type: "TEXT", nullable: true),
+                    PartNum = table.Column<string>(type: "TEXT", nullable: false),
                     RequestedByUserId = table.Column<string>(type: "TEXT", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     Status = table.Column<int>(type: "INTEGER", nullable: false),
@@ -329,6 +355,41 @@ namespace Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "mockitems",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    MockId = table.Column<int>(type: "INTEGER", nullable: false),
+                    MappedBrickId = table.Column<int>(type: "INTEGER", nullable: true),
+                    BrickColorId = table.Column<int>(type: "INTEGER", nullable: true),
+                    ExternalPartNum = table.Column<string>(type: "TEXT", nullable: true),
+                    Quantity = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_mockitems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_mockitems_colors_BrickColorId",
+                        column: x => x.BrickColorId,
+                        principalTable: "colors",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_mockitems_mappedBricks_MappedBrickId",
+                        column: x => x.MappedBrickId,
+                        principalTable: "mappedBricks",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_mockitems_mocks_MockId",
+                        column: x => x.MockId,
+                        principalTable: "mocks",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.InsertData(
                 table: "users",
                 columns: new[] { "Id", "CreatedAt", "IsAdmin", "Name", "Uuid" },
@@ -384,6 +445,26 @@ namespace Migrations
                 column: "RequestedByUserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_mockitems_BrickColorId",
+                table: "mockitems",
+                column: "BrickColorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_mockitems_MappedBrickId",
+                table: "mockitems",
+                column: "MappedBrickId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_mockitems_MockId",
+                table: "mockitems",
+                column: "MockId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_mocks_UserUuid",
+                table: "mocks",
+                column: "UserUuid");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_newItemRequests_ApprovedByUserId",
                 table: "newItemRequests",
                 column: "ApprovedByUserId");
@@ -432,6 +513,9 @@ namespace Migrations
                 name: "mappingRequests");
 
             migrationBuilder.DropTable(
+                name: "mockitems");
+
+            migrationBuilder.DropTable(
                 name: "newItemRequests");
 
             migrationBuilder.DropTable(
@@ -448,6 +532,9 @@ namespace Migrations
 
             migrationBuilder.DropTable(
                 name: "mappedBricks");
+
+            migrationBuilder.DropTable(
+                name: "mocks");
 
             migrationBuilder.DropTable(
                 name: "newSetRequests");

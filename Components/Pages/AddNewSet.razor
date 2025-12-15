@@ -444,7 +444,7 @@ else
 		}
 		// Prüfe auf Duplikat
 		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum ==
+		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.SetNum ==
 		newSetModel.SetNo));
 		if (exists)
 		{
@@ -497,7 +497,7 @@ else
 
 		// Prüfe auf Duplikat
 		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum ==
+		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.SetNum ==
 		newSetModel.SetNo));
 		if (exists)
 		{

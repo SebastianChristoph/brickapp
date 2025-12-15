@@ -20,7 +20,7 @@ public class ItemSetExportService
         var sets = await _db.ItemSets.ToListAsync();
         var exportList = sets.Select(s => new ExportSet
         {
-            LegoSetNum = s.LegoSetNum,
+            SetNum = s.SetNum,
             Name = s.Name,
             Brand = s.Brand,
             Year = (int)s.Year,
@@ -43,11 +43,11 @@ public class ItemSetExportService
         int importedCount = 0;
         foreach (var s in imported)
         {
-            if (!await _db.ItemSets.AnyAsync(x => x.LegoSetNum == s.LegoSetNum))
+            if (!await _db.ItemSets.AnyAsync(x => x.SetNum == s.SetNum))
             {
                 var set = new ItemSet
                 {
-                    LegoSetNum = s.LegoSetNum,
+                    SetNum = s.SetNum,
                     Name = s.Name,
                     Brand = s.Brand,
                     Year = s.Year,
@@ -63,7 +63,7 @@ public class ItemSetExportService
 
     private class ExportSet
     {
-        public string LegoSetNum { get; set; } = string.Empty;
+        public string SetNum { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Brand { get; set; } = string.Empty;
         public int Year { get; set; }

@@ -18,13 +18,13 @@
                    Edge="Edge.Start"
                    OnClick="@((e) => DrawerToggle())" />
                    *@
-                    <MudIcon Icon="@Icons.Material.Filled.BlurLinear" Title="Favorite" />
+                    <img src="/logo_white.png" alt="App Logo" style="height:36px;width:auto;vertical-align:middle;" />
     <MudText Typo="Typo.h5" Class="ml-3">BrickIsBrick</MudText>
     <MudSpacer />
     
     @if (!string.IsNullOrEmpty(_username))
     {
-        <MudAvatar Class="mr-2" Size="Size.Medium" Color="Color.Primary">
+        <MudAvatar Class="mr-2" Size="Size.Medium" Color="Color.Secondary" Style="font-weight:bold;">
             @_username.Substring(0,1).ToUpper()
         </MudAvatar>
     }
@@ -46,11 +46,18 @@
         <NavMenu />
     </MudDrawer>
     <MudMainContent>
-    <MudContainer Fixed="true" Class="mt-8 px-8 mb-8">
+    <MudContainer Fixed="true" Class="mt-8 px-8 mb-9">
         @Body
         </MudContainer>
         <GlobalLoading />
     </MudMainContent>
+        <MudSpacer />
+        <footer style="width:100vw;background:#b3b3b3;color:#fff;padding:8px 0 4px 0;text-align:center;font-size:0.65em;position:fixed;left:0;bottom:0;z-index:100;">
+            <span>&copy; 2025 BrickIsBrick &nbsp;|&nbsp;
+                <a href="/imprint" style="color:#fff;text-decoration:underline;">Imprint</a> &nbsp;|&nbsp;
+                <a href="/privacypolicy" style="color:#fff;text-decoration:underline;">Privacy Policy</a>
+            </span>
+        </footer>
 </MudLayout>
 
 

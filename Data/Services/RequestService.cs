@@ -253,7 +253,7 @@ namespace Data.Services
             {
                 Name = request.SetName,
                 Brand = request.Brand,
-                LegoSetNum = request.SetNo,
+                SetNum = request.SetNo,
                 Year = null // Optional: aus Request übernehmen, falls vorhanden
             };
             _db.ItemSets.Add(itemSet);

@@ -97,7 +97,7 @@ public static class RebrickableSeeder
         {
             var set = new ItemSet
             {
-                LegoSetNum = s.set_num,
+                SetNum = s.set_num,
                 Name = s.name,
                 Brand = "Lego",
                 Year = s.year,
@@ -141,8 +141,8 @@ public static class RebrickableSeeder
         // Mapping: set_num -> ItemSet Id
         var setMapping = await db.ItemSets
             .AsNoTracking()
-            .Where(s => s.LegoSetNum != null)
-            .ToDictionaryAsync(s => s.LegoSetNum!, s => s.Id);
+            .Where(s => s.SetNum != null)
+            .ToDictionaryAsync(s => s.SetNum!, s => s.Id);
 
         // Mapping: part_num -> MappedBrick Id
         var partMapping = await db.MappedBricks

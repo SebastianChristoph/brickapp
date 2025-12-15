@@ -53,7 +53,7 @@ else
                     Brand: @_itemSet.Brand
                 </MudText>
                 <MudText Typo="Typo.subtitle2">
-                    Set Nr: @_itemSet.LegoSetNum | Year: @_itemSet.Year
+                    Set Nr: @_itemSet.SetNum | Year: @_itemSet.Year
                 </MudText>
 
                 <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary"
@@ -73,7 +73,7 @@ else
             <MudText Typo="Typo.body1" Class="ml-4">
                 @if (HasAll)
                 {
-                    <b>Du hast alle Steine, du kannst es bauen!</b>
+                    <b>You own all items, you can build this set!</b>
                 }
                 else
                 {
@@ -126,7 +126,7 @@ else
         </HeaderContent>
 
         <RowTemplate>
-            <MudTd DataLabel="Bild">
+            <MudTd DataLabel="Image">
                 @{
                     var imgUrl = ImageService.GetMappedBrickImagePath(context.MappedBrick);
                     var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);

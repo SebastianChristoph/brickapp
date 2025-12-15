@@ -155,10 +155,10 @@ namespace Data.Services
                 return itemSet.ImageUrl;
 
             // 2. Prüfe auf lokales Bild
-            if (!string.IsNullOrWhiteSpace(itemSet.LegoSetNum) && !string.IsNullOrWhiteSpace(itemSet.Brand))
+            if (!string.IsNullOrWhiteSpace(itemSet.SetNum) && !string.IsNullOrWhiteSpace(itemSet.Brand))
             {
                 var safeBrand = itemSet.Brand.ToLower().Replace(" ", "_");
-                var safeSetNum = itemSet.LegoSetNum.ToLower().Replace(" ", "_");
+                var safeSetNum = itemSet.SetNum.ToLower().Replace(" ", "_");
                 var fileName = safeSetNum + ".png";
                 var filePath = Path.Combine(_wwwrootPath, "setimages", safeBrand, fileName);
                 if (File.Exists(filePath))

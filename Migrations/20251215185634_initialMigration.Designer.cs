@@ -8,11 +8,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Migrations
+namespace brickapp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251213150654_NoImagePathesInEntities")]
-    partial class NoImagePathesInEntities
+    [Migration("20251215185634_initialMigration")]
+    partial class initialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -162,6 +162,9 @@ namespace Migrations
 
                     b.Property<string>("CadaPartNum")
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("HasAtLeastOneMapping")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("LegoName")
                         .HasColumnType("TEXT");
@@ -509,11 +512,11 @@ namespace Migrations
                     b.Property<string>("ImageUrl")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("LegoSetNum")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SetNum")
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("Year")
