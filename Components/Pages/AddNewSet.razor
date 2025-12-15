@@ -1,4 +1,3 @@
-
 @page "/add-new-set"
 @using Data.Entities
 
@@ -27,142 +26,185 @@ else if (!draftSets.Any())
 }
 else
 {
-	<MudTable Items="draftSets" Hover="true" Striped="true">
-		<HeaderContent>
-			<MudTh>Name</MudTh>
-			<MudTh>Brand</MudTh>
-			<MudTh>Actions</MudTh>
-		</HeaderContent>
-		<RowTemplate Context="set">
-			<MudTd DataLabel="Name">@set.SetName (@set.SetNo)</MudTd>
-			<MudTd DataLabel="Brand">@set.Brand</MudTd>
-			<MudTd DataLabel="Actions">
-				<MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="me-2" OnClick="@(() => EditDraftAsync(set.Id))">Edit</MudButton>
-				<MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteDraftAsync(set.Id))">Delete</MudButton>
-			</MudTd>
-		</RowTemplate>
-	</MudTable>
+	   <MudTable Items="draftSets" Hover="true" Striped="true">
+		   <HeaderContent>
+			   <MudTh>Image</MudTh>
+			   <MudTh>Name</MudTh>
+			   <MudTh>Brand</MudTh>
+			   <MudTh>Actions</MudTh>
+		   </HeaderContent>
+		   <RowTemplate Context="set">
+			   <MudTd DataLabel="Image">
+				   <img src="@ImageService.GetNewSetRequestImagePath(set)" alt="Set image" style="width:48px;height:48px;border-radius:4px;border:1px solid #ccc;" />
+			   </MudTd>
+			   <MudTd DataLabel="Name">@set.SetName (@set.SetNo)</MudTd>
+			   <MudTd DataLabel="Brand">@set.Brand</MudTd>
+			   <MudTd DataLabel="Actions">
+				   <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="me-2"
+					   OnClick="@(() => EditDraftAsync(set.Id))">Edit</MudButton>
+				   <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+					   OnClick="@(() => DeleteDraftAsync(set.Id))">Delete</MudButton>
+			   </MudTd>
+		   </RowTemplate>
+	   </MudTable>
 }
 
 <br />
-<MudPaper Class="pa-4" >
-<MudText Typo="Typo.h6" GutterBottom="true">Add a new set</MudText>
+<MudPaper Class="pa-4">
+	<MudText Typo="Typo.h6" GutterBottom="true">Add a new set</MudText>
 
-<EditForm Model="newSetModel" OnValidSubmit="HandleDraftSubmit">
-	<div class="mb-2">
-		<label for="setImage">Set image *</label>
-		<InputFile id="setImage" OnChange="OnImageSelected" accept="image/*" />
-		
-		@if (!string.IsNullOrEmpty(imageError))
+	<EditForm Model="newSetModel" OnValidSubmit="HandleDraftSubmit">
+		<div class="mb-2">
+			<label for="setImage">Set image *</label>
+			<InputFile id="setImage" OnChange="OnImageSelected" accept="image/*" />
+
+			@if (!string.IsNullOrEmpty(imageError))
+			{
+				<div class="alert alert-danger">@imageError</div>
+			}
+			@if (!string.IsNullOrEmpty(imagePreviewUrl))
+			{
+				<div class="mt-2">
+					<img src="@imagePreviewUrl" alt="set image preview"
+						style="max-width: 300px; max-height: 300px; border: 1px solid #ccc; border-radius: 6px;" />
+				</div>
+			}
+		</div>
+		@if (!string.IsNullOrEmpty(errorMessage))
 		{
-			<div class="alert alert-danger">@imageError</div>
+			<div class="alert alert-danger">@errorMessage</div>
 		}
-		@if (!string.IsNullOrEmpty(imagePreviewUrl))
-		{
-			<div class="mt-2">
-				<img src="@imagePreviewUrl" alt="set image preview" style="max-width: 300px; max-height: 300px; border: 1px solid #ccc; border-radius: 6px;" />
-			</div>
-		}
-	</div>
-	@if (!string.IsNullOrEmpty(errorMessage))
-	{
-		<div class="alert alert-danger">@errorMessage</div>
-	}
-	<DataAnnotationsValidator />
-	<ValidationSummary />
-
-	
+		<DataAnnotationsValidator />
+		<ValidationSummary />
 
 
-	<MudTextField @bind-Value="newSetModel.SetName" HelperText="Set Name" Variant="Variant.Text" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Style="max-width:800px;" AdornmentColor="Color.Primary"/>
+		<div style="max-width: 400px">
 
-	 <MudTextField @bind-Value="newSetModel.SetNo" HelperText="Set Number" Variant="Variant.Text" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AttachMoney" Style="max-width:800px;" AdornmentColor="Color.Primary"/>
+			<MudTextField @bind-Value="newSetModel.SetName" Label="Set Name" Variant="Variant.Text"
+				Style="max-width:800px;" />
 
-	<MudSelect T="string" @bind-Value="newSetModel.Brand" Label="Select brand" Placeholder="Please select" AdornmentIcon="@Icons.Material.Filled.Fastfood" AdornmentColor="Color.Primary" Style="max-width:800px;"">
-		<MudSelectItem Value="@("Lego")">Lego</MudSelectItem>
-		<MudSelectItem Value="@("Cada")">Cada</MudSelectItem>
-		<MudSelectItem Value="@("Unknown")">Unknown</MudSelectItem>
-	</MudSelect>
+			<MudTextField @bind-Value="newSetModel.SetNo" Label="Set Number" Variant="Variant.Text"
+				Style="max-width:800px;" />
 
 
-	<hr />
-	<h5>Bricks zum Set hinzufügen</h5>
-	<div class="mb-2">
-		<label for="brickSearch">Brick suchen</label>
+			<MudSelect T="string" @bind-Value="newSetModel.Brand" Label="Select brand" Style="max-width:800px;">
+				<MudSelectItem Value="@("Lego")">Lego</MudSelectItem>
+				<MudSelectItem Value="@("Cada")">Cada</MudSelectItem>
+				<MudSelectItem Value="@("Unknown")">Unknown</MudSelectItem>
+			</MudSelect>
+
+
+
+			<hr />
+			<MudText Typo="Typo.body1" GutterBottom="true" Style="font-weight:bold; margin-top:16px;">Add set items
+			</MudText>
+
+			<div class="mb-2">
+				@* <label for="brickSearch">Brick suchen</label>
 		<InputText id="brickSearch" class="form-control" @bind-Value="brickSearchText" @oninput="OnBrickSearchInput"
-			placeholder="ID oder Name..." />
-		@if (brickSearchResults.Any())
+			placeholder="ID oder Name..." /> *@
+
+
+				<MudTextField T="string" Value="@brickSearchText" ValueChanged="OnBrickSearchChanged" Immediate="true"
+					Label="Search Item by Name or PartNumber" Variant="Variant.Text" Style="max-width:800px;" />
+
+
+
+				@if (brickSearchResults.Any())
+				{
+					<ul class="list-group mt-1">
+						@foreach (var brick in brickSearchResults)
+						{
+							<li class="list-group-item list-group-item-action"
+								style="cursor:pointer; display:flex; align-items:center; gap:8px;"
+								@onclick="() => SelectBrick(brick)">
+								<img src="@GetBrickImageUrl(brick)" alt=""
+									style="width:32px;height:32px;border-radius:4px;border:1px solid #ccc;" />
+								<span>@brick.LegoPartNum - @brick.LegoName</span>
+							</li>
+						}
+					</ul>
+				}
+			</div>
+			@if (selectedBrick != null)
+			{
+				<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+					<img src="@ImageService.GetMappedBrickImagePath(selectedBrick)" alt="Brick image"
+						style="width:40px;height:40px;border-radius:4px;border:1px solid #ccc;" />
+					<span style="font-size:1.1em;">@selectedBrick.LegoPartNum - @selectedBrick.LegoName</span>
+				</div>
+				<MudSelect T="string" @bind-Value="selectedColor" Label="Color" Placeholder="Please select"
+					Style="max-width:400px;">
+					@foreach (var color in brickColors)
+					{
+						<MudSelectItem Value="@color.Name">@color.Name</MudSelectItem>
+					}
+				</MudSelect>
+				<MudTextField @bind-Value="brickQuantity" Label="Quantity" Variant="Variant.Text" Type="number" Min="1" />
+
+				<br>
+				<MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary"
+					OnClick="@AddBrickToSet" Class="mb-4">
+
+					Add item to new set
+				</MudButton>
+			}
+		</div>
+		<br>
+		<br>
+		<MudText Typo="Typo.body2" GutterBottom="true" Style="font-weight:bold; margin-top:16px;">Added set items
+		</MudText>
+
+		@if (newSetModel.Bricks.Any())
 		{
-			<ul class="list-group mt-1">
-				@foreach (var brick in brickSearchResults)
-				{
-					<li class="list-group-item list-group-item-action"
-						style="cursor:pointer; display:flex; align-items:center; gap:8px;" @onclick="() => SelectBrick(brick)">
-						<img src="@GetBrickImageUrl(brick)" alt=""
-							style="width:32px;height:32px;border-radius:4px;border:1px solid #ccc;" />
-						<span>@brick.LegoPartNum - @brick.LegoName</span>
-					</li>
-				}
-			</ul>
+			<MudTable Items="newSetModel.Bricks" Hover="true" Striped="true">
+				<HeaderContent>
+					<MudTh>Image</MudTh>
+					<MudTh>Brick</MudTh>
+					<MudTh>Color</MudTh>
+					<MudTh>Brand ID</MudTh>
+					<MudTh>Quantity</MudTh>
+
+					<MudTh>Actions</MudTh>
+				</HeaderContent>
+				<RowTemplate Context="brick">
+					<MudTd DataLabel="Image">
+						<img src="@ImageService.GetMappedBrickImagePath(new MappedBrick { LegoPartNum = brick.LegoPartNum, Uuid = brick.Uuid ?? string.Empty })"
+							alt="" style="width:48px;height:48px;border-radius:4px;border:1px solid #ccc;" />
+					</MudTd>
+					<MudTd DataLabel="Brick">@brick.BrickName</MudTd>
+					<MudTd DataLabel="Color">@brick.Color</MudTd>
+					<MudTd DataLabel="Brand ID">@brick.BrickId</MudTd>
+					<MudTd DataLabel="Quantity">@brick.Quantity</MudTd>
+
+					<MudTd DataLabel="Actions">
+
+						<MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+							@onclick="() => RemoveBrick(brick)">Delete</MudButton>
+					</MudTd>
+				</RowTemplate>
+			</MudTable>
 		}
-	</div>
-	@if (selectedBrick != null)
-	{
-		<div class="mb-2">
-			<label for="colorSelect">Farbe</label>
-			<InputSelect id="colorSelect" class="form-control" @bind-Value="selectedColor">
-				<option value="">Bitte wählen</option>
-				@foreach (var color in brickColors)
-				{
-					<option value="@color.Name">@color.Name</option>
-				}
-			</InputSelect>
+
+
+		<div class="mt-3">
+
+			<MudButton StartIcon="@Icons.Material.Filled.Save" Variant="Variant.Filled" Color="Color.Primary"
+				ButtonType="ButtonType.Submit" Class="mb-4">
+				Save as draft
+			</MudButton>
+
+			<MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary"
+				OnClick="@HandlePublish" Class="mb-4">
+
+				Publish set
+			</MudButton>
+
+
+			@* <button type="submit" class="btn btn-secondary me-2">Als Entwurf speichern</button>
+		<button type="button" class="btn btn-primary" @onclick="HandlePublish">Veröffentlichen</button> *@
 		</div>
-		<div class="mb-2">
-			<label for="quantity">Menge</label>
-			<InputNumber id="quantity" class="form-control" @bind-Value="brickQuantity" min="1" />
-		</div>
-		<button type="button" class="btn btn-success" @onclick="AddBrickToSet">Hinzufügen</button>
-	}
-
-	<h6 class="mt-3">Bricks im Set</h6>
-	@if (newSetModel.Bricks.Any())
-	{
-		<MudTable Items="newSetModel.Bricks" Hover="true" Striped="true">
-			<HeaderContent>
-				<MudTh>Brick</MudTh>
-				<MudTh>Color</MudTh>
-				<MudTh>Brand</MudTh>
-				<MudTh>Brand ID</MudTh>
-				<MudTh>Quantity</MudTh>
-				<MudTh>Image</MudTh>
-				<MudTh>Actions</MudTh>
-			</HeaderContent>
-			<RowTemplate Context="brick">
-				<MudTd DataLabel="Brick">@brick.BrickName</MudTd>
-				<MudTd DataLabel="Color">@brick.Color</MudTd>
-				<MudTd DataLabel="Brand">@newSetModel.Brand</MudTd>
-				<MudTd DataLabel="Brand ID">@brick.BrickId</MudTd>
-				<MudTd DataLabel="Quantity">@brick.Quantity</MudTd>
-				<MudTd DataLabel="Image">
-					<img src="@GetBrickImageUrlFromId(brick.BrickId)" alt=""
-						style="width:48px;height:48px;border-radius:4px;border:1px solid #ccc;" />
-				</MudTd>
-				<MudTd DataLabel="Actions">
-
-					<MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
-						@onclick="() => RemoveBrick(brick)">Delete</MudButton>
-				</MudTd>
-			</RowTemplate>
-		</MudTable>
-	}
-
-
-	<div class="mt-3">
-		<button type="submit" class="btn btn-secondary me-2">Als Entwurf speichern</button>
-		<button type="button" class="btn btn-primary" @onclick="HandlePublish">Veröffentlichen</button>
-	</div>
-</EditForm>
+	</EditForm>
 </MudPaper>
 
 @code {
@@ -178,40 +220,41 @@ else
 		var file = e.File;
 		if (file == null)
 		{
-			imageError = "Bitte wähle ein Bild aus.";
+			imageError = "Please select an image.";
 			StateHasChanged();
 			return;
 		}
 		if (file.Size > 3 * 1024 * 1024)
 		{
-			imageError = "Das Bild darf maximal 3MB groß sein.";
+			imageError = "The image must be max 3MB.";
 			StateHasChanged();
 			return;
 		}
 		try
 		{
 			using var stream = file.OpenReadStream(3 * 1024 * 1024);
-			var buffer = new byte[file.Size];
-			await stream.ReadAsync(buffer, 0, (int)file.Size);
+			using var ms = new MemoryStream();
+			await stream.CopyToAsync(ms);
+			var buffer = ms.ToArray();
 			var base64 = Convert.ToBase64String(buffer);
 			imagePreviewUrl = $"data:{file.ContentType};base64,{base64}";
 			uploadedImageFile = file;
 		}
 		catch (Exception ex)
 		{
-			imageError = $"Fehler beim Laden des Bildes: {ex.Message}";
+			imageError = $"Error loading image: {ex.Message}";
 		}
 		StateHasChanged();
 	}
 	private bool _hasLoaded = false;
-		protected override async Task OnAfterRenderAsync(bool firstRender)
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (!_hasLoaded && firstRender)
 		{
-			if (!_hasLoaded && firstRender)
-			{
-				_hasLoaded = true;
-				await LoadDraftsAndData();
-			}
+			_hasLoaded = true;
+			await LoadDraftsAndData();
 		}
+	}
 	private List<Data.Entities.NewSetRequest>? draftSets;
 	private List<string> brands = new();
 	private NewSetModel newSetModel = new();
@@ -258,10 +301,13 @@ else
 					brickName = brick.LegoName ?? brick.LegoPartNum ?? item.ItemIdOrName;
 				}
 			}
+			var mappedBrick = allBricks.FirstOrDefault(b => b.Id == brickId);
 			bricks.Add(new NewSetBrickModel
 			{
 				BrickId = brickId,
 				BrickName = brickName,
+				LegoPartNum = mappedBrick?.LegoPartNum,
+				Uuid = mappedBrick?.Uuid,
 				Color = item.Color,
 				Quantity = item.Quantity
 			});
@@ -274,10 +320,12 @@ else
 			Bricks = bricks
 		};
 		uploadedImageFile = null;
+		// Show image preview for draft using ImageService
+		imagePreviewUrl = ImageService.GetNewSetRequestImagePath(draft);
 		StateHasChanged();
 	}
 
-		private async Task LoadDraftsAndData()
+	private async Task LoadDraftsAndData()
 	{
 		var user = await UserService.GetCurrentUserAsync();
 		if (user == null)
@@ -308,31 +356,39 @@ else
 			return url;
 		return "/part_images/placeholder.png";
 	}
-
-	private async void OnBrickSearchInput(ChangeEventArgs e)
+	private async Task OnBrickSearchChanged(string value)
 	{
-		brickSearchText = e.Value?.ToString() ?? "";
+		brickSearchText = value ?? "";
+
 		if (brickSearchText.Length < 2)
 		{
 			brickSearchResults.Clear();
-			StateHasChanged();
+			await InvokeAsync(StateHasChanged);
 			return;
 		}
+
 		var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
-		brickSearchResults = allBricks.Where(b => (b.LegoPartNum?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase)
-		?? false) || (b.LegoName?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false)).Take(10).ToList();
-		   foreach (var brick in brickSearchResults)
-		   {
-			   var partNum = brick.LegoPartNum;
-			   if (!string.IsNullOrWhiteSpace(partNum) && !_brickImageCache.ContainsKey(partNum))
-			   {
-				   // Use ImageService to get the image path
-				   var url = ImageService.GetMappedBrickImagePath(brick);
-				   _brickImageCache[partNum] = string.IsNullOrWhiteSpace(url) ? "/part_images/placeholder.png" : url;
-			   }
-		   }
-		   StateHasChanged();
+
+		brickSearchResults = allBricks
+		.Where(b =>
+		(b.LegoPartNum?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+		(b.LegoName?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false))
+		.Take(10)
+		.ToList();
+
+		foreach (var brick in brickSearchResults)
+		{
+			var partNum = brick.LegoPartNum;
+			if (!string.IsNullOrWhiteSpace(partNum) && !_brickImageCache.ContainsKey(partNum))
+			{
+				var url = ImageService.GetMappedBrickImagePath(brick);
+				_brickImageCache[partNum] = string.IsNullOrWhiteSpace(url) ? "/part_images/placeholder.png" : url;
+			}
+		}
+
+		await InvokeAsync(StateHasChanged);
 	}
+
 
 	private void SelectBrick(MappedBrick brick)
 	{
@@ -352,6 +408,8 @@ else
 		{
 			BrickId = selectedBrick.Id,
 			BrickName = selectedBrick.LegoName ?? selectedBrick.LegoPartNum ?? "",
+			LegoPartNum = selectedBrick.LegoPartNum,
+			Uuid = selectedBrick.Uuid,
 			Color = selectedColor,
 			Quantity = brickQuantity
 		});
@@ -373,7 +431,8 @@ else
 	{
 		errorMessage = null;
 		var user = await UserService.GetCurrentUserAsync();
-		if (user == null){
+		if (user == null)
+		{
 			NotificationService.Error("Kein User gefunden. Bitte melde dich an.");
 			return;
 		}
@@ -385,7 +444,8 @@ else
 		}
 		// Prüfe auf Duplikat
 		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum == newSetModel.SetNo));
+		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum ==
+		newSetModel.SetNo));
 		if (exists)
 		{
 			errorMessage = "Es existiert bereits ein Set mit dieser Brand und Name oder Set ID.";
@@ -412,12 +472,13 @@ else
 		if (editingDraftId.HasValue)
 		{
 			// Update existing draft in-place
-			await RequestService.UpdateNewSetRequestAsync(editingDraftId.Value, newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath, items, Data.Entities.NewSetRequestStatus.Draft);
+			await RequestService.UpdateNewSetRequestAsync(editingDraftId.Value, newSetModel.Brand, newSetModel.SetNo,
+			newSetModel.SetName, imagePath, items, Data.Entities.NewSetRequestStatus.Draft);
 		}
 		else
 		{
 			await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath,
-				user.Uuid, items, Data.Entities.NewSetRequestStatus.Draft);
+			user.Uuid, items, Data.Entities.NewSetRequestStatus.Draft);
 		}
 		await LoadDraftsAndData();
 		newSetModel = new();
@@ -436,7 +497,8 @@ else
 
 		// Prüfe auf Duplikat
 		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum == newSetModel.SetNo));
+		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.LegoSetNum ==
+		newSetModel.SetNo));
 		if (exists)
 		{
 			errorMessage = "Es existiert bereits ein Set mit dieser Brand und Name oder Set ID.";
@@ -497,7 +559,7 @@ else
 			}
 		}
 		await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath,
-			user.Uuid, items, Data.Entities.NewSetRequestStatus.Pending);
+		user.Uuid, items, Data.Entities.NewSetRequestStatus.Pending);
 		await LoadDraftsAndData();
 		newSetModel = new();
 		editingDraftId = null;
@@ -513,7 +575,7 @@ else
 		var user = await UserService.GetCurrentUserAsync();
 		if (user != null)
 		{
-				await LoadDraftsAndData();
+			await LoadDraftsAndData();
 			StateHasChanged();
 		}
 	}
@@ -530,6 +592,8 @@ else
 	{
 		public int BrickId { get; set; }
 		public string BrickName { get; set; } = string.Empty;
+		public string? LegoPartNum { get; set; }
+		public string? Uuid { get; set; }
 		public string Color { get; set; } = string.Empty;
 		public int Quantity { get; set; }
 	}

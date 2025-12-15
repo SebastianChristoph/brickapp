@@ -154,6 +154,27 @@ namespace Data.Services
             return "/placeholder-image.png";
         }
 
+         public string GetNewSetRequestImagePath(NewSetRequest newSetRequest)
+        {
+            if (newSetRequest == null)
+                return "/placeholder-image.png";
+
+           
+            // 2. Prüfe auf lokales Bild
+            if (!string.IsNullOrWhiteSpace(newSetRequest.SetNo) && !string.IsNullOrWhiteSpace(newSetRequest.Brand))
+            {
+                var safeBrand = newSetRequest.Brand.ToLower().Replace(" ", "_");
+                var safeSetNum = newSetRequest.SetNo.ToLower().Replace(" ", "_");
+                var fileName = safeSetNum + ".png";
+                var filePath = Path.Combine(_wwwrootPath, "setimages", safeBrand, fileName);
+                if (File.Exists(filePath))
+                    return $"/setimages/{safeBrand}/{fileName}";
+            }
+
+            // 3. Fallback: Platzhalter
+            return "/placeholder-image.png";
+        }
+
         // OTHER IMAGES
         
         // MOCK IMAGES
