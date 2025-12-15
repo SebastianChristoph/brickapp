@@ -283,13 +283,12 @@ else
             LoadingService?.Hide();
             if (confirmed)
             {
-                await OnInitializedAsync();
-                StateHasChanged();
-                NotificationService.Success("Mock-Items erfolgreich zum Inventar hinzugefügt.");
+                NotificationService.Success("MOC items successfully added to your inventory.");
+                Nav.NavigateTo("/myinventory");
             }
             else
             {
-                NotificationService.Error("Fehler beim Hinzufügen der Mock-Items zum Inventar.");
+                NotificationService.Error("Error adding MOC items to your inventory.");
             }
         }
     }
