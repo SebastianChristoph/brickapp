@@ -161,19 +161,22 @@ public class AppDbContext : DbContext
 
         // ----------------- Minimal-Seed: Admin-User -----------------
 
+        var adminUuid = Environment.GetEnvironmentVariable("ADMIN_UUID") ?? "111";
+        var uweUuid = Environment.GetEnvironmentVariable("UWE_UUID") ?? "222";
+
         modelBuilder.Entity<AppUser>().HasData(
             new AppUser
             {
                 Id = 1,
-                Uuid = "111",          // dein Admin-Token
+                Uuid = adminUuid,          // aus ENV
                 Name = "Admin",
                 IsAdmin = true,
                 CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
-                 new AppUser
+            new AppUser
             {
                 Id = 2,
-                Uuid = "222",          // dein Admin-Token
+                Uuid = uweUuid,            // aus ENV
                 Name = "Uwe",
                 IsAdmin = false,
                 CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)

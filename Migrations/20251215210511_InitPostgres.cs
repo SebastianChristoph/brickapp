@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace brickapp.Migrations
 {
     /// <inheritdoc />
-    public partial class initialMigration : Migration
+    public partial class InitPostgres : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,11 +18,11 @@ namespace brickapp.Migrations
                 name: "colors",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    RebrickableColorId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Rgb = table.Column<string>(type: "TEXT", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    RebrickableColorId = table.Column<int>(type: "integer", nullable: false),
+                    Rgb = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -32,13 +33,13 @@ namespace brickapp.Migrations
                 name: "itemsets",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Brand = table.Column<string>(type: "TEXT", nullable: false),
-                    SetNum = table.Column<string>(type: "TEXT", nullable: true),
-                    Year = table.Column<int>(type: "INTEGER", nullable: true),
-                    ImageUrl = table.Column<string>(type: "TEXT", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Brand = table.Column<string>(type: "text", nullable: false),
+                    SetNum = table.Column<string>(type: "text", nullable: true),
+                    Year = table.Column<int>(type: "integer", nullable: true),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -49,23 +50,23 @@ namespace brickapp.Migrations
                 name: "mappedBricks",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    HasAtLeastOneMapping = table.Column<bool>(type: "INTEGER", nullable: false),
-                    Uuid = table.Column<string>(type: "TEXT", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    LegoPartNum = table.Column<string>(type: "TEXT", nullable: true),
-                    LegoName = table.Column<string>(type: "TEXT", nullable: true),
-                    BbPartNum = table.Column<string>(type: "TEXT", nullable: true),
-                    BbName = table.Column<string>(type: "TEXT", nullable: true),
-                    CadaPartNum = table.Column<string>(type: "TEXT", nullable: true),
-                    CadaName = table.Column<string>(type: "TEXT", nullable: true),
-                    PantasyPartNum = table.Column<string>(type: "TEXT", nullable: true),
-                    PantasyName = table.Column<string>(type: "TEXT", nullable: true),
-                    MouldKingPartNum = table.Column<string>(type: "TEXT", nullable: true),
-                    MouldKingName = table.Column<string>(type: "TEXT", nullable: true),
-                    UnknownPartNum = table.Column<string>(type: "TEXT", nullable: true),
-                    UnknownName = table.Column<string>(type: "TEXT", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    HasAtLeastOneMapping = table.Column<bool>(type: "boolean", nullable: false),
+                    Uuid = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    LegoPartNum = table.Column<string>(type: "text", nullable: true),
+                    LegoName = table.Column<string>(type: "text", nullable: true),
+                    BluebrixxPartNum = table.Column<string>(type: "text", nullable: true),
+                    BluebrixxName = table.Column<string>(type: "text", nullable: true),
+                    CadaPartNum = table.Column<string>(type: "text", nullable: true),
+                    CadaName = table.Column<string>(type: "text", nullable: true),
+                    PantasyPartNum = table.Column<string>(type: "text", nullable: true),
+                    PantasyName = table.Column<string>(type: "text", nullable: true),
+                    MouldKingPartNum = table.Column<string>(type: "text", nullable: true),
+                    MouldKingName = table.Column<string>(type: "text", nullable: true),
+                    UnknownPartNum = table.Column<string>(type: "text", nullable: true),
+                    UnknownName = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -76,15 +77,15 @@ namespace brickapp.Migrations
                 name: "newSetRequests",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Brand = table.Column<string>(type: "TEXT", nullable: false),
-                    SetNo = table.Column<string>(type: "TEXT", nullable: false),
-                    SetName = table.Column<string>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    Status = table.Column<int>(type: "INTEGER", nullable: false),
-                    ReasonRejected = table.Column<string>(type: "TEXT", nullable: true),
-                    UserId = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Brand = table.Column<string>(type: "text", nullable: false),
+                    SetNo = table.Column<string>(type: "text", nullable: false),
+                    SetName = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    ReasonRejected = table.Column<string>(type: "text", nullable: true),
+                    UserId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -95,12 +96,12 @@ namespace brickapp.Migrations
                 name: "users",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Uuid = table.Column<string>(type: "TEXT", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", nullable: true),
-                    IsAdmin = table.Column<bool>(type: "INTEGER", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: true),
+                    IsAdmin = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -112,12 +113,12 @@ namespace brickapp.Migrations
                 name: "itemsetbricks",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    ItemSetId = table.Column<int>(type: "INTEGER", nullable: false),
-                    MappedBrickId = table.Column<int>(type: "INTEGER", nullable: false),
-                    BrickColorId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Quantity = table.Column<int>(type: "INTEGER", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ItemSetId = table.Column<int>(type: "integer", nullable: false),
+                    MappedBrickId = table.Column<int>(type: "integer", nullable: false),
+                    BrickColorId = table.Column<int>(type: "integer", nullable: false),
+                    Quantity = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -146,12 +147,12 @@ namespace brickapp.Migrations
                 name: "newSetRequestItems",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    NewSetRequestId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ItemIdOrName = table.Column<string>(type: "TEXT", nullable: false),
-                    Quantity = table.Column<int>(type: "INTEGER", nullable: false),
-                    Color = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    NewSetRequestId = table.Column<int>(type: "integer", nullable: false),
+                    ItemIdOrName = table.Column<string>(type: "text", nullable: false),
+                    Quantity = table.Column<int>(type: "integer", nullable: false),
+                    Color = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -168,13 +169,13 @@ namespace brickapp.Migrations
                 name: "inventory",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    MappedBrickId = table.Column<int>(type: "INTEGER", nullable: false),
-                    BrickColorId = table.Column<int>(type: "INTEGER", nullable: false),
-                    AppUserId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Brand = table.Column<string>(type: "TEXT", nullable: false),
-                    Quantity = table.Column<int>(type: "INTEGER", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    MappedBrickId = table.Column<int>(type: "integer", nullable: false),
+                    BrickColorId = table.Column<int>(type: "integer", nullable: false),
+                    AppUserId = table.Column<int>(type: "integer", nullable: false),
+                    Brand = table.Column<string>(type: "text", nullable: false),
+                    Quantity = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -203,18 +204,18 @@ namespace brickapp.Migrations
                 name: "mappingRequests",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    BrickId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Brand = table.Column<string>(type: "TEXT", nullable: false),
-                    MappingName = table.Column<string>(type: "TEXT", nullable: false),
-                    MappingItemId = table.Column<string>(type: "TEXT", nullable: false),
-                    RequestedByUserId = table.Column<string>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    Status = table.Column<int>(type: "INTEGER", nullable: false),
-                    ReasonRejected = table.Column<string>(type: "TEXT", nullable: true),
-                    ApprovedByUserId = table.Column<string>(type: "TEXT", nullable: true),
-                    ApprovedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    BrickId = table.Column<int>(type: "integer", nullable: false),
+                    Brand = table.Column<string>(type: "text", nullable: false),
+                    MappingName = table.Column<string>(type: "text", nullable: false),
+                    MappingItemId = table.Column<string>(type: "text", nullable: false),
+                    RequestedByUserId = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    ReasonRejected = table.Column<string>(type: "text", nullable: true),
+                    ApprovedByUserId = table.Column<string>(type: "text", nullable: true),
+                    ApprovedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -243,14 +244,14 @@ namespace brickapp.Migrations
                 name: "mocks",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Description = table.Column<string>(type: "TEXT", nullable: true),
-                    Comment = table.Column<string>(type: "TEXT", nullable: true),
-                    WebSource = table.Column<string>(type: "TEXT", nullable: true),
-                    MockType = table.Column<string>(type: "TEXT", nullable: false),
-                    UserUuid = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    Comment = table.Column<string>(type: "text", nullable: true),
+                    WebSource = table.Column<string>(type: "text", nullable: true),
+                    MockType = table.Column<string>(type: "text", nullable: false),
+                    UserUuid = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -267,18 +268,18 @@ namespace brickapp.Migrations
                 name: "newItemRequests",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    Uuid = table.Column<string>(type: "TEXT", nullable: false),
-                    Brand = table.Column<string>(type: "TEXT", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    PartNum = table.Column<string>(type: "TEXT", nullable: false),
-                    RequestedByUserId = table.Column<string>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    Status = table.Column<int>(type: "INTEGER", nullable: false),
-                    ReasonRejected = table.Column<string>(type: "TEXT", nullable: true),
-                    ApprovedByUserId = table.Column<string>(type: "TEXT", nullable: true),
-                    ApprovedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Uuid = table.Column<string>(type: "text", nullable: false),
+                    Brand = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    PartNum = table.Column<string>(type: "text", nullable: false),
+                    RequestedByUserId = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    ReasonRejected = table.Column<string>(type: "text", nullable: true),
+                    ApprovedByUserId = table.Column<string>(type: "text", nullable: true),
+                    ApprovedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -301,12 +302,12 @@ namespace brickapp.Migrations
                 name: "useritemsets",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    AppUserId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ItemSetId = table.Column<int>(type: "INTEGER", nullable: false),
-                    Quantity = table.Column<int>(type: "INTEGER", nullable: false),
-                    UserItemSetId = table.Column<int>(type: "INTEGER", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    AppUserId = table.Column<int>(type: "integer", nullable: false),
+                    ItemSetId = table.Column<int>(type: "integer", nullable: false),
+                    Quantity = table.Column<int>(type: "integer", nullable: false),
+                    UserItemSetId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -334,15 +335,15 @@ namespace brickapp.Migrations
                 name: "userNotifications",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    UserUuid = table.Column<string>(type: "TEXT", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    Title = table.Column<string>(type: "TEXT", nullable: false),
-                    Message = table.Column<string>(type: "TEXT", nullable: false),
-                    IsRead = table.Column<bool>(type: "INTEGER", nullable: false),
-                    RelatedEntityType = table.Column<string>(type: "TEXT", nullable: true),
-                    RelatedEntityId = table.Column<int>(type: "INTEGER", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserUuid = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Message = table.Column<string>(type: "text", nullable: false),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false),
+                    RelatedEntityType = table.Column<string>(type: "text", nullable: true),
+                    RelatedEntityId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -359,13 +360,13 @@ namespace brickapp.Migrations
                 name: "mockitems",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    MockId = table.Column<int>(type: "INTEGER", nullable: false),
-                    MappedBrickId = table.Column<int>(type: "INTEGER", nullable: true),
-                    BrickColorId = table.Column<int>(type: "INTEGER", nullable: true),
-                    ExternalPartNum = table.Column<string>(type: "TEXT", nullable: true),
-                    Quantity = table.Column<int>(type: "INTEGER", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    MockId = table.Column<int>(type: "integer", nullable: false),
+                    MappedBrickId = table.Column<int>(type: "integer", nullable: true),
+                    BrickColorId = table.Column<int>(type: "integer", nullable: true),
+                    ExternalPartNum = table.Column<string>(type: "text", nullable: true),
+                    Quantity = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {

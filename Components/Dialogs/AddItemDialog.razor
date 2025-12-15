@@ -14,7 +14,7 @@
     <DialogContent>
         <MudSelect T="string" Label="Brand" @bind-Value="Brand" Required="true">
             <MudSelectItem Value="@("Lego")">Lego</MudSelectItem>
-            <MudSelectItem Value="@("BB")">BB</MudSelectItem>
+            <MudSelectItem Value="@("BlueBrixx")">BlueBrixx</MudSelectItem>
             <MudSelectItem Value="@("Cada")">Cada</MudSelectItem>
             <MudSelectItem Value="@("Pantasy")">Pantasy</MudSelectItem>
             <MudSelectItem Value="@("Mould King")">Mould King</MudSelectItem>
@@ -84,7 +84,7 @@
         var allBricks = await BrickService.GetAllMappedBricksAsync();
         bool exists = allBricks.Any(b =>
             (Brand == "Lego" && b.LegoName == Name)
-            || (Brand == "BB" && b.BbName == Name)
+            || (Brand == "BlueBrixx" && b.BluebrixxName == Name)
             || (Brand == "Cada" && b.CadaName == Name)
             || (Brand == "Pantasy" && b.PantasyName == Name)
             || (Brand == "Mould King" && b.MouldKingName == Name)

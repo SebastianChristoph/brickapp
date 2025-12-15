@@ -31,6 +31,20 @@
     </MudButton>
 </MudStack>
 
+@* Dismissible Info Alert above search field *@
+@if (showHalloAlert)
+{
+    <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Start" ShowCloseIcon="true" CloseIconClicked="(() => showHalloAlert = false)">
+        <b>Welcome to the Brick Mapping Center!</b><br />
+        Here you can view all mapped bricks and their connections across brands.<br />
+        <br />
+        <b>Help us grow:</b> If you spot a brick that is not yet mapped to another brand (e.g. BlueBrixx, Cada, Pantasy, Mould King, etc.), you are invited to contribute!<br />
+        <ul style="margin:0 0 0 1.2em;padding:0;font-size:0.98em;">
+            <li>Click <b>Help Mapping</b> next to a brand to suggest a mapping for that brick.</li>
+            <li>Your contributions help everyone find compatible parts and make the platform better for all!</li>
+        </ul>
+    </MudAlert>
+}
 
 <MudTextField Value="_searchText" ValueChanged="@(async (string e) => await OnSearchTextChanged(e))"
     Label="Search by name or ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true"
@@ -91,25 +105,25 @@
                     }
                 }
             </MudTd>
-            <MudTd DataLabel="BB">
-                @if (!string.IsNullOrWhiteSpace(context.BbName))
+            <MudTd DataLabel="BlueBrixx">
+                @if (!string.IsNullOrWhiteSpace(context.BluebrixxName))
                 {
-                    @context.BbName@if (!string.IsNullOrWhiteSpace(context.BbPartNum))
+                    @context.BluebrixxName@if (!string.IsNullOrWhiteSpace(context.BluebrixxPartNum))
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.BbPartNum]</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.BluebrixxPartNum]</MudText>
                     }
                 }
-                @if (string.IsNullOrWhiteSpace(context.BbName))
+                @if (string.IsNullOrWhiteSpace(context.BluebrixxName))
                 {
-                    var bbRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "BB" && r.Status == MappingRequestStatus.Pending);
-                    if (bbRequest != null)
+                    var bluebrixxRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "BlueBrixx" && r.Status == MappingRequestStatus.Pending);
+                    if (bluebrixxRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @bbRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @bluebrixxRequest.RequestedByUserId pending</MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "BB"))">Help Mapping</MudButton>
+                                   OnClick="@(() => OpenHelpMappingDialog(context, "BlueBrixx"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -218,7 +232,7 @@ else if (_showMappedOnly)
             <MudTh>Image</MudTh>
             <MudTh>Name</MudTh>
             <MudTh>Lego</MudTh>
-            <MudTh>BB</MudTh>
+            <MudTh>BlueBrixx</MudTh>
             <MudTh>Cada</MudTh>
             <MudTh>Pantasy</MudTh>
             <MudTh>Mould King</MudTh>
@@ -264,25 +278,25 @@ else if (_showMappedOnly)
                     }
                 }
             </MudTd>
-            <MudTd DataLabel="BB">
-                @if (!string.IsNullOrWhiteSpace(context.BbName))
+            <MudTd DataLabel="BlueBrixx">
+                @if (!string.IsNullOrWhiteSpace(context.BluebrixxName))
                 {
-                    @context.BbName@if (!string.IsNullOrWhiteSpace(context.BbPartNum))
+                    @context.BluebrixxName@if (!string.IsNullOrWhiteSpace(context.BluebrixxPartNum))
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.BbPartNum]</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.BluebrixxPartNum]</MudText>
                     }
                 }
-                @if (string.IsNullOrWhiteSpace(context.BbName))
+                @if (string.IsNullOrWhiteSpace(context.BluebrixxName))
                 {
-                    var bbRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "BB" && r.Status == MappingRequestStatus.Pending);
-                    if (bbRequest != null)
+                    var bluebrixxRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "BlueBrixx" && r.Status == MappingRequestStatus.Pending);
+                    if (bluebrixxRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @bbRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @bluebrixxRequest.RequestedByUserId pending</MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "BB"))">Help Mapping</MudButton>
+                                   OnClick="@(() => OpenHelpMappingDialog(context, "BlueBrixx"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -504,4 +518,6 @@ else if (_showMappedOnly)
     {
         await LoadBricksAsync();
     }
+
+    private bool showHalloAlert = true;
 }

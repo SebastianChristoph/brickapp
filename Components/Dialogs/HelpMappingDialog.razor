@@ -111,13 +111,13 @@
         if (!string.IsNullOrWhiteSpace(Brand))
         {
             bool idExists = !string.IsNullOrWhiteSpace(MappingItemId) && _allBricks.Any(b => b.Id != Brick.Id &&
-                (Brand == "BB" && b.BbPartNum == MappingItemId
+                (Brand == "BlueBrixx" && b.BluebrixxPartNum == MappingItemId
                 || Brand == "Cada" && b.CadaPartNum == MappingItemId
                 || Brand == "Pantasy" && b.PantasyPartNum == MappingItemId
                 || Brand == "Mould King" && b.MouldKingPartNum == MappingItemId
                 || Brand == "Unknown" && b.UnknownPartNum == MappingItemId));
             bool nameExists = !string.IsNullOrWhiteSpace(MappingName) && _allBricks.Any(b => b.Id != Brick.Id &&
-                (Brand == "BB" && b.BbName == MappingName
+                (Brand == "BlueBrixx" && b.BluebrixxName == MappingName
                 || Brand == "Cada" && b.CadaName == MappingName
                 || Brand == "Pantasy" && b.PantasyName == MappingName
                 || Brand == "Mould King" && b.MouldKingName == MappingName

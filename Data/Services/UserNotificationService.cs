@@ -1,44 +1,51 @@
+using Data;
 using Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Data.Services
 {
     public class UserNotificationService
-
-          
     {
-        private readonly AppDbContext _db;
-        public UserNotificationService(AppDbContext db)
+        private readonly IDbContextFactory<AppDbContext> _dbFactory;
+
+        public UserNotificationService(IDbContextFactory<AppDbContext> dbFactory)
         {
-            _db = db;
+            _dbFactory = dbFactory;
         }
 
+        public async Task DeleteNotificationAsync(int notificationId)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
 
-  public async Task DeleteNotificationAsync(int notificationId)
+            var notification = await db.UserNotifications.FindAsync(notificationId);
+            if (notification != null)
             {
-                var notification = await _db.UserNotifications.FindAsync(notificationId);
-                if (notification != null)
-                {
-                    _db.UserNotifications.Remove(notification);
-                    await _db.SaveChangesAsync();
-                }
+                db.UserNotifications.Remove(notification);
+                await db.SaveChangesAsync();
             }
+        }
 
         public async Task DeleteAllNotificationsAsync(string userUuid)
         {
-            var notifications = await _db.UserNotifications
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var notifications = await db.UserNotifications
                 .Where(n => n.UserUuid == userUuid)
                 .ToListAsync();
+
             if (notifications.Count > 0)
             {
-                _db.UserNotifications.RemoveRange(notifications);
-                await _db.SaveChangesAsync();
+                db.UserNotifications.RemoveRange(notifications);
+                await db.SaveChangesAsync();
             }
         }
-            
+
         public async Task<List<UserNotification>> GetNotificationsForUserAsync(string userUuid)
         {
-            return await _db.UserNotifications
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            return await db.UserNotifications
+                .AsNoTracking()
                 .Where(n => n.UserUuid == userUuid)
                 .OrderByDescending(n => n.CreatedAt)
                 .ToListAsync();
@@ -46,6 +53,8 @@ namespace Data.Services
 
         public async Task AddNotificationAsync(string userUuid, string title, string message, string? relatedEntityType = null, int? relatedEntityId = null)
         {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
             var notification = new UserNotification
             {
                 UserUuid = userUuid,
@@ -55,33 +64,36 @@ namespace Data.Services
                 RelatedEntityId = relatedEntityId,
                 CreatedAt = DateTime.UtcNow
             };
-            _db.UserNotifications.Add(notification);
-            await _db.SaveChangesAsync();
+
+            db.UserNotifications.Add(notification);
+            await db.SaveChangesAsync();
         }
 
         public async Task MarkAsReadAsync(int notificationId)
         {
-            var notification = await _db.UserNotifications.FindAsync(notificationId);
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var notification = await db.UserNotifications.FindAsync(notificationId);
             if (notification != null)
             {
                 notification.IsRead = true;
-                await _db.SaveChangesAsync();
+                await db.SaveChangesAsync();
             }
         }
 
-            public async Task MarkAllAsReadAsync(string userUuid)
-            {
-                var notifications = await _db.UserNotifications
-                    .Where(n => n.UserUuid == userUuid && !n.IsRead)
-                    .ToListAsync();
-                foreach (var notification in notifications)
-                {
-                    notification.IsRead = true;
-                }
-                if (notifications.Count > 0)
-                {
-                    await _db.SaveChangesAsync();
-                }
-            }
+        public async Task MarkAllAsReadAsync(string userUuid)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var notifications = await db.UserNotifications
+                .Where(n => n.UserUuid == userUuid && !n.IsRead)
+                .ToListAsync();
+
+            foreach (var notification in notifications)
+                notification.IsRead = true;
+
+            if (notifications.Count > 0)
+                await db.SaveChangesAsync();
+        }
     }
 }

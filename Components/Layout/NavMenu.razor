@@ -5,35 +5,44 @@
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
         Home
     </MudNavLink>
+
     @if (_isAuthenticated)
     {
-        <MudNavLink Href="allbricks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">
-            All Mapped Bricks
-        </MudNavLink>
-        <MudNavLink Href="allsets" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">
-            Explore All Sets
-        </MudNavLink>
-        <MudNavLink Href="add-new-set" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">
-            Add New Set
-        </MudNavLink>
-        <MudNavLink Href="myinventory" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">
-            My Inventory
-        </MudNavLink>
-        <MudNavLink Href="mymocs" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Build">
-            My MOCs
-        </MudNavLink>
-        <MudNavLink Href="myrequests" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.QuestionAnswer">
-            My Requests
-        </MudNavLink>
-        @if (_isAdmin)
-        {
-                <MudNavLink Href="admin-requests" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.AdminPanelSettings">
+        <MudNavGroup Title="Community" Icon="@Icons.Material.Filled.People" Expanded="true">
+            <MudNavLink Href="allbricks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Api">
+                All Mapped Items
+            </MudNavLink>
+            <MudNavLink Href="allsets" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Apps">
+                All Sets
+            </MudNavLink>
+            <MudNavLink Href="add-new-set" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Addchart">
+                Add New Set
+            </MudNavLink>
+        </MudNavGroup>
+
+        <MudNavGroup Title="My Area" Icon="@Icons.Material.Filled.AirlineSeatReclineNormal" Expanded="true">
+            <MudNavLink Href="myinventory" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Inventory">
+                My Inventory
+            </MudNavLink>
+            <MudNavLink Href="mymocs" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Build">
+                My MOCs
+            </MudNavLink>
+            <MudNavLink Href="myrequests" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.AppRegistration">
+                My Requests
+            </MudNavLink>
+
+            @if (_isAdmin)
+            {
+                <MudNavLink Href="admin-requests" Match="NavLinkMatch.Prefix"
+                            Icon="@Icons.Material.Filled.AdminPanelSettings">
                     Admin Requests
                 </MudNavLink>
-                <MudNavLink Href="admin-panel" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">
+                <MudNavLink Href="admin-panel" Match="NavLinkMatch.Prefix"
+                            Icon="@Icons.Material.Filled.AdminPanelSettings">
                     Admin Panel
                 </MudNavLink>
-        }
+            }
+        </MudNavGroup>
     }
     else
     {
@@ -55,6 +64,7 @@
             _isAuthenticated = await UserService.IsAuthenticatedAsync();
             var user = await UserService.GetCurrentUserAsync();
             _isAdmin = user?.IsAdmin ?? false;
+
             _hasRendered = true;
             StateHasChanged();
         }
@@ -65,6 +75,7 @@
         _isAuthenticated = await UserService.IsAuthenticatedAsync();
         var user = await UserService.GetCurrentUserAsync();
         _isAdmin = user?.IsAdmin ?? false;
+
         StateHasChanged();
     }
 }

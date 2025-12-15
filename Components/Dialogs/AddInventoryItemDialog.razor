@@ -190,8 +190,8 @@
         {
             "Lego" => all.Where(b => (b.LegoPartNum?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
                                 || (b.LegoName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
-            "BlueBrixx" => all.Where(b => (b.BbPartNum?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-                                || (b.BbName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
+            "BlueBrixx" => all.Where(b => (b.BluebrixxPartNum?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+                                || (b.BluebrixxName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
             "Cada" => all.Where(b => (b.CadaPartNum?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
                                 || (b.CadaName?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)),
             "Pantasy" => all.Where(b => (b.PantasyPartNum?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
@@ -205,7 +205,7 @@
         Func<MappedBrick, string?> getPartNum = Brand switch
         {
             "Lego" => b => b.LegoPartNum,
-            "BlueBrixx" => b => b.BbPartNum,
+            "BlueBrixx" => b => b.BluebrixxPartNum,
             "Cada" => b => b.CadaPartNum,
             "Pantasy" => b => b.PantasyPartNum,
             "Mould King" => b => b.MouldKingPartNum,
@@ -243,7 +243,7 @@
         return Brand switch
         {
             "Lego" => $"{b.LegoPartNum} - {b.LegoName}",
-            "BlueBrixx" => $"{b.BbPartNum} - {b.BbName}",
+            "BlueBrixx" => $"{b.BluebrixxPartNum} - {b.BluebrixxName}",
             "Cada" => $"{b.CadaPartNum} - {b.CadaName}",
             "Pantasy" => $"{b.PantasyPartNum} - {b.PantasyName}",
             "Mould King" => $"{b.MouldKingPartNum} - {b.MouldKingName}",

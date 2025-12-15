@@ -18,7 +18,7 @@ x86/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
-[Bb]in/
+[BlueBrixx]in/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
@@ -46,7 +46,7 @@ CodeCoverage/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
-[Bb]uild[Ll]og.*
+[BlueBrixx]uild[Ll]og.*
 
 # NUnit
 *.VisualState.xml
@@ -62,3 +62,4 @@ bricksdb.db
 bricksdb.db-shm
 bricksdb.db-wal
 wwwroot/part_images/new
+.env

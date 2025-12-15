@@ -16,7 +16,7 @@ public class InventoryItem
     public int AppUserId { get; set; }
     public AppUser AppUser { get; set; } = default!;
 
-    // Von welcher Marke ist dieses konkrete Teil (Lego, Cada, BB, ...)
+    // Von welcher Marke ist dieses konkrete Teil (Lego, Cada, BlueBrixx, ...)
     public string Brand { get; set; } = default!;
 
     public int Quantity { get; set; }

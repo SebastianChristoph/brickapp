@@ -27,8 +27,8 @@ public class MappedBrickExportService
             LegoPartNum = b.LegoPartNum,
             LegoName = b.LegoName,
             Name = b.Name,
-            BbPartNum = b.BbPartNum,
-            BbName = b.BbName,
+            BluebrixxPartNum = b.BluebrixxPartNum,
+            BluebrixxName = b.BluebrixxName,
             CadaPartNum = b.CadaPartNum,
             CadaName = b.CadaName,
             PantasyPartNum = b.PantasyPartNum,
@@ -58,8 +58,8 @@ public class MappedBrickExportService
             if (existing != null)
             {
                 // Update mappings
-                existing.BbPartNum = b.BbPartNum;
-                existing.BbName = b.BbName;
+                existing.BluebrixxPartNum = b.BluebrixxPartNum;
+                existing.BluebrixxName = b.BluebrixxName;
                 existing.CadaPartNum = b.CadaPartNum;
                 existing.CadaName = b.CadaName;
                 existing.PantasyPartNum = b.PantasyPartNum;
@@ -78,8 +78,8 @@ public class MappedBrickExportService
     private int CountNonNullMappings(MappedBrick b)
     {
         int count = 0;
-        if (!string.IsNullOrWhiteSpace(b.BbPartNum)) count++;
-        if (!string.IsNullOrWhiteSpace(b.BbName)) count++;
+        if (!string.IsNullOrWhiteSpace(b.BluebrixxPartNum)) count++;
+        if (!string.IsNullOrWhiteSpace(b.BluebrixxName)) count++;
         if (!string.IsNullOrWhiteSpace(b.CadaPartNum)) count++;
         if (!string.IsNullOrWhiteSpace(b.CadaName)) count++;
         if (!string.IsNullOrWhiteSpace(b.PantasyPartNum)) count++;
@@ -96,8 +96,8 @@ public class MappedBrickExportService
         public string? LegoPartNum { get; set; }
         public string? LegoName { get; set; }
         public string Name { get; set; } = default!;
-        public string? BbPartNum { get; set; }
-        public string? BbName { get; set; }
+        public string? BluebrixxPartNum { get; set; }
+        public string? BluebrixxName { get; set; }
         public string? CadaPartNum { get; set; }
         public string? CadaName { get; set; }
         public string? PantasyPartNum { get; set; }

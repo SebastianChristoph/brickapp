@@ -5,20 +5,26 @@ using MudBlazor.Services;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Services;
+using DotNetEnv;
 using brickapp.Components;
 using Data.Services;
+
+Env.Load();
+
+// .env laden (falls vorhanden)
+Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
-// Pfad zur SQLite-Datei (bricksdb.db im Projektverzeichnis)
-var dbPath = Path.Combine(builder.Environment.ContentRootPath, "bricksdb.db");
-var connectionString = $"Data Source={dbPath}";
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
-// EF Core registrieren
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(connectionString));
+
+
 builder.Services.AddScoped<UserService>();
+
+
 
 
 builder.Services.AddScoped<MappedBrickService>();
@@ -74,7 +80,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
     // Erstmal simpel: erstellt DB & Schema, falls nicht vorhanden
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
     // Später kannst du auf db.Database.Migrate() umstellen, wenn du Migrations nutzt
       await RebrickableSeeder.SeedAsync(db, builder.Environment.ContentRootPath);
 }

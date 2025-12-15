@@ -8,8 +8,8 @@ public class MappedBrick
     public string Name { get; set; } = default!;
     public string? LegoPartNum { get; set; }
     public string? LegoName { get; set; } 
-    public string? BbPartNum { get; set; }
-    public string? BbName { get; set; }
+    public string? BluebrixxPartNum { get; set; }
+    public string? BluebrixxName { get; set; }
     public string? CadaPartNum { get; set; }
     public string? CadaName { get; set; }
     public string? PantasyPartNum { get; set; }

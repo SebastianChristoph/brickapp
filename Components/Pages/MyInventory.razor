@@ -148,7 +148,7 @@ else
                             }
                             else if (context.Brand?.ToLower() == "bluebrixx")
                             {
-                                @context.MappedBrick?.BbPartNum
+                                @context.MappedBrick?.BluebrixxPartNum
                             }
                             else if (context.Brand?.ToLower() == "cada")
                             {
@@ -225,7 +225,7 @@ else
         return brand switch
         {
             "lego"       => i.MappedBrick?.LegoPartNum ?? string.Empty,
-            "bluebrixx"  => i.MappedBrick?.BbPartNum ?? string.Empty,
+            "bluebrixx"  => i.MappedBrick?.BluebrixxPartNum ?? string.Empty,
             "cada"       => i.MappedBrick?.CadaPartNum ?? string.Empty,
             "pantasy"    => i.MappedBrick?.PantasyPartNum ?? string.Empty,
             "mould king" => i.MappedBrick?.MouldKingPartNum ?? string.Empty,
