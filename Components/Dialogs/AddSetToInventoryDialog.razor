@@ -4,11 +4,11 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText>Möchtest du alle @ItemCount Steine dieses Sets zu deinem Inventar hinzufügen?</MudText>
+        <MudText>Do you want to add all @ItemCount bricks of this set to your inventory?</MudText>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Disabled="_loading">Cancel</MudButton>
-        <MudButton Color="Color.Success" OnClick="ConfirmAsync" Disabled="_loading">Hinzufügen</MudButton>
+        <MudButton Color="Color.Secondary" OnClick="Cancel" Disabled="_loading">Cancel</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Check" Variant="Variant.Filled" Color="Color.Primary" OnClick="ConfirmAsync" Disabled="_loading">Add</MudButton>
     </DialogActions>
 </MudDialog>
 

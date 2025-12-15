@@ -433,22 +433,22 @@ else
 		var user = await UserService.GetCurrentUserAsync();
 		if (user == null)
 		{
-			NotificationService.Error("Kein User gefunden. Bitte melde dich an.");
+			NotificationService.Error("No user found. Please log in.");
 			return;
 		}
 		if (uploadedImageFile == null)
 		{
-			errorMessage = "Bitte lade ein Bild für das Set hoch.";
+			errorMessage = "Please upload an image for the set.";
 			StateHasChanged();
 			return;
 		}
-		// Prüfe auf Duplikat
+		// Check for duplicates
 		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
 		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.SetNum ==
 		newSetModel.SetNo));
 		if (exists)
 		{
-			errorMessage = "Es existiert bereits ein Set mit dieser Brand und Name oder Set ID.";
+			errorMessage = "A set with this brand and name or set ID already exists.";
 			StateHasChanged();
 			return;
 		}
@@ -459,7 +459,7 @@ else
 		}
 		catch (Exception ex)
 		{
-			errorMessage = $"Fehler beim Speichern des Bildes: {ex.Message}";
+			errorMessage = $"Error saving image: {ex.Message}";
 			StateHasChanged();
 			return;
 		}
@@ -485,7 +485,7 @@ else
 		editingDraftId = null;
 		uploadedImageFile = null;
 		imagePreviewUrl = null;
-		NotificationService.Success("Set erfolgreich als Entwurf gespeichert.");
+		NotificationService.Success("Set successfully saved as draft.");
 		StateHasChanged();
 	}
 
@@ -495,13 +495,13 @@ else
 		var user = await UserService.GetCurrentUserAsync();
 		if (user == null) return;
 
-		// Prüfe auf Duplikat
+		// Check for duplicates
 		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
 		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.SetNum ==
 		newSetModel.SetNo));
 		if (exists)
 		{
-			errorMessage = "Es existiert bereits ein Set mit dieser Brand und Name oder Set ID.";
+			errorMessage = "A set with this brand and name or set ID already exists.";
 			StateHasChanged();
 			return;
 		}
@@ -515,7 +515,7 @@ else
 			}
 			catch (Exception ex)
 			{
-				errorMessage = $"Fehler beim Speichern des Bildes: {ex.Message}";
+				errorMessage = $"Error saving image: {ex.Message}";
 				StateHasChanged();
 				return;
 			}
@@ -530,19 +530,19 @@ else
 			}
 			else
 			{
-				errorMessage = "Bitte lade ein Bild für das Set hoch.";
+				errorMessage = "Please upload an image for the set.";
 				StateHasChanged();
 				return;
 			} *@
 		}
 		else
 		{
-			errorMessage = "Bitte lade ein Bild für das Set hoch.";
+			errorMessage = "Please upload an image for the set.";
 			StateHasChanged();
 			return;
 		}
 
-		// Veröffentlichen: Status Pending
+		// Publish: Status Pending
 		var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem
 		{
 			ItemIdOrName = b.BrickId != 0 ? b.BrickId.ToString() : b.BrickName,
@@ -565,7 +565,7 @@ else
 		editingDraftId = null;
 		uploadedImageFile = null;
 		imagePreviewUrl = null;
-		NotificationService.Success("Set erfolgreich zur Überprüfung eingereicht.");
+		NotificationService.Success("Set successfully submitted for review.");
 		StateHasChanged();
 	}
 
