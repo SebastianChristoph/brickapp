@@ -6,18 +6,23 @@ namespace Data.Services;
 
 public class ItemSetExportService
 {
-    private readonly AppDbContext _db;
+    private readonly IDbContextFactory<AppDbContext> _factory;
     private readonly string _exportPath;
 
-    public ItemSetExportService(AppDbContext db, string exportPath)
+    public ItemSetExportService(
+        IDbContextFactory<AppDbContext> factory,
+        string exportPath)
     {
-        _db = db;
+        _factory = factory;
         _exportPath = exportPath;
     }
 
     public async Task<int> ExportSetsAsync()
     {
-        var sets = await _db.ItemSets.ToListAsync();
+        await using var db = await _factory.CreateDbContextAsync();
+
+        var sets = await db.ItemSets.AsNoTracking().ToListAsync();
+
         var exportList = sets.Select(s => new ExportSet
         {
             SetNum = s.SetNum,
@@ -26,10 +31,16 @@ public class ItemSetExportService
             Year = (int)s.Year,
             ImageUrl = s.ImageUrl
         }).ToList();
-        var json = JsonSerializer.Serialize(exportList, new JsonSerializerOptions { WriteIndented = true });
+
+        var json = JsonSerializer.Serialize(exportList, new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
         var dir = Path.GetDirectoryName(_exportPath);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             Directory.CreateDirectory(dir);
+
         await File.WriteAllTextAsync(_exportPath, json);
         return exportList.Count;
     }
@@ -37,27 +48,31 @@ public class ItemSetExportService
     public async Task<int> ImportSetsAsync()
     {
         if (!File.Exists(_exportPath)) return 0;
+
         var json = await File.ReadAllTextAsync(_exportPath);
         var imported = JsonSerializer.Deserialize<List<ExportSet>>(json);
         if (imported == null) return 0;
+
+        await using var db = await _factory.CreateDbContextAsync();
+
         int importedCount = 0;
         foreach (var s in imported)
         {
-            if (!await _db.ItemSets.AnyAsync(x => x.SetNum == s.SetNum))
+            if (!await db.ItemSets.AnyAsync(x => x.SetNum == s.SetNum))
             {
-                var set = new ItemSet
+                db.ItemSets.Add(new ItemSet
                 {
                     SetNum = s.SetNum,
                     Name = s.Name,
                     Brand = s.Brand,
                     Year = s.Year,
                     ImageUrl = s.ImageUrl
-                };
-                _db.ItemSets.Add(set);
+                });
                 importedCount++;
             }
         }
-        await _db.SaveChangesAsync();
+
+        await db.SaveChangesAsync();
         return importedCount;
     }
 

@@ -7,49 +7,50 @@ namespace Data;
 
 public static class RebrickableSeeder
 {
-    public static async Task SeedAsync(AppDbContext db, string contentRootPath)
+    public static async Task SeedAsync(
+        AppDbContext db,
+        IDbContextFactory<AppDbContext> dbFactory,
+        string contentRootPath)
     {
         // Importiere Sets aus JSON-Exportdatei im mappedData-Ordner
         var setsExportPath = Path.Combine(contentRootPath, "mappedData", "exported_sets.json");
-        var setsExportService = new Services.ItemSetExportService(db, setsExportPath);
+        var setsExportService = new Data.Services.ItemSetExportService(dbFactory, setsExportPath);
         await setsExportService.ImportSetsAsync();
+
+        var dataDir = Path.Combine(contentRootPath, "RebrickableData");
+        if (!Directory.Exists(dataDir))
         {
-            var dataDir = Path.Combine(contentRootPath, "RebrickableData");
-            if (!Directory.Exists(dataDir))
-            {
-                // Falls Ordner nicht existiert -> nichts tun
-                return;
-            }
-
-            // Nur importieren, wenn noch keine LEGO-Daten existieren
-            if (!await db.MappedBricks.AnyAsync())
-            {
-                await ImportPartsAsync(db, Path.Combine(dataDir, "parts.csv"));
-            }
-
-            // Importiere gemappte Bricks aus JSON-Exportdatei im mappedData-Ordner
-            var exportPath = Path.Combine(contentRootPath, "mappedData", "exported_mappedbricks.json");
-            var exportService = new Services.MappedBrickExportService(db, exportPath);
-            await exportService.ImportMappedBricksAsync();
-
-            if (!await db.BrickColors.AnyAsync())
-            {
-                await ImportColorsAsync(db, Path.Combine(dataDir, "colors.csv"));
-            }
-
-            if (!await db.ItemSets.AnyAsync())
-            {
-                await ImportSetsAsync(db, Path.Combine(dataDir, "sets.csv"));
-            }
-
-            // ItemSetBricks: Verknüpfung zwischen Sets und MappedBricks
-            if (!await db.ItemSetBricks.AnyAsync())
-            {
-                await ImportInventoryPartsAsync(db,
-                    Path.Combine(dataDir, "inventories.csv"),
-                    Path.Combine(dataDir, "inventory_parts.csv"));
-            }
+            return;
         }
+
+        // Nur importieren, wenn noch keine LEGO-Daten existieren
+        if (!await db.MappedBricks.AnyAsync())
+        {
+            await ImportPartsAsync(db, Path.Combine(dataDir, "parts.csv"));
+        }
+
+        // Importiere gemappte Bricks aus JSON-Exportdatei im mappedData-Ordner
+        var exportPath = Path.Combine(contentRootPath, "mappedData", "exported_mappedbricks.json");
+        var exportService = new Data.Services.MappedBrickExportService(dbFactory, exportPath);
+        await exportService.ImportMappedBricksAsync();
+
+        if (!await db.BrickColors.AnyAsync())
+        {
+            await ImportColorsAsync(db, Path.Combine(dataDir, "colors.csv"));
+        }
+
+        if (!await db.ItemSets.AnyAsync())
+        {
+            await ImportSetsAsync(db, Path.Combine(dataDir, "sets.csv"));
+        }
+
+        if (!await db.ItemSetBricks.AnyAsync())
+        {
+            await ImportInventoryPartsAsync(db,
+                Path.Combine(dataDir, "inventories.csv"),
+                Path.Combine(dataDir, "inventory_parts.csv"));
+        }
+    
     }
     private static async Task ImportPartsAsync(AppDbContext db, string partsPath)
     {

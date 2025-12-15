@@ -1,25 +1,31 @@
 using System.Text.Json;
+using Data;
 using Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Data.Services;
 
 public class MappedBrickExportService
-  
 {
-    private readonly AppDbContext _db;
+    private readonly IDbContextFactory<AppDbContext> _factory;
     private readonly string _exportPath;
+
     public string GetExportPath() => _exportPath;
 
-    public MappedBrickExportService(AppDbContext db, string exportPath)
+    public MappedBrickExportService(IDbContextFactory<AppDbContext> factory, string exportPath)
     {
-        _db = db;
+        _factory = factory;
         _exportPath = exportPath;
     }
 
     public async Task<int> ExportMappedBricksAsync()
     {
-        var allBricks = await _db.MappedBricks.ToListAsync();
+        await using var db = await _factory.CreateDbContextAsync();
+
+        var allBricks = await db.MappedBricks
+            .AsNoTracking()
+            .ToListAsync();
+
         var bricks = allBricks.Where(b => CountNonNullMappings(b) >= 1).ToList();
 
         var exportList = bricks.Select(b => new ExportMappedBrick
@@ -40,24 +46,39 @@ public class MappedBrickExportService
         }).ToList();
 
         var json = JsonSerializer.Serialize(exportList, new JsonSerializerOptions { WriteIndented = true });
+
+        var dir = Path.GetDirectoryName(_exportPath);
+        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
+
         await File.WriteAllTextAsync(_exportPath, json);
         return exportList.Count;
     }
 
     public async Task<int> ImportMappedBricksAsync()
     {
-        if (!File.Exists(_exportPath)) return 0;
+        if (!File.Exists(_exportPath))
+            return 0;
+
         var json = await File.ReadAllTextAsync(_exportPath);
         var imported = JsonSerializer.Deserialize<List<ExportMappedBrick>>(json);
-        if (imported == null) return 0;
+        if (imported == null || imported.Count == 0)
+            return 0;
+
+        await using var db = await _factory.CreateDbContextAsync();
 
         int importedCount = 0;
+
         foreach (var b in imported)
         {
-            var existing = await _db.MappedBricks.FirstOrDefaultAsync(x => x.LegoPartNum == b.LegoPartNum);
+            if (string.IsNullOrWhiteSpace(b.LegoPartNum))
+                continue;
+
+            var existing = await db.MappedBricks
+                .FirstOrDefaultAsync(x => x.LegoPartNum == b.LegoPartNum);
+
             if (existing != null)
             {
-                // Update mappings
                 existing.BluebrixxPartNum = b.BluebrixxPartNum;
                 existing.BluebrixxName = b.BluebrixxName;
                 existing.CadaPartNum = b.CadaPartNum;
@@ -68,10 +89,12 @@ public class MappedBrickExportService
                 existing.MouldKingName = b.MouldKingName;
                 existing.UnknownPartNum = b.UnknownPartNum;
                 existing.UnknownName = b.UnknownName;
+
                 importedCount++;
             }
         }
-        await _db.SaveChangesAsync();
+
+        await db.SaveChangesAsync();
         return importedCount;
     }
 

@@ -1,18 +1,13 @@
 @page "/admin-panel"
-@inject IServiceProvider ServiceProvider
-
-
+@inject Data.Services.MappedBrickExportService MappedExport
+@inject Data.Services.ItemSetExportService SetExport
 
 <MudText Typo="Typo.h4" GutterBottom="true">Admin Panel</MudText>
-
-
-
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportMappings">Export Mappings</MudButton>
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportSets">Export Sets</MudButton>
 
 <div>@statusMessage</div>
-  
 
 @code {
     private string statusMessage = "";
@@ -21,16 +16,8 @@
     {
         try
         {
-            using var scope = ServiceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-            var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-            var mappedDataDir = Path.Combine(env.ContentRootPath, "mappedData");
-            if (!Directory.Exists(mappedDataDir))
-                Directory.CreateDirectory(mappedDataDir);
-            var exportPath = Path.Combine(mappedDataDir, "exported_mappedbricks.json");
-            var exportService = new Data.Services.MappedBrickExportService(db, exportPath);
-            var count = await exportService.ExportMappedBricksAsync();
-            statusMessage = $"Export erfolgreich: {count} Mappings gespeichert. (Pfad: {exportPath})";
+            var count = await MappedExport.ExportMappedBricksAsync();
+            statusMessage = $"Export erfolgreich: {count} Mappings gespeichert. (Pfad: {MappedExport.GetExportPath()})";
         }
         catch (Exception ex)
         {
@@ -38,25 +25,16 @@
         }
     }
 
-      private async Task ExportSets()
+    private async Task ExportSets()
     {
         try
         {
-            using var scope = ServiceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-            var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-            var mappedDataDir = Path.Combine(env.ContentRootPath, "mappedData");
-            if (!Directory.Exists(mappedDataDir))
-                Directory.CreateDirectory(mappedDataDir);
-            var exportPath = Path.Combine(mappedDataDir, "exported_sets.json");
-            var exportService = new Data.Services.ItemSetExportService(db, exportPath);
-            var count = await exportService.ExportSetsAsync();
-            statusMessage = $"Sets-Export erfolgreich: {count} Sets gespeichert. (Pfad: {exportPath})";
+            var count = await SetExport.ExportSetsAsync();
+            statusMessage = $"Sets-Export erfolgreich: {count} Sets gespeichert. (Pfad: {count})";
         }
         catch (Exception ex)
         {
             statusMessage = $"Fehler beim Sets-Export: {ex.Message}";
         }
     }
-
 }

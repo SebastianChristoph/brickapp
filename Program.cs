@@ -1,91 +1,97 @@
-// ItemSetExportService für DI registrieren
-
 // API-Controller-Support aktivieren
 using MudBlazor.Services;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Services;
-using DotNetEnv;
 using brickapp.Components;
 using Data.Services;
 
-Env.Load();
-
-// .env laden (falls vorhanden)
-Env.Load();
-
 var builder = WebApplication.CreateBuilder(args);
+
+// ----------------------------
+// Configuration / Environment
+// ----------------------------
 builder.Services.AddControllers();
 
+var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new Exception("POSTGRES_CONNECTION environment variable is not set");
+}
+
+// ----------------------------
+// Database (PostgreSQL)
+// ----------------------------
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+{
+    options.UseNpgsql(connectionString);
+});
 
-
-
+// ----------------------------
+// Services
+// ----------------------------
 builder.Services.AddScoped<UserService>();
-
-
-
-
 builder.Services.AddScoped<MappedBrickService>();
 builder.Services.AddScoped<UserNotificationService>();
 builder.Services.AddScoped<RequestService>();
-
-builder.Services.AddScoped<ItemSetExportService>(sp =>
-    new ItemSetExportService(
-        sp.GetRequiredService<AppDbContext>(),
-        Path.Combine(builder.Environment.ContentRootPath, "mappedData", "exported_sets.json")
-    )
-);
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<ItemSetService>();
 
-// Global Loading Service
-builder.Services.AddSingleton<LoadingService>();
-
-// ImageService: needs wwwroot path
-builder.Services.AddScoped<ImageService>(sp =>
-    new ImageService(
-        Path.Combine(builder.Environment.ContentRootPath, "wwwroot"),
-        sp.GetRequiredService<NotificationService>()
+builder.Services.AddScoped<ItemSetExportService>(sp =>
+    new ItemSetExportService(
+        sp.GetRequiredService<IDbContextFactory<AppDbContext>>(),
+        Path.Combine(builder.Environment.ContentRootPath, "mappedData", "exported_sets.json")
     )
 );
 
-// Global Notification Service
-builder.Services.AddScoped<NotificationService>();
-
-// MudBlazor
-builder.Services.AddMudServices(config =>
-{
-    config.SnackbarConfiguration.VisibleStateDuration = 5000; // 5 Sekunden
-});
-// MappedBrickExportService für DI registrieren
 builder.Services.AddScoped<MappedBrickExportService>(sp =>
     new MappedBrickExportService(
-        sp.GetRequiredService<AppDbContext>(),
+        sp.GetRequiredService<IDbContextFactory<AppDbContext>>(),
         Path.Combine(builder.Environment.ContentRootPath, "mappedData", "exported_mappedbricks.json")
     )
 );
 
+// Global Services
+builder.Services.AddSingleton<LoadingService>();
+builder.Services.AddScoped<NotificationService>();
 
-// Blazor
+// ImageService (wwwroot)
+builder.Services.AddScoped<ImageService>(sp =>
+    new ImageService(
+        sp.GetRequiredService<IWebHostEnvironment>().WebRootPath,
+        sp.GetRequiredService<NotificationService>()
+    )
+);
+
+// ----------------------------
+// UI / Blazor / MudBlazor
+// ----------------------------
+builder.Services.AddMudServices(config =>
+{
+    config.SnackbarConfiguration.VisibleStateDuration = 5000;
+});
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 var app = builder.Build();
 
-// >>> DB erzeugen lassen (inkl. Tabellen & Seed-Daten)
+// ----------------------------
+// Database Migration & Seeding
+// ----------------------------
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+  var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+await using var db = await factory.CreateDbContextAsync();
 
-    // Erstmal simpel: erstellt DB & Schema, falls nicht vorhanden
-    db.Database.Migrate();
-    // Später kannst du auf db.Database.Migrate() umstellen, wenn du Migrations nutzt
-      await RebrickableSeeder.SeedAsync(db, builder.Environment.ContentRootPath);
+await db.Database.MigrateAsync();
+await RebrickableSeeder.SeedAsync(db, factory, builder.Environment.ContentRootPath);
 }
 
-// Configure the HTTP request pipeline.
+// ----------------------------
+// HTTP Pipeline
+// ----------------------------
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
@@ -95,11 +101,11 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAntiforgery();
 
-
 app.MapStaticAssets();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-// API-Controller-Endpunkte aktivieren
+
 app.MapControllers();
 
 app.Run();
