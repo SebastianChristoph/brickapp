@@ -101,9 +101,9 @@ namespace Data.Services
             {
                 Name = request.Name,
                 Uuid = request.Uuid,
-                HasAtLeastOneMapping = true
             };
-            // Set the brand-specific fields
+
+    
             switch (request.Brand?.Trim().ToLower())
             {
                 case "bb":
@@ -129,7 +129,6 @@ namespace Data.Services
                     mappedBrick.UnknownPartNum = request.PartNum;
                     break;
                 default:
-                    // fallback: set as unknown
                     mappedBrick.UnknownName = request.Name;
                     mappedBrick.UnknownPartNum = request.PartNum;
                     break;
@@ -380,7 +379,11 @@ namespace Data.Services
                     case "Mould King": brick.MouldKingName = request.MappingName; brick.MouldKingPartNum = request.MappingItemId; break;
                     case "Unknown": brick.UnknownName = request.MappingName; brick.UnknownPartNum = request.MappingItemId; break;
                 }
+                brick.HasAtLeastOneMapping = true;
+                  _logger.LogInformation($"🟡 [RequestService] HasAtLeastOneMapping = true für {brick.Name} gesetzt");
             }
+          
+            
             await _db.SaveChangesAsync();
             // Notification für User
             await _notificationService.AddNotificationAsync(

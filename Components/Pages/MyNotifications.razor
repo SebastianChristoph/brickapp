@@ -20,30 +20,35 @@ else if (!_notifications.Any())
 }
 else
 {
-    <MudStack Row="true" Justify="Justify.FlexEnd"Spacing="2" Style="margin-bottom: 16px;">
-        <MudButton  StartIcon="@Icons.Material.Filled.MarkEmailRead" Color="Color.Primary" Variant="Variant.Outlined" OnClick="@MarkAllAsRead">Mark all as read</MudButton>
-        <MudButton StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Outlined" OnClick="@DeleteAllNotifications">Delete all</MudButton>
+    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Style="margin-bottom: 16px;">
+        <MudButton StartIcon="@Icons.Material.Filled.MarkEmailRead" Color="Color.Primary" Variant="Variant.Outlined"
+            OnClick="@MarkAllAsRead">Mark all as read</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" Variant="Variant.Outlined"
+            OnClick="@DeleteAllNotifications">Delete all</MudButton>
     </MudStack>
     <MudList T="UserNotification">
         @foreach (var n in _notifications)
         {
             <MudListItem T="UserNotification">
-              
-                <MudText Typo="Typo.subtitle2">   @if (!n.IsRead)
+
+                <MudText Typo="Typo.subtitle2"> @if (!n.IsRead)
                     {
                         <MudChip T="string" Color="Color.Info" Size="Size.Small">New</MudChip>
-                       
+
                     }
-                    @n.Title</MudText>
-                     <MudText Typo="Typo.caption">@n.CreatedAt.ToLocalTime().ToString("g")</MudText>
+                    @n.Title
+                </MudText>
+                <MudText Typo="Typo.caption">@n.CreatedAt.ToLocalTime().ToString("g")</MudText>
                 <MudText>@n.Message</MudText>
-               
+
                 <MudStack Row="true" Spacing="1">
                     @if (!n.IsRead)
                     {
-                        <MudIconButton Icon="@Icons.Material.Filled.MarkEmailRead" Size="Size.Small" Color="Color.Primary" OnClick="@(() => MarkAsRead(n))">Als gelesen markieren</MudIconButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.MarkEmailRead" Size="Size.Small" Color="Color.Primary"
+                            OnClick="@(() => MarkAsRead(n))">Als gelesen markieren</MudIconButton>
                     }
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Primary"  OnClick="@(() => DeleteNotification(n))">Löschen</MudIconButton>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Primary"
+                        OnClick="@(() => DeleteNotification(n))">Löschen</MudIconButton>
                 </MudStack>
             </MudListItem>
         }

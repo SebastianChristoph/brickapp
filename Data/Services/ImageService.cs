@@ -4,27 +4,26 @@ using Services;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
-
 namespace Data.Services
 {
     public class ImageService
-           
     {
         private readonly string _wwwrootPath;
         private readonly NotificationService _notificationService;
 
-      public ImageService(string wwwrootPath, NotificationService notificationService)
+        public ImageService(string wwwrootPath, NotificationService notificationService)
         {
             _wwwrootPath = wwwrootPath;
             _notificationService = notificationService;
         }
 
         // ITEM IMAGES
-        public string GetPlaceHolder(){
+        public string GetPlaceHolder()
+        {
             return "/placeholder-image.png";
         }
 
-         public async Task<string?> SaveResizedItemImageAsync(IBrowserFile file, string brand, string? legoPartNum, string? uuid)
+        public async Task<string?> SaveResizedItemImageAsync(IBrowserFile file, string brand, string? legoPartNum, string? uuid)
         {
             if (file == null || file.ContentType == null || !file.ContentType.StartsWith("image/"))
                 return null;
@@ -125,9 +124,6 @@ namespace Data.Services
             return "/placeholder-image.png";
         }
 
-
-
-
         // SET IMAGES
 
         public string GetSetImagePath(ItemSet itemSet)
@@ -154,12 +150,12 @@ namespace Data.Services
             return "/placeholder-image.png";
         }
 
-         public string GetNewSetRequestImagePath(NewSetRequest newSetRequest)
+        public string GetNewSetRequestImagePath(NewSetRequest newSetRequest)
         {
             if (newSetRequest == null)
                 return "/placeholder-image.png";
 
-           
+
             // 2. Prüfe auf lokales Bild
             if (!string.IsNullOrWhiteSpace(newSetRequest.SetNo) && !string.IsNullOrWhiteSpace(newSetRequest.Brand))
             {
@@ -176,7 +172,7 @@ namespace Data.Services
         }
 
         // OTHER IMAGES
-        
+
         // MOCK IMAGES
         public async Task<string?> SaveMockImageAsync(IBrowserFile uploadedImage, string userUuid, int mockId)
         {
@@ -218,7 +214,7 @@ namespace Data.Services
         }
 
         // Gibt immer den Platzhalter für ein Item zurück
-     
+
         public async Task<string?> SaveSetImageAsync(IBrowserFile uploadedImage, string brand, string setId)
         {
             if (uploadedImage == null) return null;

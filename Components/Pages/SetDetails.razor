@@ -19,16 +19,16 @@
 
 @if (_loading)
 {
-     <MudStack Justify="Justify.Center"Spacing="2" Style="margin-bottom: 16px; margin-top:16px;">
-         <MudText>Loading set details...</MudText>
-         <MudProgressLinear Color="Color.Primary"  Indeterminate="true" />
-        
-     </MudStack>
+    <MudStack Justify="Justify.Center" Spacing="2" Style="margin-bottom: 16px; margin-top:16px;">
+        <MudText>Loading set details...</MudText>
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+
+    </MudStack>
 
 }
 else if (_itemSet is null)
 {
-   <MudAlert Severity="Severity.Error">Set was not found.</MudAlert>
+    <MudAlert Severity="Severity.Error">Set was not found.</MudAlert>
     <MudButton Variant="Variant.Outlined" OnClick="@GoBack">Back</MudButton>
 }
 else
@@ -55,9 +55,9 @@ else
                 <MudText Typo="Typo.subtitle2">
                     Set Nr: @_itemSet.LegoSetNum | Year: @_itemSet.Year
                 </MudText>
-               
-                <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" OnClick="@OpenAddSetDialog" Size="Size.Large"
-                    Class="mt-2">
+
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary"
+                    OnClick="@OpenAddSetDialog" Size="Size.Large" Class="mt-2">
                     Add all items to my inventory
                 </MudButton>
             </MudStack>
@@ -68,7 +68,7 @@ else
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudText Typo="Typo.subtitle1">
                 Can you build this set?</MudText>
-            <MudProgressLinear Color="Color.Primary" Striped="true" Size="Size.Large"  Value="@Percent")"
+            <MudProgressLinear Color="Color.Primary" Striped="true" Size="Size.Large" Value="@Percent" )"
                 Style="min-width:200px;max-width:300px;width:30vw;" />
             <MudText Typo="Typo.body1" Class="ml-4">
                 @if (HasAll)
@@ -77,14 +77,15 @@ else
                 }
                 else
                 {
-                    <span>You have <strong>@TotalOwned</strong> of <strong>@TotalNeeded</strong> items in your inventory (@Percent%)</span>
+                    <span>You have <strong>@TotalOwned</strong> of <strong>@TotalNeeded</strong> items in your inventory
+                        (@Percent%)</span>
                 }
             </MudText>
         </MudStack>
     </MudPaper>
 
     <MudText Typo="Typo.h6" GutterBottom="true">
-        Steine in diesem Set
+        Item in this set
     </MudText>
 
     <style>
@@ -205,7 +206,7 @@ else
                 }
             </MudTd>
 
-             <!-- unknown: Name + PartNo -->
+            <!-- unknown: Name + PartNo -->
             <MudTd DataLabel="Unknown">
                 @context.MappedBrick.UnknownName
                 @if (!string.IsNullOrEmpty(context.MappedBrick.UnknownPartNum))
@@ -231,8 +232,8 @@ else
                         <MudChip T="string" Color="Color.Default">None</MudChip>
                     }
                 }
-            </MudTd>
-        </RowTemplate>
+        </MudTd>
+    </RowTemplate>
 
 
     </MudTable>
@@ -243,89 +244,89 @@ else
     </MudButton>
 
 
-@code{
-    
-        protected int TotalNeeded => _itemSet?.Bricks?.Sum(b => b.Quantity) ?? 0;
-        protected int TotalOwned => _itemSet?.Bricks?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
-        protected int Percent => (TotalNeeded > 0 && TotalOwned == TotalNeeded)
-            ? 100
-            : (TotalNeeded > 0 ? (int)Math.Floor(100.0 * (double)TotalOwned / TotalNeeded) : 0);
-        protected bool HasAll => TotalNeeded > 0 && TotalOwned == TotalNeeded;
-        [Parameter]
-        public int itemSetId { get; set; }
+@code {
 
-        private ItemSet? _itemSet;
-        private UserItemSet? _userItemSet;
-        private bool _loading = true;
+    protected int TotalNeeded => _itemSet?.Bricks?.Sum(b => b.Quantity) ?? 0;
+    protected int TotalOwned => _itemSet?.Bricks?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
+    protected int Percent => (TotalNeeded > 0 && TotalOwned == TotalNeeded)
+    ? 100
+    : (TotalNeeded > 0 ? (int)Math.Floor(100.0 * (double)TotalOwned / TotalNeeded) : 0);
+    protected bool HasAll => TotalNeeded > 0 && TotalOwned == TotalNeeded;
+    [Parameter]
+    public int itemSetId { get; set; }
 
-        private Dictionary<(int BrickId, int ColorId), Dictionary<string, int>> _ownedByBrand = new();
+    private ItemSet? _itemSet;
+    private UserItemSet? _userItemSet;
+    private bool _loading = true;
 
-        private enum BrickOwnershipState
+    private Dictionary<(int BrickId, int ColorId), Dictionary<string, int>> _ownedByBrand = new();
+
+    private enum BrickOwnershipState
+    {
+        None,
+        Partial,
+        Enough
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Versuche das Set aus dem User-Inventory zu laden
+        _userItemSet = await ItemSetService.GetCurrentUserItemSetAsync(itemSetId);
+
+        // Falls nicht im User-Inventory, lade das Set generisch
+        if (_userItemSet != null)
         {
-            None,
-            Partial,
-            Enough
+            _itemSet = _userItemSet.ItemSet;
+        }
+        else
+        {
+            // Fallback: Lade das Set direkt
+            _itemSet = await ItemSetService.GetItemSetByIdAsync(itemSetId);
         }
 
-        protected override async Task OnAfterRenderAsync(bool firstRender)
+        // Inventory laden
+        var inventory = await InventoryService.GetCurrentUserInventoryAsync();
+
+        _ownedByBrand = inventory
+        .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
+        .ToDictionary(
+        g => g.Key,
+        g => g.GroupBy(i => i.Brand)
+        .ToDictionary(
+        bg => bg.Key,
+        bg => bg.Sum(i => i.Quantity)
+        )
+        );
+
+        _loading = false;
+
+        StateHasChanged();
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/allsets");
+    }
+
+    private async Task OpenAddSetDialog()
+    {
+        if (_itemSet?.Bricks == null || !_itemSet.Bricks.Any())
+            return;
+
+
+        var itemCount = _itemSet.Bricks.Count;
+        var parameters = new DialogParameters<AddSetToInventoryDialog>();
+        parameters.Add(x => x.ItemCount, itemCount);
+        parameters.Add(x => x.ItemSetId, itemSetId);
+
+        var dialog = await DialogService.ShowAsync<AddSetToInventoryDialog>("Set zum Inventar hinzufügen", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is bool confirmed && confirmed)
         {
-            if (!firstRender) return;
-
-            // Versuche das Set aus dem User-Inventory zu laden
-            _userItemSet = await ItemSetService.GetCurrentUserItemSetAsync(itemSetId);
-
-            // Falls nicht im User-Inventory, lade das Set generisch
-            if (_userItemSet != null)
-            {
-                _itemSet = _userItemSet.ItemSet;
-            }
-            else
-            {
-                // Fallback: Lade das Set direkt
-                _itemSet = await ItemSetService.GetItemSetByIdAsync(itemSetId);
-            }
-
-            // Inventory laden
-            var inventory = await InventoryService.GetCurrentUserInventoryAsync();
-
-            _ownedByBrand = inventory
-                .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.GroupBy(i => i.Brand)
-                        .ToDictionary(
-                            bg => bg.Key,
-                            bg => bg.Sum(i => i.Quantity)
-                        )
-                );
-
-            _loading = false;
-
-            StateHasChanged();
-        }
-
-        private void GoBack()
-        {
-            Nav.NavigateTo("/allsets");
-        }
-
-        private async Task OpenAddSetDialog()
-        {
-            if (_itemSet?.Bricks == null || !_itemSet.Bricks.Any())
-                return;
-
-
-            var itemCount = _itemSet.Bricks.Count;
-            var parameters = new DialogParameters<AddSetToInventoryDialog>();
-            parameters.Add(x => x.ItemCount, itemCount);
-            parameters.Add(x => x.ItemSetId, itemSetId);
-
-            var dialog = await DialogService.ShowAsync<AddSetToInventoryDialog>("Set zum Inventar hinzufügen", parameters);
-            var result = await dialog.Result;
-
-            if (result != null && !result.Canceled && result.Data is bool confirmed && confirmed)
-            {
-                  if (confirmed)
+            if (confirmed)
             {
                 await OnInitializedAsync();
                 StateHasChanged();
@@ -335,26 +336,27 @@ else
             {
                 NotificationService.Error("Fehler beim Hinzufügen der Items zum Inventar.");
             }
-            }
-        }
-
-        private BrickOwnershipState GetOwnershipState(ItemSetBrick brick)
-        {
-            if (!_ownedByBrand.TryGetValue((brick.MappedBrickId, brick.BrickColorId), out var brandDict) || brandDict.Values.Sum() <= 0)
-                return BrickOwnershipState.None;
-
-            var total = brandDict.Values.Sum();
-            if (total < brick.Quantity)
-                return BrickOwnershipState.Partial;
-
-            return BrickOwnershipState.Enough;
-        }
-
-        private int GetOwnedQuantity(ItemSetBrick brick)
-        {
-            return _ownedByBrand.TryGetValue((brick.MappedBrickId, brick.BrickColorId), out var brandDict)
-                ? brandDict.Values.Sum()
-                : 0;
         }
     }
+
+    private BrickOwnershipState GetOwnershipState(ItemSetBrick brick)
+    {
+        if (!_ownedByBrand.TryGetValue((brick.MappedBrickId, brick.BrickColorId), out var brandDict) || brandDict.Values.Sum()
+        <= 0)
+            return BrickOwnershipState.None;
+
+        var total = brandDict.Values.Sum();
+        if (total < brick.Quantity)
+            return BrickOwnershipState.Partial;
+
+        return BrickOwnershipState.Enough;
+    }
+
+    private int GetOwnedQuantity(ItemSetBrick brick)
+    {
+        return _ownedByBrand.TryGetValue((brick.MappedBrickId, brick.BrickColorId), out var brandDict)
+        ? brandDict.Values.Sum()
+        : 0;
+    }
+}
 }

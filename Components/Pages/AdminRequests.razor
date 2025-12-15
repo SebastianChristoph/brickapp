@@ -1,4 +1,3 @@
-  
 @page "/admin-requests"
 @using Microsoft.AspNetCore.Components
 @using Services
@@ -8,14 +7,16 @@
 <MudText Typo="Typo.h4" GutterBottom="true">Admin Requests</MudText>
 
 
- <MudStack Row="true" Justify="Justify.FlexEnd"Spacing="2" Style="margin-bottom: 16px;">
-    
-<MudButton StartIcon="Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Color="Color.Primary" OnClick="ReloadData" Class="mb-3">Reload Data</MudButton>
+<MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Style="margin-bottom: 16px;">
 
- </MudStack>
+    <MudButton StartIcon="Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Color="Color.Primary"
+        OnClick="ReloadData" Class="mb-3">Reload Data</MudButton>
+
+</MudStack>
 
 <MudTabs>
-    <MudTabPanel Text="@(openMappingRequests == null ? "Mapping Requests" : $"Mapping Requests ({openMappingRequests.Count})")">
+    <MudTabPanel
+        Text="@(openMappingRequests == null ? "Mapping Requests" : $"Mapping Requests ({openMappingRequests.Count})")">
         @if (openMappingRequests == null)
         {
             <MudProgressCircular Indeterminate="true" />
@@ -36,7 +37,7 @@
                     <MudTh>Requested By</MudTh>
                     <MudTh>Created At</MudTh>
                     <MudTh>Actions</MudTh>
-                <!-- Actions column entfernt -->
+                    <!-- Actions column entfernt -->
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Id">@context.Id</MudTd>
@@ -47,8 +48,10 @@
                     <MudTd DataLabel="Requested By">@context.RequestedByUser?.Name</MudTd>
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Actions">
-                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ApproveMappingRequest(context.Id)">Approve</MudButton>
-                      <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => RejectMappingRequest(context.Id)">Reject</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                            OnClick="() => ApproveMappingRequest(context.Id)">Approve</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                            OnClick="() => RejectMappingRequest(context.Id)">Reject</MudButton>
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -61,7 +64,7 @@
         }
         else if (!openItemRequests.Any())
         {
-             <MudAlert Severity="Severity.Info" Class="mt-4">No open item requests found.</MudAlert>
+            <MudAlert Severity="Severity.Info" Class="mt-4">No open item requests found.</MudAlert>
         }
         else
         {
@@ -80,19 +83,22 @@
                     <MudTd DataLabel="Id">@context.Id</MudTd>
                     <MudTd DataLabel="Brand">@context.Brand</MudTd>
                     <MudTd DataLabel="Name">@context.Name</MudTd>
-                                        <MudTd DataLabel="Image">
-                                                @{
-                                                        var imageUrl = ImageService.GetItemRequestImagePath(context);
-                                                }
-                                                <img src="@imageUrl" alt="Item Image" style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;" />
-                                        </MudTd>
+                    <MudTd DataLabel="Image">
+                        @{
+                            var imageUrl = ImageService.GetItemRequestImagePath(context);
+                        }
+                        <img src="@imageUrl" alt="Item Image"
+                            style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;" />
+                    </MudTd>
                     <MudTd DataLabel="Requested By">@context.RequestedByUser?.Name ?? @context.RequestedByUserId</MudTd>
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
-                      <MudTd DataLabel="Actions">
-                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ApproveNewItemRequest(context.Id)">Approve</MudButton>
-                      <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => RejectNewItemRequest(context.Id)">Reject</MudButton>
-                      </MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                            OnClick="() => ApproveNewItemRequest(context.Id)">Approve</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                            OnClick="() => RejectNewItemRequest(context.Id)">Reject</MudButton>
+                    </MudTd>
                 </RowTemplate>
             </MudTable>
         }
@@ -104,91 +110,96 @@
         }
         else if (!openSetRequests.Any())
         {
-        
-              <MudAlert Severity="Severity.Info" Class="mt-4">No open set requests found.</MudAlert>
+
+            <MudAlert Severity="Severity.Info" Class="mt-4">No open set requests found.</MudAlert>
         }
         else
         {
             <MudTable Items="openSetRequests" Hover="true">
                 <HeaderContent>
-                      <MudTh>Image</MudTh>
+                    <MudTh>Image</MudTh>
                     <MudTh>Brand</MudTh>
                     <MudTh>Set No</MudTh>
                     <MudTh>Set Name</MudTh>
-                  
+
                     <MudTh>Requested By</MudTh>
                     <MudTh>Created At</MudTh>
                     <MudTh>Status</MudTh>
                     <MudTh>Actions</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                      <MudTd DataLabel="Image">
-                        <img src="@ImageService.GetNewSetRequestImagePath(context)" alt="Set Image" style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;" />
+                    <MudTd DataLabel="Image">
+                        <img src="@ImageService.GetNewSetRequestImagePath(context)" alt="Set Image"
+                            style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;" />
                     </MudTd>
                     <MudTd DataLabel="Brand">@context.Brand</MudTd>
                     <MudTd DataLabel="Set No">@context.SetNo</MudTd>
                     <MudTd DataLabel="Set Name">@context.SetName</MudTd>
-                  
+
                     <MudTd DataLabel="Requested By">@context.UserId</MudTd>
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
                     <MudTd DataLabel="Actions">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => ApproveNewSetRequest(context.Id)">Approve</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => RejectNewSetRequest(context.Id)">Reject</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                            OnClick="() => ApproveNewSetRequest(context.Id)">Approve</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                            OnClick="() => RejectNewSetRequest(context.Id)">Reject</MudButton>
                     </MudTd>
                 </RowTemplate>
             </MudTable>
         }
     </MudTabPanel>
+</MudTabs>
 
-    
-    </MudTabs>
-
-    @code {
+@code {
     [Inject] private Data.Services.RequestService RequestService { get; set; } = default!;
     [Inject] private Data.Services.ImageService ImageService { get; set; } = default!;
 
     [Inject] private Services.NotificationService NotificationService { get; set; } = default!;
-    [Inject] private Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    [Inject]
+    private Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider
+    {
+        get; set;
+    } = default!;
     [Inject] private Services.UserService UserService { get; set; } = default!;
 
     private List<Data.Entities.MappingRequest>? openMappingRequests;
     private List<Data.Entities.NewItemRequest>? openItemRequests;
     private List<Data.Entities.NewSetRequest>? openSetRequests;
 
-        protected override async Task OnInitializedAsync()
-        {
-            await ReloadData();
-        }
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadData();
+    }
 
-        private async Task ReloadData()
+    private async Task ReloadData()
+    {
+        openMappingRequests = await RequestService.GetOpenMappingRequestsAsync();
+        openItemRequests = await RequestService.GetOpenNewItemRequestsAsync();
+        openSetRequests = await RequestService.GetOpenNewSetRequestsAsync();
+        StateHasChanged();
+    }
+    private async Task ApproveMappingRequest(int requestId)
+    {
+        try
         {
-            openMappingRequests = await RequestService.GetOpenMappingRequestsAsync();
-            openItemRequests = await  RequestService.GetOpenNewItemRequestsAsync();
-            openSetRequests = await RequestService.GetOpenNewSetRequestsAsync();
-            StateHasChanged();
-        }
-        private async Task ApproveMappingRequest(int requestId)
-        {
-            try
-            {
-                var token = await UserService.GetTokenAsync();
+            var token = await UserService.GetTokenAsync();
             if (token == null)
             {
                 NotificationService.Error("User token not found.");
                 return;
             }
-                await RequestService.ApproveMappingRequestAsync(requestId, token);
-                NotificationService.Success("Mapping request approved successfully.");
-                openMappingRequests = await RequestService.GetOpenMappingRequestsAsync();
-            }
-            catch (Exception ex)
-            {
-                NotificationService.Error($"Error approving request: {ex.Message}");
-            }
+            await RequestService.ApproveMappingRequestAsync(requestId, token);
+            NotificationService.Success("Mapping request approved successfully.");
+            openMappingRequests = await RequestService.GetOpenMappingRequestsAsync();
         }
+        catch (Exception ex)
+        {
+            NotificationService.Error($"Error approving request: {ex.Message}");
+        }
+    }
 
-          private async Task RejectMappingRequest(int requestId)
+    private async Task RejectMappingRequest(int requestId)
     {
         try
         {
@@ -209,27 +220,27 @@
         }
     }
 
-      private async Task ApproveNewItemRequest(int requestId)
+    private async Task ApproveNewItemRequest(int requestId)
+    {
+        try
         {
-            try
-            {
-                var token = await UserService.GetTokenAsync();
+            var token = await UserService.GetTokenAsync();
             if (token == null)
             {
                 NotificationService.Error("User token not found.");
                 return;
             }
-                await RequestService.ApproveNewItemRequestAsync(requestId, token);
-                NotificationService.Success("new item request approved successfully.");
-                openItemRequests = await RequestService.GetOpenNewItemRequestsAsync();
-            }
-            catch (Exception ex)
-            {
-                NotificationService.Error($"Error approving request: {ex.Message}");
-            }
+            await RequestService.ApproveNewItemRequestAsync(requestId, token);
+            NotificationService.Success("new item request approved successfully.");
+            openItemRequests = await RequestService.GetOpenNewItemRequestsAsync();
         }
+        catch (Exception ex)
+        {
+            NotificationService.Error($"Error approving request: {ex.Message}");
+        }
+    }
 
-          private async Task RejectNewItemRequest(int requestId)
+    private async Task RejectNewItemRequest(int requestId)
     {
         try
         {
@@ -250,26 +261,25 @@
         }
     }
 
-
-      private async Task ApproveNewSetRequest(int requestId)
+    private async Task ApproveNewSetRequest(int requestId)
+    {
+        try
         {
-            try
-            {
-                var token = await UserService.GetTokenAsync();
+            var token = await UserService.GetTokenAsync();
             if (token == null)
             {
                 NotificationService.Error("User token not found.");
                 return;
             }
-                await RequestService.ApproveNewSetRequestAsync(requestId);
-                NotificationService.Success("New set request approved successfully.");
-                openSetRequests = await RequestService.GetOpenNewSetRequestsAsync();
-            }
-            catch (Exception ex)
-            {
-                NotificationService.Error($"Error approving request: {ex.Message}");
-            }
+            await RequestService.ApproveNewSetRequestAsync(requestId);
+            NotificationService.Success("New set request approved successfully.");
+            openSetRequests = await RequestService.GetOpenNewSetRequestsAsync();
         }
+        catch (Exception ex)
+        {
+            NotificationService.Error($"Error approving request: {ex.Message}");
+        }
+    }
 
     private async Task RejectNewSetRequest(int requestId)
     {
@@ -285,5 +295,4 @@
             NotificationService.Error($"Fehler beim Ablehnen: {ex.Message}");
         }
     }
-    }
-   
+}

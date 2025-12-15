@@ -70,6 +70,10 @@ else
                           Sortable="true">
 
                     <HeaderContent>
+                        
+                        <MudTh>
+                            Image
+                        </MudTh>
                         <MudTh>
                             <MudTableSortLabel T="InventoryItem"
                                                SortBy="@(x => x.MappedBrick?.Name ?? string.Empty)">
@@ -105,9 +109,6 @@ else
                             </MudTableSortLabel>
                         </MudTh>
 
-                        <MudTh>
-                            Image
-                        </MudTh>
 
                         <MudTh>
                             Actions
@@ -115,6 +116,28 @@ else
                     </HeaderContent>
 
                     <RowTemplate>
+                          <MudTd DataLabel="Image">
+                            @{
+                                var imgUrl = ImageService.GetMappedBrickImagePath(context.MappedBrick);
+                                var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
+                            }
+                            @if (overlay != null)
+                            {
+                                <div class="brick" style="--brick-overlay:@overlay">
+                                    <img src="@imgUrl"
+                                         alt=""
+                                         style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
+                                         onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                                </div>
+                            }
+                            else
+                            {
+                                <img src="@imgUrl"
+                                     alt=""
+                                     style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
+                                     onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                            }
+                        </MudTd>
                         <MudTd DataLabel="Brick">@context.MappedBrick?.Name</MudTd>
                         <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
                         <MudTd DataLabel="Brand">@context.Brand</MudTd>
@@ -145,28 +168,7 @@ else
                             }
                         </MudTd>
                         <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
-                        <MudTd DataLabel="Image">
-                            @{
-                                var imgUrl = ImageService.GetMappedBrickImagePath(context.MappedBrick);
-                                var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
-                            }
-                            @if (overlay != null)
-                            {
-                                <div class="brick" style="--brick-overlay:@overlay">
-                                    <img src="@imgUrl"
-                                         alt=""
-                                         style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
-                                         onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
-                                </div>
-                            }
-                            else
-                            {
-                                <img src="@imgUrl"
-                                     alt=""
-                                     style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
-                                     onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
-                            }
-                        </MudTd>
+                      
                         <MudTd DataLabel="Actions">
                             <MudButton Size="Size.Small"
                                        Variant="Variant.Outlined"
