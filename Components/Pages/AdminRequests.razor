@@ -22,7 +22,7 @@
         }
         else if (!openMappingRequests.Any())
         {
-            <MudText>No open mapping requests found.</MudText>
+            <MudAlert Severity="Severity.Info" Class="mt-4">No open mapping requests found.</MudAlert>
         }
         else
         {
@@ -61,7 +61,7 @@
         }
         else if (!openItemRequests.Any())
         {
-            <MudText>No open item requests found.</MudText>
+             <MudAlert Severity="Severity.Info" Class="mt-4">No open item requests found.</MudAlert>
         }
         else
         {
@@ -104,30 +104,31 @@
         }
         else if (!openSetRequests.Any())
         {
-            <MudText>No open set requests found.</MudText>
+        
+              <MudAlert Severity="Severity.Info" Class="mt-4">No open set requests found.</MudAlert>
         }
         else
         {
             <MudTable Items="openSetRequests" Hover="true">
                 <HeaderContent>
-                    <MudTh>Id</MudTh>
+                      <MudTh>Image</MudTh>
                     <MudTh>Brand</MudTh>
                     <MudTh>Set No</MudTh>
                     <MudTh>Set Name</MudTh>
-                    <MudTh>Image</MudTh>
+                  
                     <MudTh>Requested By</MudTh>
                     <MudTh>Created At</MudTh>
                     <MudTh>Status</MudTh>
                     <MudTh>Actions</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Id">@context.Id</MudTd>
+                      <MudTd DataLabel="Image">
+                        <img src="@ImageService.GetNewSetRequestImagePath(context)" alt="Set Image" style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;" />
+                    </MudTd>
                     <MudTd DataLabel="Brand">@context.Brand</MudTd>
                     <MudTd DataLabel="Set No">@context.SetNo</MudTd>
                     <MudTd DataLabel="Set Name">@context.SetName</MudTd>
-                    <MudTd DataLabel="Image">
-                       <MudText>Muss hier noch hin 123</MudText>
-                    </MudTd>
+                  
                     <MudTd DataLabel="Requested By">@context.UserId</MudTd>
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>

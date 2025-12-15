@@ -100,7 +100,8 @@ namespace Data.Services
             var mappedBrick = new MappedBrick
             {
                 Name = request.Name,
-                Uuid = request.Uuid
+                Uuid = request.Uuid,
+                HasAtLeastOneMapping = true
             };
             // Set the brand-specific fields
             switch (request.Brand?.Trim().ToLower())
@@ -141,8 +142,8 @@ namespace Data.Services
             {
                 await _notificationService.AddNotificationAsync(
                     request.RequestedByUserId,
-                    "Neues Item genehmigt",
-                    $"Dein Request für {request.Brand} ({request.Name}) wurde genehmigt.",
+                    "New Item Approved",
+                    $"Your request for {request.Brand} ({request.Name}) has been approved.",
                     "NewItemRequest",
                     request.Id
                 );
@@ -162,8 +163,8 @@ namespace Data.Services
             {
                 await _notificationService.AddNotificationAsync(
                     request.RequestedByUserId,
-                    "Neues Item abgelehnt",
-                    $"Dein Request für {request.Brand} ({request.Name}) wurde abgelehnt: {reason}",
+                    "New Item Rejected",
+                    $"Your request for {request.Brand} ({request.Name}) has been rejected: {reason}",
                     "NewItemRequest",
                     request.Id
                 );
@@ -289,8 +290,8 @@ namespace Data.Services
             {
                 await _notificationService.AddNotificationAsync(
                     request.UserId,
-                    "Neues Set genehmigt",
-                    $"Dein Request für Set {request.SetNo} ({request.SetName}) wurde genehmigt.",
+                    "New Set Approved",
+                    $"Your request for Set {request.SetNo} ({request.SetName}) has been approved.",
                     "NewSetRequest",
                     request.Id
                 );
@@ -308,8 +309,8 @@ namespace Data.Services
             {
                 await _notificationService.AddNotificationAsync(
                     request.UserId,
-                    "Neues Set abgelehnt",
-                    $"Dein Request für Set {request.SetNo} ({request.SetName}) wurde abgelehnt: {reason}",
+                    "New Set Rejected",
+                    $"Your request for Set {request.SetNo} ({request.SetName}) has been rejected: {reason}",
                     "NewSetRequest",
                     request.Id
                 );
@@ -384,8 +385,8 @@ namespace Data.Services
             // Notification für User
             await _notificationService.AddNotificationAsync(
                 request.RequestedByUserId,
-                "Mapping genehmigt",
-                $"Dein Mapping-Request für {request.Brand} ({request.MappingName}) wurde genehmigt.",
+                "Mapping Approved",
+                $"Your mapping request for {request.Brand} ({request.MappingName}) has been approved.",
                 "MappingRequest",
                 request.Id
             );
@@ -403,8 +404,8 @@ namespace Data.Services
             // Notification für User
             await _notificationService.AddNotificationAsync(
                 request.RequestedByUserId,
-                "Mapping abgelehnt",
-                $"Dein Mapping-Request für {request.Brand} ({request.MappingName}) wurde abgelehnt: {reason}",
+                "Mapping Rejected",
+                $"Your mapping request for {request.Brand} ({request.MappingName}) has been rejected: {reason}",
                 "MappingRequest",
                 request.Id
             );
