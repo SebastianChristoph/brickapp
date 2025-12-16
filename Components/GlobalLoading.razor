@@ -1,39 +1,6 @@
 @inject Services.LoadingService LoadingService
 @implements IDisposable
 
-@if (_visible)
-{
-    <div class="global-loading-overlay">
-        <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
-    </div>
-}
-
-@code {
-    private bool _visible;
-
-    protected override void OnInitialized()
-    {
-        LoadingService.OnShow += Show;
-        LoadingService.OnHide += Hide;
-        _visible = LoadingService.IsLoading;
-    }
-
-    private void Show()
-    {
-        _visible = true;
-        InvokeAsync(StateHasChanged);
-    }
-    private void Hide()
-    {
-        _visible = false;
-        InvokeAsync(StateHasChanged);
-    }
-    public void Dispose()
-    {
-        LoadingService.OnShow -= Show;
-        LoadingService.OnHide -= Hide;
-    }
-}
 
 <style>
 .global-loading-overlay {
@@ -46,3 +13,44 @@
     justify-content: center;
 }
 </style>
+
+@if (_visible)
+{
+    <div class="global-loading-overlay">
+        <MudStack Spacing="2" AlignItems="AlignItems.Center">
+            <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.subtitle1" Align="Align.Center">@(_message ?? "Loading data")</MudText>
+        </MudStack>
+    </div>
+}
+
+@code {
+    private bool _visible;
+    private string? _message;
+
+    protected override void OnInitialized()
+    {
+        LoadingService.OnShow += Show;
+        LoadingService.OnHide += Hide;
+        _visible = LoadingService.IsLoading;
+    }
+
+    private void Show(string? message = null)
+    {
+        _message = message;
+        _visible = true;
+        InvokeAsync(StateHasChanged);
+    }
+    private void Hide()
+    {
+        _visible = false;
+        _message = null;
+        InvokeAsync(StateHasChanged);
+    }
+    public void Dispose()
+    {
+        LoadingService.OnShow -= Show;
+        LoadingService.OnHide -= Hide;
+    }
+}
+

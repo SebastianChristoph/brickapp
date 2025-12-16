@@ -5,14 +5,14 @@ namespace Services
 {
     public class LoadingService
     {
-        public event Action? OnShow;
+        public event Action<string?>? OnShow;
         public event Action? OnHide;
         public bool IsLoading { get; private set; }
 
-        public void Show()
+        public void Show(string? message = null)
         {
             IsLoading = true;
-            OnShow?.Invoke();
+            OnShow?.Invoke(message);
         }
 
         public void Hide()
