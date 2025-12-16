@@ -9,17 +9,17 @@ using Data.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
-var connectionString =
-    builder.Configuration.GetConnectionString("Default")
-    ?? Environment.GetEnvironmentVariable("POSTGRES_CONNECTION");
+var cs = builder.Configuration.GetConnectionString("Default");
 
-if (string.IsNullOrWhiteSpace(connectionString))
-{
-    Console.WriteLine($"ENV POSTGRES_CONNECTION: '{Environment.GetEnvironmentVariable("POSTGRES_CONNECTION")}'");
-    Console.WriteLine($"CFG ConnectionStrings:Default: '{builder.Configuration.GetConnectionString("Default")}'");
+if (string.IsNullOrWhiteSpace(cs))
+    cs = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION");
 
+if (string.IsNullOrWhiteSpace(cs))
     throw new Exception("Connection string not set. Provide ConnectionStrings:Default or POSTGRES_CONNECTION.");
-}
+
+var connectionString = cs;
+
+
 
 builder.Services.AddControllers();
 
