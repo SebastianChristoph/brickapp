@@ -8,32 +8,50 @@
 @inject IServiceProvider ServiceProvider
 @inject Data.Services.ImageService ImageService
 @inject UserService UserService
+@inject Services.LoadingService LoadingService
+@inject Services.NotificationService NotificationService
 @using IBrowserFile = Microsoft.AspNetCore.Components.Forms.IBrowserFile
 
 
  <MudText Typo="Typo.h4" GutterBottom="true">My MOCs</MudText>
 
  <MudStack Row="true" Justify="Justify.FlexEnd"Spacing="2" Style="margin-bottom: 16px;">
-    <MudButton StartIcon="@Icons.Material.Filled.Delete" Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteAllMocks" Class="ml-2">Delete all MOCs</MudButton>
-
+   <MudButton StartIcon="@Icons.Material.Filled.Delete"
+           Variant="Variant.Outlined"
+           Color="Color.Error"
+           OnClick="DeleteAllMocks"
+           Disabled="_loading"
+           Class="ml-2">
+    Delete all MOCs
+</MudButton>
  </MudStack>
 
 <MudPaper Class="pa-4 mb-4">
        
         <MudText Typo="Typo.h6">Upload a new MOC</MudText>
-        <MudSelect @bind-Value="selectedFormat" Label="Item List Source" Style="width:200px;">
-            <MudSelectItem Value="@("rebrickable")">Rebrickable List (CSV)</MudSelectItem>
-            <MudSelectItem Value="@("bricklink")">Bricklink List (XML)</MudSelectItem>
-        </MudSelect>
-        <MudTextField @bind-Value="newMockName" Label="MOC name" Style="width:200px;margin-top:8px;" />
+       <MudSelect @bind-Value="selectedFormat"
+           Label="Item List Source"
+           Disabled="_loading"
+           Style="width:200px;" />
 
-        <MudTextField @bind-Value="newMockComment" Label="Comment" HelperText="optional (e.g., This is my custom MOC)" Style="width:200px;margin-top:8px;" Lines="3" TextFieldStyle="MudBlazor.TextFieldStyle.Multiline" />
+<MudTextField @bind-Value="newMockName"
+              Label="MOC name"
+              Disabled="_loading"
+              Style="width:200px;margin-top:8px;" />
 
-        <MudTextField @bind-Value="newMockWebSource" Label="Web Source"  HelperText="optional (e.g., https://example.com)" Class="width:200px;  margin-top:8px;" />
+<MudTextField @bind-Value="newMockComment"
+              Label="Comment"
+              Disabled="_loading"
+              Lines="3"
+              TextFieldStyle="MudBlazor.TextFieldStyle.Multiline" />
+
+<MudTextField @bind-Value="newMockWebSource"
+              Label="Web Source"
+              Disabled="_loading" />
 
         <div style="margin-top:8px;">
             <label>Upload MOC image (max 3MB)</label>
-            <InputFile OnChange="OnImageSelected" accept="image/*" />
+           <InputFile OnChange="OnImageSelected" accept="image/*" disabled="@_loading" />
         </div>
         @if (!string.IsNullOrEmpty(imagePreviewUrl))
         {
@@ -43,7 +61,9 @@
         }
         <br>
         <MudText variant="body1">Upload Item List File:</MudText>
-        <InputFile OnChange="OnFileSelected" accept="@(selectedFormat == "bricklink" ? ".xml" : ".csv")" />
+      <InputFile OnChange="OnFileSelected"
+           accept="@(selectedFormat == "bricklink" ? ".xml" : ".csv")"
+           disabled="@_loading" />
         <br>
         <br>
 
@@ -73,9 +93,14 @@
             All items were successfully mapped to existing MappedBricks.</MudAlert>
     }
         
-        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateMockFromUpload" Disabled="@(!fileReadyForUpload)" Class="ml-2 mt-2">
-            @(unmappedItems.Count > 0 ? "Create new MOC anyway" : "Create new MOC")
-        </MudButton>
+       <MudButton StartIcon="@Icons.Material.Filled.Add"
+           Variant="Variant.Filled"
+           Color="Color.Primary"
+           OnClick="CreateMockFromUpload"
+           Disabled="@(!fileReadyForUpload || _loading)"
+           Class="ml-2 mt-2">
+    @(unmappedItems.Count > 0 ? "Create new MOC anyway" : "Create new MOC")
+</MudButton>
 
         <MudText Color="Color.Error">@uploadError</MudText>
 </MudPaper>
@@ -138,7 +163,14 @@
                             }
                         </span>
                     </div>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" Style="margin-left:8px" OnClick="@(() => DeleteMock(mock.Id))">Delete </MudButton>
+                  <MudButton Variant="Variant.Outlined"
+           Color="Color.Error"
+           Size="Size.Small"
+           Style="margin-left:8px"
+           Disabled="_loading"
+           OnClick="@(() => DeleteMock(mock.Id))">
+    Delete
+</MudButton>
                 </MudListItem>
             }
         }
@@ -159,6 +191,7 @@
     private bool fileReadyForUpload = false;
     private IBrowserFile? uploadedImage = null;
     private string imagePreviewUrl = string.Empty;
+    private bool _loading = false;
     private async Task OnImageSelected(InputFileChangeEventArgs e)
     {
         uploadError = string.Empty;
@@ -198,6 +231,7 @@
 
     private async Task DeleteMock(int mockId)
     {
+        if (_loading) return;
         var userUuid = await UserService.GetTokenAsync();
         if (string.IsNullOrEmpty(userUuid))
             return;
@@ -216,6 +250,7 @@
 
     private async Task DeleteAllMocks()
     {
+        if (_loading) return;
         var userUuid = await UserService.GetTokenAsync();
         if (string.IsNullOrEmpty(userUuid))
             return;
@@ -265,6 +300,7 @@
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
+         if (_loading) return;
         uploadError = string.Empty;
         uploadedFile = e.File;
         fileReadyForUpload = false;
@@ -284,6 +320,12 @@
             uploadError = "Please select a CSV file for Rebrickable.";
             return;
         }
+
+           _loading = true;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(50); // UI-Render-Sicherheit
+        LoadingService.Show();
+
 
         try
         {
@@ -391,92 +433,129 @@
             fileReadyForUpload = true;
         }
         catch (Exception ex)
-        {
-            uploadError = $"Fehler beim Verarbeiten der Datei: {ex.Message}";
-            fileReadyForUpload = false;
-        }
-    }
-
-    private async Task CreateMockFromUpload()
     {
-        uploadError = string.Empty;
-        // Pflichtfelder prüfen
-        if (string.IsNullOrWhiteSpace(newMockName))
-        {
-            uploadError = "Please provide a name for the mock.";
-            return;
-        }
-        if (uploadedFile == null || uploadedItems == null || uploadedItems.Count == 0)
-        {
-            uploadError = "Please upload a valid mock list.";
-            return;
-        }
-        try
-        {
-            using var scope = ServiceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-            var name = string.IsNullOrWhiteSpace(newMockName) ? uploadedFile.Name : newMockName.Trim();
-            var userUuid = await UserService.GetTokenAsync();
-            if (string.IsNullOrEmpty(userUuid))
-            {
-                uploadError = "Nicht eingeloggt.";
-                return;
-            }
-            // Nur Items mit gültigen MappedBrickId und BrickColorId, die auch wirklich existieren, speichern
-            var validItems = new List<MockItem>();
-            foreach (var i in uploadedItems)
-            {
-                if (i.MappedBrickId == null || i.BrickColorId == null)
-                    continue;
-                var mappedExists = db.MappedBricks.Any(b => b.Id == i.MappedBrickId);
-                var colorExists = db.BrickColors.Any(c => c.Id == i.BrickColorId);
-                if (mappedExists && colorExists)
-                    validItems.Add(i);
-            }
-
-            var mock = new Mock
-            {
-                Name = name,
-                UserUuid = userUuid,
-                MockType = selectedFormat,
-                Items = validItems,
-                Comment = string.IsNullOrWhiteSpace(newMockComment) ? null : newMockComment.Trim(),
-                WebSource = string.IsNullOrWhiteSpace(newMockWebSource) ? null : newMockWebSource.Trim(),
-            };
-            db.Mocks.Add(mock);
-            db.SaveChanges();
-
-            // Bild speichern, falls vorhanden, über ImageService
-            if (uploadedImage != null)
-            {
-                try
-                {
-                    var imagePath = await ImageService.SaveMockImageAsync(uploadedImage, userUuid, mock.Id);
-                    if (!string.IsNullOrEmpty(imagePath))
-                    {
-                        db.SaveChanges();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    uploadError = $"Bild konnte nicht gespeichert werden: {ex.Message}";
-                }
-            }
-
-            newMockName = string.Empty;
-            newMockComment = string.Empty;
-            newMockWebSource = string.Empty;
-            uploadedFile = null;
-            uploadedItems.Clear();
-            fileReadyForUpload = false;
-            unmappedItems.Clear();
-            uploadedImage = null;
-            imagePreviewUrl = string.Empty;
-            await LoadMocks();
-        }
-        catch (Exception ex)
-        {
-            uploadError = $"Fehler beim Speichern: {ex.Message}";
-        }
+        uploadError = $"Fehler beim Verarbeiten der Datei: {ex.Message}";
+        fileReadyForUpload = false;
     }
+    finally
+    {
+        // 🔄 Spinner ENDE
+        LoadingService.Hide();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+    }
+
+   private async Task CreateMockFromUpload()
+{
+    if (_loading) return;
+
+    uploadError = string.Empty;
+
+    // Pflichtfelder prüfen (ohne Spinner)
+    if (string.IsNullOrWhiteSpace(newMockName))
+    {
+        uploadError = "Please provide a name for the mock.";
+        return;
+    }
+    if (uploadedFile == null || uploadedItems == null || uploadedItems.Count == 0)
+    {
+        uploadError = "Please upload a valid mock list.";
+        return;
+    }
+
+    _loading = true;
+    await InvokeAsync(StateHasChanged);
+    await Task.Delay(100); // optional, damit UI sicher rendert
+    LoadingService.Show();
+
+    try
+    {
+        using var scope = ServiceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+
+        var name = string.IsNullOrWhiteSpace(newMockName) ? uploadedFile.Name : newMockName.Trim();
+        var userUuid = await UserService.GetTokenAsync();
+        if (string.IsNullOrEmpty(userUuid))
+        {
+            uploadError = "Nicht eingeloggt.";
+            return;
+        }
+
+        // Nur gültige Items speichern
+        var validItems = new List<MockItem>();
+        foreach (var i in uploadedItems)
+        {
+            if (i.MappedBrickId == null || i.BrickColorId == null)
+                continue;
+
+            var mappedExists = db.MappedBricks.Any(b => b.Id == i.MappedBrickId);
+            var colorExists = db.BrickColors.Any(c => c.Id == i.BrickColorId);
+            if (mappedExists && colorExists)
+                validItems.Add(i);
+        }
+
+        var mock = new Mock
+        {
+            Name = name,
+            UserUuid = userUuid,
+            MockType = selectedFormat,
+            Items = validItems,
+            Comment = string.IsNullOrWhiteSpace(newMockComment) ? null : newMockComment.Trim(),
+            WebSource = string.IsNullOrWhiteSpace(newMockWebSource) ? null : newMockWebSource.Trim(),
+        };
+
+        db.Mocks.Add(mock);
+        db.SaveChanges();
+
+        // Bild speichern, falls vorhanden
+        if (uploadedImage != null)
+        {
+            try
+            {
+                // optional zum testen:
+                // await Task.Delay(1000);
+
+                var imagePath = await ImageService.SaveMockImageAsync(uploadedImage, userUuid, mock.Id);
+                if (!string.IsNullOrEmpty(imagePath))
+                {
+                    db.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                uploadError = $"Bild konnte nicht gespeichert werden: {ex.Message}";
+                // du kannst hier trotzdem success zeigen oder abbrechen – je nach Wunsch
+            }
+        }
+
+        // === HIER willst du den Spinner noch sehen ===
+        newMockName = string.Empty;
+        newMockComment = string.Empty;
+        newMockWebSource = string.Empty;
+        uploadedFile = null;
+        uploadedItems.Clear();
+        fileReadyForUpload = false;
+        unmappedItems.Clear();
+        uploadedImage = null;
+        imagePreviewUrl = string.Empty;
+
+        await LoadMocks();
+
+        // === Success kommt bevor Spinner verschwindet ===
+        NotificationService.Success("MOC successfully created.");
+    }
+    catch (Exception ex)
+    {
+        uploadError = $"Fehler beim Speichern: {ex.Message}";
+        NotificationService.Error("Creating MOC failed.");
+    }
+    finally
+    {
+        LoadingService.Hide();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+}
+
 }

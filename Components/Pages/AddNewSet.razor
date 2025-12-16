@@ -9,7 +9,7 @@
 
 @inject Services.NotificationService NotificationService
 @inject Data.Services.ImageService ImageService
-
+@inject Services.LoadingService LoadingService
 
 <MudText Typo="Typo.h4" GutterBottom="true">Add new sets</MudText>
 
@@ -189,17 +189,24 @@ else
 
 		<div class="mt-3">
 
-			<MudButton StartIcon="@Icons.Material.Filled.Save" Variant="Variant.Filled" Color="Color.Primary"
-				ButtonType="ButtonType.Submit" Class="mb-4">
-				Save as draft
-			</MudButton>
+			<MudButton StartIcon="@Icons.Material.Filled.Save"
+           Variant="Variant.Filled"
+           Color="Color.Primary"
+           ButtonType="ButtonType.Submit"
+           Class="mb-4"
+           Disabled="_loading">
+    Save as draft
+</MudButton>
 
-			<MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary"
-				OnClick="@HandlePublish" Class="mb-4">
 
-				Publish set
-			</MudButton>
-
+		<MudButton StartIcon="@Icons.Material.Filled.Add"
+           Variant="Variant.Filled"
+           Color="Color.Primary"
+           OnClick="@HandlePublish"
+           Class="mb-4"
+           Disabled="_loading">
+    Publish set
+</MudButton>
 
 			@* <button type="submit" class="btn btn-secondary me-2">Als Entwurf speichern</button>
 		<button type="button" class="btn btn-primary" @onclick="HandlePublish">Veröffentlichen</button> *@
@@ -211,6 +218,7 @@ else
 	private string? imagePreviewUrl;
 	private string? imageError;
 	private IBrowserFile? uploadedImageFile;
+	private bool _loading = false;
 
 	private async Task OnImageSelected(InputFileChangeEventArgs e)
 	{
@@ -429,6 +437,7 @@ else
 
 	private async Task HandleDraftSubmit()
 	{
+		if (_loading) return;
 		errorMessage = null;
 		var user = await UserService.GetCurrentUserAsync();
 		if (user == null)
@@ -452,6 +461,13 @@ else
 			StateHasChanged();
 			return;
 		}
+
+		
+    	    _loading = true;
+			await InvokeAsync(StateHasChanged);
+			await Task.Delay(100); // optional, damit UI rendern kann
+			LoadingService.Show();
+
 		string? imagePath = null;
 		try
 		{
@@ -463,6 +479,14 @@ else
 			StateHasChanged();
 			return;
 		}
+		 finally
+		{
+			LoadingService.Hide();
+			_loading = false;
+			await InvokeAsync(StateHasChanged);
+		}
+
+
 		var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem
 		{
 			ItemIdOrName = b.BrickId != 0 ? b.BrickId.ToString() : b.BrickName,
@@ -491,6 +515,7 @@ else
 
 	private async Task HandlePublish()
 	{
+		if (_loading) return;
 		errorMessage = null;
 		var user = await UserService.GetCurrentUserAsync();
 		if (user == null) return;
@@ -507,6 +532,14 @@ else
 		}
 
 		string? imagePath = null;
+
+		    _loading = true;
+    	await InvokeAsync(StateHasChanged);
+    
+    	LoadingService.Show();
+
+	try
+    {
 		if (uploadedImageFile != null)
 		{
 			try
@@ -566,7 +599,18 @@ else
 		uploadedImageFile = null;
 		imagePreviewUrl = null;
 		NotificationService.Success("Set successfully submitted for review.");
-		StateHasChanged();
+		}
+    catch (Exception ex)
+   {
+        errorMessage = $"Error while publishing: {ex.Message}";
+        NotificationService.Error("Publishing failed.");
+    }
+    finally
+    {
+        LoadingService.Hide();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
 	}
 
 	private async Task DeleteDraftAsync(int id)

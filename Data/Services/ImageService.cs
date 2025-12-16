@@ -11,11 +11,13 @@ namespace Data.Services
     {
         private readonly IImageStorage _storage;
         private readonly NotificationService _notificationService;
+              private readonly ILogger<RequestService> _logger;
 
-        public ImageService(IImageStorage storage, NotificationService notificationService)
+        public ImageService(IImageStorage storage, NotificationService notificationService,   ILogger<RequestService> logger)
         {
             _storage = storage;
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         // ITEM IMAGES
@@ -26,6 +28,8 @@ namespace Data.Services
 
         public async Task<string?> SaveResizedItemImageAsync(IBrowserFile file, string brand, string? legoPartNum, string? uuid)
         {
+             _logger.LogInformation($"🟡 [ImageService] Saving Image for brand {brand}");
+
             if (file == null || file.ContentType == null || !file.ContentType.StartsWith("image/"))
                 return null;
 
@@ -68,6 +72,7 @@ namespace Data.Services
 
             var webPath = BuildWebPath(relativePath);
             _notificationService.Success($"Item image saved at {webPath}");
+            _logger.LogInformation($"🟢 [ImageService] Image saved at {webPath}");
             return webPath;
         }
 

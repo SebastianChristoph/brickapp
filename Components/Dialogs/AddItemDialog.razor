@@ -8,7 +8,7 @@
 @inject Services.UserService UserService
 @inject Services.NotificationService NotificationService
 @inject ILogger<AddItemDialog> Logger
-
+@inject Services.LoadingService LoadingService
 
 <MudDialog>
     <DialogContent>
@@ -39,7 +39,13 @@
     <DialogActions>
        
         <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
-         <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" OnClick="OnSave" Color="Color.Primary">Save</MudButton>
+        <MudButton Variant="Variant.Filled"
+           StartIcon="@Icons.Material.Filled.Save"
+           OnClick="OnSave"
+           Color="Color.Primary"
+           Disabled="_loading">
+            Save
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -51,6 +57,7 @@
     private IBrowserFile? _file;
     private string? _imagePreviewUrl;
     private string _errorMessage = string.Empty;
+    private bool _loading = false;
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
@@ -64,52 +71,92 @@
         }
     }
 
-    private async Task OnSave()
-    {
-        _errorMessage = string.Empty;
-        Logger.LogInformation("🟡 [AddItemDialog] OnSave called: Brand={Brand}, Name={Name}, PartNum={PartNum}", Brand, Name, PartNum);
-        if (string.IsNullOrWhiteSpace(Brand) || string.IsNullOrWhiteSpace(Name))
-        {
-            _errorMessage = "Brand and Name are required.";
-            Logger.LogWarning("🟡 [AddItemDialog] Validation failed: Brand or Name missing.");
-            return;
-        }
-        if (Brand == "Lego" && string.IsNullOrWhiteSpace(PartNum))
-        {
-            _errorMessage = "For LEGO, the part number is required.";
-            Logger.LogWarning("🟡 [AddItemDialog] LEGO PartNum required but missing.");
-            return;
-        }
-        // Check for duplicate item
-        var allBricks = await BrickService.GetAllMappedBricksAsync();
-        bool exists = allBricks.Any(b =>
-            (Brand == "Lego" && b.LegoName == Name)
-            || (Brand == "BlueBrixx" && b.BluebrixxName == Name)
-            || (Brand == "Cada" && b.CadaName == Name)
-            || (Brand == "Pantasy" && b.PantasyName == Name)
-            || (Brand == "Mould King" && b.MouldKingName == Name)
-            || (Brand == "Unknown" && b.UnknownName == Name)
-        );
-        if (exists)
-        {
-            _errorMessage = $"An item with the name '{Name}' already exists for brand '{Brand}'.";
-            Logger.LogWarning("🟡 [AddItemDialog] Duplicate item: Brand={Brand}, Name={Name}", Brand, Name);
-            return;
-        }
+ private async Task OnSave()
+{
+    if (_loading) return;
 
-        var userId = await UserService.GetTokenAsync();
-        if (userId is null)
-        {
-            _errorMessage = "User not authenticated.";
-            Logger.LogWarning("🟡 [AddItemDialog] User not authenticated.");
-            return;
-        }
-        Logger.LogInformation("🟡 [AddItemDialog] Creating new item request: Brand={Brand}, Name={Name}, PartNum={PartNum}, UserId={UserId}", Brand, Name, PartNum, userId);
-        await RequestService.CreateNewItemRequestAsync(Brand, Name, userId, PartNum, _file);
-        Logger.LogInformation("🟡 [AddItemDialog] Item request created successfully for Brand={Brand}, Name={Name}, PartNum={PartNum}", Brand, Name, PartNum);
-        NotificationService.Success($"Item '{Name}/{PartNum}' added successfully as a request! An admin has to approve it. You will be notified in your notification area once it's approved.");
-        MudDialog?.Close(DialogResult.Ok(true));
+    _errorMessage = string.Empty;
+    Logger.LogInformation("🟡 [AddItemDialog] OnSave called: Brand={Brand}, Name={Name}, PartNum={PartNum}", Brand, Name, PartNum);
+
+    // Validierung VOR Spinner (damit kein unnötiges Flackern)
+    if (string.IsNullOrWhiteSpace(Brand) || string.IsNullOrWhiteSpace(Name))
+    {
+        _errorMessage = "Brand and Name are required.";
+        Logger.LogWarning("🟡 [AddItemDialog] Validation failed: Brand or Name missing.");
+        return;
+    }
+    if (Brand == "Lego" && string.IsNullOrWhiteSpace(PartNum))
+    {
+        _errorMessage = "For LEGO, the part number is required.";
+        Logger.LogWarning("🟡 [AddItemDialog] LEGO PartNum required but missing.");
+        return;
     }
 
-    private void Cancel() => MudDialog?.Cancel();
+    // Duplicate-Check (kann dauern). Wenn du auch hier Spinner willst:
+    // -> diesen Block in den Spinner-Teil schieben. Wenn nicht, lass ihn hier.
+    var allBricks = await BrickService.GetAllMappedBricksAsync();
+    bool exists = allBricks.Any(b =>
+        (Brand == "Lego" && b.LegoName == Name)
+        || (Brand == "BlueBrixx" && b.BluebrixxName == Name)
+        || (Brand == "Cada" && b.CadaName == Name)
+        || (Brand == "Pantasy" && b.PantasyName == Name)
+        || (Brand == "Mould King" && b.MouldKingName == Name)
+        || (Brand == "Unknown" && b.UnknownName == Name)
+    );
+    if (exists)
+    {
+        _errorMessage = $"An item with the name '{Name}' already exists for brand '{Brand}'.";
+        Logger.LogWarning("🟡 [AddItemDialog] Duplicate item: Brand={Brand}, Name={Name}", Brand, Name);
+        return;
+    }
+
+    var userId = await UserService.GetTokenAsync();
+    if (userId is null)
+    {
+        _errorMessage = "User not authenticated.";
+        Logger.LogWarning("🟡 [AddItemDialog] User not authenticated.");
+        return;
+    }
+
+    _loading = true;
+    await InvokeAsync(StateHasChanged);
+    await Task.Delay(100); // optional, damit UI sicher rendert
+
+    LoadingService.Show();
+    try
+    {
+        Logger.LogInformation("🟡 [AddItemDialog] Creating new item request: Brand={Brand}, Name={Name}, PartNum={PartNum}, UserId={UserId}", Brand, Name, PartNum, userId);
+
+        await RequestService.CreateNewItemRequestAsync(Brand, Name, userId, PartNum, _file);
+
+        Logger.LogInformation("🟡 [AddItemDialog] Item request created successfully for Brand={Brand}, Name={Name}, PartNum={PartNum}", Brand, Name, PartNum);
+
+        // Spinner soll bis HIER laufen -> Success kommt noch im try
+        NotificationService.Success(
+            $"Item '{Name}/{PartNum}' added successfully as a request! An admin has to approve it. You will be notified in your notification area once it's approved."
+        );
+
+        MudDialog?.Close(DialogResult.Ok(true));
+    }
+    catch (Exception ex)
+    {
+        Logger.LogError(ex, "🔴 [AddItemDialog] Error while creating new item request.");
+        _errorMessage = "Something went wrong while saving. Please try again.";
+        // optional: NotificationService.Error(...)
+    }
+    finally
+    {
+        LoadingService.Hide();
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+}
+
+
+   private void Cancel()
+{
+    if (_loading) return;
+    MudDialog?.Cancel();
+}
+
 }
