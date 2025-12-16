@@ -15,6 +15,9 @@ var connectionString =
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
+    Console.WriteLine($"ENV POSTGRES_CONNECTION: '{Environment.GetEnvironmentVariable("POSTGRES_CONNECTION")}'");
+    Console.WriteLine($"CFG ConnectionStrings:Default: '{builder.Configuration.GetConnectionString("Default")}'");
+
     throw new Exception("Connection string not set. Provide ConnectionStrings:Default or POSTGRES_CONNECTION.");
 }
 
