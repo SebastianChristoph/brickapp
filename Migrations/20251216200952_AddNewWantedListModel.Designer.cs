@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace brickapp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251216200952_AddNewWantedListModel")]
+    partial class AddNewWantedListModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -805,7 +808,7 @@ namespace brickapp.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Data.Entities.WantedList", "WantedList")
+                    b.HasOne("Data.Entities.WantedList", null)
                         .WithMany("Items")
                         .HasForeignKey("WantedListId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -814,8 +817,6 @@ namespace brickapp.Migrations
                     b.Navigation("BrickColor");
 
                     b.Navigation("MappedBrick");
-
-                    b.Navigation("WantedList");
                 });
 
             modelBuilder.Entity("Data.Entities.AppUser", b =>

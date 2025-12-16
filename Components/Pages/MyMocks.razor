@@ -298,153 +298,173 @@
             .ToList();
     }
 
-    private async Task OnFileSelected(InputFileChangeEventArgs e)
+   private async Task OnFileSelected(InputFileChangeEventArgs e)
+{
+    if (_loading) return;
+
+    uploadError = string.Empty;
+    uploadedFile = e.File;
+    fileReadyForUpload = false;
+    uploadedItems.Clear();
+    unmappedItems.Clear();
+
+    if (uploadedFile == null)
+        return;
+
+    // Dateiendung prüfen
+    if (selectedFormat == "bricklink" && !uploadedFile.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
     {
-         if (_loading) return;
-        uploadError = string.Empty;
-        uploadedFile = e.File;
-        fileReadyForUpload = false;
-        uploadedItems.Clear();
-        unmappedItems.Clear();
-        if (uploadedFile == null)
-            return;
+        uploadError = "Please select an XML file for Bricklink.";
+        return;
+    }
+    if (selectedFormat == "rebrickable" && !uploadedFile.Name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+    {
+        uploadError = "Please select a CSV file for Rebrickable.";
+        return;
+    }
 
-        // Dateiendung prüfen
-        if (selectedFormat == "bricklink" && !uploadedFile.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+    _loading = true;
+    await InvokeAsync(StateHasChanged);
+    await Task.Delay(50);
+    LoadingService.Show("Analyzing file...");
+
+    try
+    {
+        using var stream = uploadedFile.OpenReadStream();
+        using var reader = new StreamReader(stream);
+
+        var items = new List<MockItem>();
+        using var scope = ServiceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+
+        // =========================
+        // ===== BRICKLINK XML =====
+        // =========================
+        if (selectedFormat == "bricklink")
         {
-            uploadError = "Please select an XML file for Bricklink.";
-            return;
-        }
-        if (selectedFormat == "rebrickable" && !uploadedFile.Name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
-        {
-            uploadError = "Please select a CSV file for Rebrickable.";
-            return;
-        }
+            var xmlString = await reader.ReadToEndAsync();
+            XDocument doc;
 
-           _loading = true;
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(50); // UI-Render-Sicherheit
-        LoadingService.Show("Analyzing file...");
-
-
-        try
-        {
-            using var stream = uploadedFile.OpenReadStream();
-            using var reader = new StreamReader(stream);
-            var items = new List<MockItem>();
-            using var scope = ServiceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-
-            if (selectedFormat == "bricklink")
+            try
             {
-                var xmlString = await reader.ReadToEndAsync();
-                XDocument doc;
-                try
-                {
-                    doc = XDocument.Parse(xmlString);
-                }
-                catch
-                {
-                    uploadError = "Die XML-Datei ist ungültig.";
-                    return;
-                }
-                if (!doc.Descendants("ITEM").Any())
-                {
-                    uploadError = "Die Bricklink-XML enthält keine Items.";
-                    return;
-                }
-                foreach (var x in doc.Descendants("ITEM"))
-                {
-                    var partNum = x.Element("ITEMID")?.Value;
-                    var colorId = int.TryParse(x.Element("COLOR")?.Value, out var cid) ? cid : (int?)null;
-                    var qty = int.TryParse(x.Element("MINQTY")?.Value, out var q) ? q : 1;
-                    int? mappedBrickId = null;
-                    if (!string.IsNullOrEmpty(partNum))
-                    {
-                        var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
-                        if (mapped != null)
-                            mappedBrickId = mapped.Id;
-                    }
-                    if (mappedBrickId == null)
-                    {
-                        unmappedItems.Add((partNum, colorId, qty));
-                    }
-                    items.Add(new MockItem
-                    {
-                        ExternalPartNum = partNum,
-                        Quantity = qty,
-                        BrickColorId = colorId,
-                        MappedBrickId = mappedBrickId
-                    });
-                }
+                doc = XDocument.Parse(xmlString);
             }
-            else if (selectedFormat == "rebrickable")
+            catch
             {
-                var csv = await reader.ReadToEndAsync();
-                var lines = csv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                if (lines.Length < 2)
-                {
-                    uploadError = "Die CSV-Datei enthält keine Daten.";
-                    return;
-                }
-                var header = lines[0].Split(',');
-                var expectedHeader = new[] { "Part", "Color", "Quantity", "Is Spare" };
-                if (header.Length != expectedHeader.Length || !expectedHeader.SequenceEqual(header))
-                {
-                    uploadError = $"Die CSV-Datei muss exakt die Spalten {string.Join(", ", expectedHeader)} enthalten.";
-                    return;
-                }
-                int partIdx = Array.IndexOf(header, "Part");
-                int colorIdx = Array.IndexOf(header, "Color");
-                int qtyIdx = Array.IndexOf(header, "Quantity");
-                for (int i = 1; i < lines.Length; i++)
-                {
-                    var cols = lines[i].Split(',');
-                    if (cols.Length != expectedHeader.Length)
-                    {
-                        uploadError = $"Zeile {i + 1} hat nicht die korrekte Anzahl an Spalten.";
-                        return;
-                    }
-                    var partNum = cols[partIdx];
-                    var colorId = int.TryParse(cols[colorIdx], out var cid) ? cid : (int?)null;
-                    var qty = int.TryParse(cols[qtyIdx], out var q) ? q : 1;
-                    int? mappedBrickId = null;
-                    if (!string.IsNullOrEmpty(partNum))
-                    {
-                        var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
-                        if (mapped != null)
-                            mappedBrickId = mapped.Id;
-                    }
-                    if (mappedBrickId == null)
-                    {
-                        unmappedItems.Add((partNum, colorId, qty));
-                    }
-                    items.Add(new MockItem
-                    {
-                        ExternalPartNum = partNum,
-                        Quantity = qty,
-                        BrickColorId = colorId,
-                        MappedBrickId = mappedBrickId
-                    });
-                }
+                uploadError = "Die XML-Datei ist ungültig.";
+                return;
             }
 
-            uploadedItems = items;
-            fileReadyForUpload = true;
+            if (!doc.Descendants("ITEM").Any())
+            {
+                uploadError = "Die Bricklink-XML enthält keine Items.";
+                return;
+            }
+
+            foreach (var x in doc.Descendants("ITEM"))
+            {
+                var partNum = x.Element("ITEMID")?.Value;
+                var colorId = int.TryParse(x.Element("COLOR")?.Value, out var cid) ? cid : (int?)null;
+                var qty     = int.TryParse(x.Element("MINQTY")?.Value, out var q) ? q : 1;
+
+                int? mappedBrickId = null;
+                if (!string.IsNullOrEmpty(partNum))
+                {
+                    var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
+                    if (mapped != null)
+                        mappedBrickId = mapped.Id;
+                }
+
+                if (mappedBrickId == null)
+                    unmappedItems.Add((partNum, colorId, qty));
+
+                items.Add(new MockItem
+                {
+                    ExternalPartNum = partNum,
+                    Quantity = qty,
+                    BrickColorId = colorId,
+                    MappedBrickId = mappedBrickId
+                });
+            }
         }
-        catch (Exception ex)
+
+        // ==========================
+        // ===== REBRICKABLE CSV ====
+        // ==========================
+        else if (selectedFormat == "rebrickable")
+        {
+            var csv = await reader.ReadToEndAsync();
+            var lines = csv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (lines.Length < 2)
+            {
+                uploadError = "Die CSV-Datei enthält keine Daten.";
+                return;
+            }
+
+            var header = lines[0].Split(',');
+
+            int partIdx = Array.IndexOf(header, "Part");
+            int colorIdx = Array.IndexOf(header, "Color");
+            int qtyIdx = Array.IndexOf(header, "Quantity");
+
+            if (partIdx < 0 || colorIdx < 0 || qtyIdx < 0)
+            {
+                uploadError = "Die CSV-Datei muss mindestens die Spalten Part, Color, Quantity enthalten.";
+                return;
+            }
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var cols = lines[i].Split(',');
+
+                int maxIdx = Math.Max(partIdx, Math.Max(colorIdx, qtyIdx));
+                if (cols.Length <= maxIdx)
+                {
+                    uploadError = $"Zeile {i + 1} enthält nicht genügend Spalten.";
+                    return;
+                }
+
+                var partNum = cols[partIdx];
+                var colorId = int.TryParse(cols[colorIdx], out var cid) ? cid : (int?)null;
+                var qty     = int.TryParse(cols[qtyIdx], out var q) ? q : 1;
+
+                int? mappedBrickId = null;
+                if (!string.IsNullOrEmpty(partNum))
+                {
+                    var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
+                    if (mapped != null)
+                        mappedBrickId = mapped.Id;
+                }
+
+                if (mappedBrickId == null)
+                    unmappedItems.Add((partNum, colorId, qty));
+
+                items.Add(new MockItem
+                {
+                    ExternalPartNum = partNum,
+                    Quantity = qty,
+                    BrickColorId = colorId,
+                    MappedBrickId = mappedBrickId
+                });
+            }
+        }
+
+        uploadedItems = items;
+        fileReadyForUpload = true;
+    }
+    catch (Exception ex)
     {
         uploadError = $"Fehler beim Verarbeiten der Datei: {ex.Message}";
         fileReadyForUpload = false;
     }
     finally
     {
-        // 🔄 Spinner ENDE
         LoadingService.Hide();
         _loading = false;
         await InvokeAsync(StateHasChanged);
     }
-    }
+}
 
    private async Task CreateMockFromUpload()
 {
