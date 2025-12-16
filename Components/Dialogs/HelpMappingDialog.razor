@@ -23,6 +23,16 @@
         <MudTextField Value="@Brand" Label="Brand" Disabled="true" />
         <MudTextField @bind-Value="MappingName" Label="Item name for this brand" Disabled="@(Brand == "Lego")" />
         <MudTextField Value="@MappingItemId" ValueChanged="@((string v) => OnMappingItemIdChanged(v))" ValueExpression="@(() => MappingItemId)" Label="Item Part Number" Immediate="true" />
+
+        @if (_searchingLegoPreview)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-2">
+        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        <MudText Typo="Typo.body2">Grabbing all items</MudText>
+    </MudStack>
+}
+
+
         @if (Brand == "Lego" && !string.IsNullOrWhiteSpace(MappingItemId) && MappingItemId.Length >= 3 && _legoPreviewBricks.Any())
         {
             <div style="margin-top:8px;">
@@ -58,6 +68,8 @@
     [Parameter] public string? Brand { get; set; }
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
+    private bool _searchingLegoPreview = false;
+private int _legoPreviewRequestId = 0;
     private string _errorMessage = string.Empty;
     private List<MappedBrick> _allBricks = new();
     private List<MappedBrick> _legoPreviewBricks = new();
@@ -67,33 +79,60 @@
         _allBricks = await BrickService.GetAllMappedBricksAsync();
         _legoPreviewBricks = new List<MappedBrick>();
     }
-        private void OnMappingItemIdChanged(string value)
-        {
-            MappingItemId = value;
-            if (Brand == "Lego" && !string.IsNullOrWhiteSpace(MappingItemId) && MappingItemId.Length >= 3)
-            {
-                // Suche nach LEGO-PartNum
-                _legoPreviewBricks = _allBricks
-                    .Where(b => !string.IsNullOrWhiteSpace(b.LegoPartNum) && b.LegoPartNum.Contains(MappingItemId, StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(b => b.LegoPartNum.Length)
-                    .ThenBy(b => b.LegoPartNum)
-                    .Take(10)
-                    .ToList();
-            }
-            else
-            {
-                _legoPreviewBricks = new List<MappedBrick>();
-            }
-            StateHasChanged();
-        }
+        private async void OnMappingItemIdChanged(string value)
+{
+    MappingItemId = value;
 
-        private void SelectPreviewBrick(MappedBrick b)
+    // neue Request-ID (alles davor ist "alt")
+    var reqId = ++_legoPreviewRequestId;
+
+    if (!(Brand == "Lego" && !string.IsNullOrWhiteSpace(MappingItemId) && MappingItemId.Length >= 3))
+    {
+        _legoPreviewBricks = new();
+        _searchingLegoPreview = false;
+        await InvokeAsync(StateHasChanged);
+        return;
+    }
+
+    _searchingLegoPreview = true;
+    await InvokeAsync(StateHasChanged);
+
+    try
+    {
+        // Optional: kleine Debounce, damit nicht bei jedem Tastendruck sofort gefiltert wird
+        await Task.Delay(150);
+
+        // wenn inzwischen neu getippt wurde: abbrechen/ignorieren
+        if (reqId != _legoPreviewRequestId) return;
+
+        _legoPreviewBricks = _allBricks
+            .Where(b => !string.IsNullOrWhiteSpace(b.LegoPartNum) &&
+                        b.LegoPartNum.Contains(MappingItemId, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(b => b.LegoPartNum!.Length)
+            .ThenBy(b => b.LegoPartNum)
+            .Take(10)
+            .ToList();
+    }
+    finally
+    {
+        if (reqId == _legoPreviewRequestId)
         {
-            MappingItemId = b.LegoPartNum ?? string.Empty;
-            MappingName = b.LegoName ?? string.Empty;
-            _legoPreviewBricks = new List<MappedBrick>();
-            StateHasChanged();
+            _searchingLegoPreview = false;
+            await InvokeAsync(StateHasChanged);
         }
+    }
+}
+
+       private void SelectPreviewBrick(MappedBrick b)
+{
+    _legoPreviewRequestId++;
+    _searchingLegoPreview = false;
+
+    MappingItemId = b.LegoPartNum ?? string.Empty;
+    MappingName = b.LegoName ?? string.Empty;
+    _legoPreviewBricks = new();
+    StateHasChanged();
+}
     private string MappingName { get; set; } = string.Empty;
     private string MappingItemId { get; set; } = string.Empty;
 

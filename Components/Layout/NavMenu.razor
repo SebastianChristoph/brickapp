@@ -35,7 +35,9 @@
                 My Requests
             </MudNavLink>
 
-            @if (_isAdmin)
+          
+        </MudNavGroup>
+          @if (_isAdmin)
             {
                 <MudNavLink Href="admin-requests" Match="NavLinkMatch.Prefix"
                             Icon="@Icons.Material.Filled.AdminPanelSettings">
@@ -46,7 +48,6 @@
                     Admin Panel
                 </MudNavLink>
             }
-        </MudNavGroup>
     }
     else
     {

@@ -10,23 +10,25 @@
 @inject Data.Services.ImageService ImageService
 
 <style>
-        .my-custom-class {
+    .my-custom-class {
         backdrop-filter: blur(3px);
-        }
+    }
 </style>
 
 
 <PageTitle>All Mapped Bricks</PageTitle>
 
- <MudText Typo="Typo.h4" GutterBottom="true">All Bricks</MudText>
+<MudText Typo="Typo.h4" GutterBottom="true">All Bricks</MudText>
 
 
 
 <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Style="margin-bottom: 16px;">
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddItemDialog" Class="mb-4">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+        OnClick="OpenAddItemDialog" Class="mb-4">
         Add Item
     </MudButton>
-    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.List" OnClick="ShowMappedItems" Class="mb-4">
+    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.List"
+        OnClick="ShowMappedItems" Class="mb-4">
         Show all mapped items
     </MudButton>
 </MudStack>
@@ -34,11 +36,13 @@
 @* Dismissible Info Alert above search field *@
 @if (showHalloAlert)
 {
-    <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Start" ShowCloseIcon="true" CloseIconClicked="(() => showHalloAlert = false)">
+    <MudAlert Severity="Severity.Info" ContentAlignment="HorizontalAlignment.Start" ShowCloseIcon="true"
+        CloseIconClicked="(() => showHalloAlert = false)">
         <b>Welcome to the Brick Mapping Center!</b><br />
         Here you can view all mapped bricks and their connections across brands.<br />
         <br />
-        <b>Help us grow:</b> If you spot a brick that is not yet mapped to another brand (e.g. BlueBrixx, Cada, Pantasy, Mould King, etc.), you are invited to contribute!<br />
+        <b>Help us grow:</b> If you spot a brick that is not yet mapped to another brand (e.g. BlueBrixx, Cada, Pantasy,
+        Mould King, etc.), you are invited to contribute!<br />
         <ul style="margin:0 0 0 1.2em;padding:0;font-size:0.98em;">
             <li>Click <b>Help Mapping</b> next to a brand to suggest a mapping for that brick.</li>
             <li>Your contributions help everyone find compatible parts and make the platform better for all!</li>
@@ -50,10 +54,18 @@
     Label="Search by name or ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true"
     Placeholder="At least 3 characters..." Class="mb-4" />
 
+@if (_searchingBricks)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        <MudText Typo="Typo.body2">Searching bricks…</MudText>
+    </MudStack>
+}
+
 @if (!string.IsNullOrWhiteSpace(_searchText) && _searchText.Length >= 3)
 {
     <MudTable Items="bricks" Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize"
-              OnPageChanged="OnPageChanged" OnRowsPerPageChanged="OnRowsPerPageChanged">
+        OnPageChanged="OnPageChanged" OnRowsPerPageChanged="OnRowsPerPageChanged">
         <HeaderContent>
             <MudTh></MudTh>
             <MudTh>Image</MudTh>
@@ -68,7 +80,7 @@
         <RowTemplate>
             <MudTd>
                 <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                           OnClick="@(() => OpenAddInventoryDialog(context))">
+                    OnClick="@(() => OpenAddInventoryDialog(context))">
                     <MudIcon Icon="@Icons.Material.Filled.Add" />
                 </MudButton>
             </MudTd>
@@ -77,7 +89,7 @@
                     var imageUrl = ImageService.GetMappedBrickImagePath(context);
                 }
                 <img src="@imageUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
-                     onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                    onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
             </MudTd>
             <MudTd DataLabel="Item Name">
                 @context.Name
@@ -93,15 +105,17 @@
                 }
                 else
                 {
-                    var legoRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Lego" && r.Status == MappingRequestStatus.Pending);
+                    var legoRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Lego" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (legoRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @legoRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @legoRequest.RequestedByUserId pending
+                        </MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "Lego"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Lego"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -115,15 +129,17 @@
                 }
                 @if (string.IsNullOrWhiteSpace(context.BluebrixxName))
                 {
-                    var bluebrixxRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "BlueBrixx" && r.Status == MappingRequestStatus.Pending);
+                    var bluebrixxRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "BlueBrixx" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (bluebrixxRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @bluebrixxRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @bluebrixxRequest.RequestedByUserId pending
+                        </MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "BlueBrixx"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "BlueBrixx"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -137,15 +153,17 @@
                 }
                 @if (string.IsNullOrWhiteSpace(context.CadaName))
                 {
-                    var cadaRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Cada" && r.Status == MappingRequestStatus.Pending);
+                    var cadaRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Cada" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (cadaRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @cadaRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @cadaRequest.RequestedByUserId pending
+                        </MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "Cada"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Cada"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -159,15 +177,17 @@
                 }
                 @if (string.IsNullOrWhiteSpace(context.PantasyName))
                 {
-                    var pantasyRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status == MappingRequestStatus.Pending);
+                    var pantasyRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (pantasyRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @pantasyRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @pantasyRequest.RequestedByUserId pending
+                        </MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "Pantasy"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Pantasy"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -182,7 +202,8 @@
                 }
                 @if (string.IsNullOrWhiteSpace(context.MouldKingName))
                 {
-                    var mkRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status == MappingRequestStatus.Pending);
+                    var mkRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (mkRequest != null)
                     {
                         <MudChip T="string" Color="Color.Warning">Mapping request by @mkRequest.RequestedByUserId pending</MudChip>
@@ -190,7 +211,7 @@
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "Mould King"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Mould King"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -204,15 +225,17 @@
                 }
                 @if (string.IsNullOrWhiteSpace(context.UnknownName))
                 {
-                    var unknownRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status == MappingRequestStatus.Pending);
+                    var unknownRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (unknownRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @unknownRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @unknownRequest.RequestedByUserId pending
+                        </MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "Unknown"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Unknown"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -225,8 +248,8 @@
 else if (_showMappedOnly)
 {
     <MudTable Items="bricks.Where(b => b.HasAtLeastOneMapping).Skip(_currentPage * _pageSize).Take(_pageSize).ToList()"
-              Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize"
-              OnPageChanged="OnPageChanged" OnRowsPerPageChanged="OnRowsPerPageChanged">
+        Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize" OnPageChanged="OnPageChanged"
+        OnRowsPerPageChanged="OnRowsPerPageChanged">
         <HeaderContent>
             <MudTh></MudTh>
             <MudTh>Image</MudTh>
@@ -241,7 +264,7 @@ else if (_showMappedOnly)
         <RowTemplate>
             <MudTd>
                 <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                           OnClick="@(() => OpenAddInventoryDialog(context))">
+                    OnClick="@(() => OpenAddInventoryDialog(context))">
                     <MudIcon Icon="@Icons.Material.Filled.Add" />
                 </MudButton>
             </MudTd>
@@ -250,7 +273,7 @@ else if (_showMappedOnly)
                     var imageUrl = ImageService.GetMappedBrickImagePath(context);
                 }
                 <img src="@imageUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
-                     onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                    onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
             </MudTd>
             <MudTd DataLabel="Item Name">
                 @context.Name
@@ -266,15 +289,17 @@ else if (_showMappedOnly)
                 }
                 else
                 {
-                    var legoRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Lego" && r.Status == MappingRequestStatus.Pending);
+                    var legoRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Lego" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (legoRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @legoRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @legoRequest.RequestedByUserId pending
+                        </MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "Lego"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Lego"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -288,15 +313,17 @@ else if (_showMappedOnly)
                 }
                 @if (string.IsNullOrWhiteSpace(context.BluebrixxName))
                 {
-                    var bluebrixxRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "BlueBrixx" && r.Status == MappingRequestStatus.Pending);
+                    var bluebrixxRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "BlueBrixx" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (bluebrixxRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @bluebrixxRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @bluebrixxRequest.RequestedByUserId pending
+                        </MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "BlueBrixx"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "BlueBrixx"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -310,15 +337,17 @@ else if (_showMappedOnly)
                 }
                 @if (string.IsNullOrWhiteSpace(context.CadaName))
                 {
-                    var cadaRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Cada" && r.Status == MappingRequestStatus.Pending);
+                    var cadaRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Cada" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (cadaRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @cadaRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @cadaRequest.RequestedByUserId pending
+                        </MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "Cada"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Cada"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -332,15 +361,17 @@ else if (_showMappedOnly)
                 }
                 @if (string.IsNullOrWhiteSpace(context.PantasyName))
                 {
-                    var pantasyRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status == MappingRequestStatus.Pending);
+                    var pantasyRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (pantasyRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @pantasyRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @pantasyRequest.RequestedByUserId pending
+                        </MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "Pantasy"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Pantasy"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -355,7 +386,8 @@ else if (_showMappedOnly)
                 }
                 @if (string.IsNullOrWhiteSpace(context.MouldKingName))
                 {
-                    var mkRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status == MappingRequestStatus.Pending);
+                    var mkRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (mkRequest != null)
                     {
                         <MudChip T="string" Color="Color.Warning">Mapping request by @mkRequest.RequestedByUserId pending</MudChip>
@@ -363,7 +395,7 @@ else if (_showMappedOnly)
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "Mould King"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Mould King"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -377,15 +409,17 @@ else if (_showMappedOnly)
                 }
                 @if (string.IsNullOrWhiteSpace(context.UnknownName))
                 {
-                    var unknownRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status == MappingRequestStatus.Pending);
+                    var unknownRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status ==
+                    MappingRequestStatus.Pending);
                     if (unknownRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @unknownRequest.RequestedByUserId pending</MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping request by @unknownRequest.RequestedByUserId pending
+                        </MudChip>
                     }
                     else
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                   OnClick="@(() => OpenHelpMappingDialog(context, "Unknown"))">Help Mapping</MudButton>
+                            OnClick="@(() => OpenHelpMappingDialog(context, "Unknown"))">Help Mapping</MudButton>
                     }
                 }
             </MudTd>
@@ -408,16 +442,24 @@ else if (_showMappedOnly)
         totalCount = result.TotalCount;
         StateHasChanged();
     }
-}
-@code {
+
     private string? _username;
     private List<MappedBrick> bricks = new();
     private int totalCount = 0;
+    private bool _searchingBricks = false;
+    private int _loadRequestId = 0;
     private string _searchText = string.Empty;
     private int _currentPage = 0;
     private int _pageSize = 25;
 
-       private readonly DialogOptions dialogOptions = new() { BackdropClick = false,  CloseButton = true , BackgroundClass = "my-custom-class",  CloseOnEscapeKey = true};
+    private readonly DialogOptions dialogOptions = new()
+    {
+        BackdropClick = false,
+        CloseButton = true,
+        BackgroundClass =
+    "my-custom-class",
+        CloseOnEscapeKey = true
+    };
 
     [Inject]
     private IDialogService DialogService { get; set; } = default!;
@@ -439,7 +481,7 @@ else if (_showMappedOnly)
 
     private async Task OpenAddItemDialog()
     {
-        
+
         var dialog = await DialogService.ShowAsync<AddItemDialog>("Add New Item", dialogOptions);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled)
@@ -451,6 +493,15 @@ else if (_showMappedOnly)
     private async Task OnSearchTextChanged(string value)
     {
         _searchText = value;
+        if (!string.IsNullOrWhiteSpace(_searchText) && _searchText.Length < 3)
+        {
+            _loadRequestId++; // laufende Loads ungültig machen
+            _searchingBricks = false;
+            bricks.Clear();
+            totalCount = 0;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
         _currentPage = 0;
         if (!string.IsNullOrWhiteSpace(_searchText) && _searchText.Length >= 3)
         {
@@ -484,11 +535,33 @@ else if (_showMappedOnly)
     }
     private async Task LoadBricksAsync()
     {
-        var result = await BrickService.GetPaginatedMappedBricksAsync(_currentPage + 1, _pageSize, _searchText);
-        bricks = result.Items;
-        totalCount = result.TotalCount;
-        // Image URLs werden jetzt direkt aus dem ImageService geholt
-        StateHasChanged();
+        var reqId = ++_loadRequestId;
+
+        _searchingBricks = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            // optional kleine Debounce für "Immediate=true"
+            await Task.Delay(150);
+
+            if (reqId != _loadRequestId) return;
+
+            var result = await BrickService.GetPaginatedMappedBricksAsync(_currentPage + 1, _pageSize, _searchText);
+
+            if (reqId != _loadRequestId) return;
+
+            bricks = result.Items;
+            totalCount = result.TotalCount;
+        }
+        finally
+        {
+            if (reqId == _loadRequestId)
+            {
+                _searchingBricks = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
     }
 
     private async Task OpenHelpMappingDialog(MappedBrick brick, string brand)

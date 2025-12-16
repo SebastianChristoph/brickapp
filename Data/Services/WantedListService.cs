@@ -1,5 +1,4 @@
-  
-
+       
     using Data.DTOs;
        
 using Data;
@@ -19,6 +18,41 @@ namespace Data.Services
             _factory = factory;
             _userService = userService;
         }
+
+         /// <summary>
+        /// Gibt für jedes InventoryItem (nach BrickId und ColorId) die zugehörigen WantedLists zurück.
+        /// </summary>
+        public async Task<Dictionary<(int BrickId, int ColorId), List<string>>> GetWantedListNamesByBrickAndColorAsync(int userId)
+        {
+            await using var db = await _factory.CreateDbContextAsync();
+            var user = await _userService.GetCurrentUserAsync();
+            if (user == null || user.Id != userId)
+                return new();
+
+            // Hole alle WantedLists inkl. Items für den User
+            var lists = await db.WantedLists
+                .Include(wl => wl.Items)
+                .Where(wl => wl.AppUserId == user.Id.ToString())
+                .ToListAsync();
+
+            var dict = new Dictionary<(int, int), List<string>>();
+            foreach (var wl in lists)
+            {
+                foreach (var item in wl.Items)
+                {
+                    var key = (item.MappedBrickId, item.BrickColorId);
+                    if (!dict.TryGetValue(key, out var list))
+                    {
+                        list = new List<string>();
+                        dict[key] = list;
+                    }
+                    list.Add(wl.Name);
+                }
+            }
+            return dict;
+        }
+  
+
 
         public async Task<List<WantedList>> GetCurrentUserWantedListsAsync()
         {

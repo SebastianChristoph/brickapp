@@ -65,7 +65,13 @@
                     </div>
                 </ItemTemplate>
             </MudAutocomplete>
-
+            @if (_searchingBricks)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        <MudText Typo="Typo.body2">Grabbing all items</MudText>
+    </MudStack>
+}
 
             <!-- Quick Color Chips -->
             @if (SelectedBrick != null && Colors.Any())
@@ -119,7 +125,8 @@
 @code {
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
-
+private bool _searchingBricks = false;
+private int _brickSearchRequestId = 0;
     private string Brand = "Lego";
     [Parameter]
     public MappedBrick? SelectedBrick { get; set; }
@@ -160,11 +167,15 @@
     }
 
     private async Task OnBrandChanged(string brand)
-    {
-        Brand = brand ?? "Lego";
-        StateHasChanged();
-    }
+{
+    Brand = brand ?? "Lego";
 
+    // laufende/ausstehende Suche ungültig machen + Spinner aus
+    _brickSearchRequestId++;
+    _searchingBricks = false;
+
+    await InvokeAsync(StateHasChanged);
+}
 
     private async Task<IEnumerable<MappedBrick>> SearchBricksByBrand(string searchText, CancellationToken cancellationToken)
     {
@@ -204,17 +215,47 @@
     }
 
     private async Task<IEnumerable<MappedBrick>> SearchBricksByBrandWithImages(string searchText, CancellationToken cancellationToken)
+{
+    // neue Request-ID (alles davor ist "alt")
+    var reqId = ++_brickSearchRequestId;
+
+    if (string.IsNullOrWhiteSpace(searchText) || searchText.Length < 3)
+    {
+        _searchingBricks = false;
+        await InvokeAsync(StateHasChanged);
+        return Enumerable.Empty<MappedBrick>();
+    }
+
+    _searchingBricks = true;
+    await InvokeAsync(StateHasChanged);
+
+    try
     {
         var results = await SearchBricksByBrand(searchText, cancellationToken);
+
+        // Wenn inzwischen neuere Suche gestartet wurde: Ergebnis ignorieren
+        if (reqId != _brickSearchRequestId)
+            return Enumerable.Empty<MappedBrick>();
+
         foreach (var brick in results)
         {
-            // Nutze ImageService für das Bild
             var url = ImageService.GetMappedBrickImagePath(brick);
-            var cacheKey = $"{brick.Id}";
-            _brickImageCache[cacheKey] = string.IsNullOrWhiteSpace(url) ? "/placeholder-image.png" : url;
+            _brickImageCache[$"{brick.Id}"] = string.IsNullOrWhiteSpace(url) ? "/placeholder-image.png" : url;
         }
+
         return results;
     }
+    finally
+    {
+        // Spinner nur ausmachen, wenn das noch die aktuelle Suche ist
+        if (reqId == _brickSearchRequestId)
+        {
+            _searchingBricks = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}
+
 
     private string GetBrickImageUrl(MappedBrick brick)
     {

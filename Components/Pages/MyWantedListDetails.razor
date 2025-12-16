@@ -2,6 +2,7 @@
 @using Data.Entities
 @using Data.Services
 @using Helpers
+
 @inject WantedListService WantedListService
 @inject Services.InventoryService InventoryService
 @inject NavigationManager Nav
@@ -21,12 +22,26 @@ else if (_wantedList == null)
 }
 else
 {
-    <MudText Typo="Typo.h4" GutterBottom="true">@_wantedList.Name</MudText>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2" Style="margin-bottom: 16px;">
+        <MudText Typo="Typo.h4" GutterBottom="true">@_wantedList.Name</MudText>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Delete"
+                   OnClick="DeleteList"
+                   Disabled="@_deletingList">
+                    Delete this wanted list
+        </MudButton>
+    </MudStack>
+
     <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudText Typo="Typo.subtitle1">Can you complete this list?</MudText>
-            <MudProgressLinear Color="@(Percent == 100 ? Color.Success : Color.Primary)" Striped="true" Size="Size.Large" Value="@Percent"
-                Style="min-width:200px;max-width:300px;width:30vw;" />
+            <MudProgressLinear Color="@(Percent == 100 ? Color.Success : Color.Primary)"
+                               Striped="true"
+                               Size="Size.Large"
+                               Value="@Percent"
+                               Style="min-width:200px;max-width:300px;width:30vw;" />
             <MudText Typo="Typo.body1" Class="ml-4">
                 @if (HasAll)
                 {
@@ -43,37 +58,39 @@ else
     <MudText Typo="Typo.h6" GutterBottom="true">Items in this list</MudText>
 
     <style>
-      .brick {
-        position: relative;
-        display: inline-block;
-        width: 56px;
-        height: 56px;
-        min-width: 56px;
-        min-height: 56px;
-        box-sizing: border-box;
-      }
-      .brick-img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        border-radius: 4px;
-        border: 2px solid #ccc;
-        background: #fff;
-        display: block;
-      }
-      .brick::after {
-        content: "";
-        position: absolute;
-        right: .5px;
-        bottom: 0px;
-        width: 0;
-        height: 0;
-        border-bottom: 28px solid var(--brick-color, transparent);
-        border-left: 28px solid transparent;
-        border-radius: 0 0 4px 0;
-        z-index: 2;
-        pointer-events: none;
-      }
+        .brick {
+            position: relative;
+            display: inline-block;
+            width: 56px;
+            height: 56px;
+            min-width: 56px;
+            min-height: 56px;
+            box-sizing: border-box;
+        }
+
+        .brick-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 2px solid #ccc;
+            background: #fff;
+            display: block;
+        }
+
+        .brick::after {
+            content: "";
+            position: absolute;
+            right: .5px;
+            bottom: 0px;
+            width: 0;
+            height: 0;
+            border-bottom: 28px solid var(--brick-color, transparent);
+            border-left: 28px solid transparent;
+            border-radius: 0 0 4px 0;
+            z-index: 2;
+            pointer-events: none;
+        }
     </style>
 
     <MudTable Items="(_wantedList.Items ?? Enumerable.Empty<WantedListItem>()).OrderBy(b => b.BrickColor?.Name)">
@@ -91,10 +108,11 @@ else
             <MudTh>Do you have this in your inventory?</MudTh>
             <MudTh>Action</MudTh>
         </HeaderContent>
+
         <RowTemplate>
             <MudTd DataLabel="Image">
                 @{
-                    var imgUrl = context.MappedBrick != null 
+                    var imgUrl = context.MappedBrick != null
                         ? ImageService.GetMappedBrickImagePath(context.MappedBrick)
                         : null;
                     var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
@@ -116,8 +134,10 @@ else
                     <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">No image</span>
                 }
             </MudTd>
+
             <MudTd DataLabel="Standard Name">@context.MappedBrick?.Name</MudTd>
             <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
+
             <MudTd DataLabel="Lego">
                 @context.MappedBrick?.LegoName
                 @if (!string.IsNullOrEmpty(context.MappedBrick?.LegoPartNum))
@@ -125,6 +145,7 @@ else
                     <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.LegoPartNum)</span>
                 }
             </MudTd>
+
             <MudTd DataLabel="BlueBrixx">
                 @context.MappedBrick?.BluebrixxName
                 @if (!string.IsNullOrEmpty(context.MappedBrick?.BluebrixxPartNum))
@@ -132,6 +153,7 @@ else
                     <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.BluebrixxPartNum)</span>
                 }
             </MudTd>
+
             <MudTd DataLabel="Cada">
                 @context.MappedBrick?.CadaName
                 @if (!string.IsNullOrEmpty(context.MappedBrick?.CadaPartNum))
@@ -139,6 +161,7 @@ else
                     <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.CadaPartNum)</span>
                 }
             </MudTd>
+
             <MudTd DataLabel="Pantasy">
                 @context.MappedBrick?.PantasyName
                 @if (!string.IsNullOrEmpty(context.MappedBrick?.PantasyPartNum))
@@ -146,6 +169,7 @@ else
                     <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.PantasyPartNum)</span>
                 }
             </MudTd>
+
             <MudTd DataLabel="Mould King">
                 @context.MappedBrick?.MouldKingName
                 @if (!string.IsNullOrEmpty(context.MappedBrick?.MouldKingPartNum))
@@ -153,6 +177,7 @@ else
                     <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.MouldKingPartNum)</span>
                 }
             </MudTd>
+
             <MudTd DataLabel="Unknown">
                 @context.MappedBrick?.UnknownName
                 @if (!string.IsNullOrEmpty(context.MappedBrick?.UnknownPartNum))
@@ -160,12 +185,10 @@ else
                     <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.UnknownPartNum)</span>
                 }
             </MudTd>
-            <MudTd DataLabel="Anzahl">@context.Quantity</MudTd>
+
+            <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+
             <MudTd DataLabel="Do you own?">
-                            <MudTd>
-                                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteItem(context.Id))">Delete</MudButton>
-                            </MudTd>
-                   
                 @{
                     var key = (context.MappedBrickId, context.BrickColorId);
                     if (_ownedByBrand.TryGetValue(key, out var brands) && brands.Count > 0)
@@ -181,6 +204,15 @@ else
                     }
                 }
             </MudTd>
+
+            <MudTd>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           OnClick="@(() => DeleteItem(context.Id))">
+                    Delete
+                </MudButton>
+            </MudTd>
         </RowTemplate>
     </MudTable>
 
@@ -191,50 +223,78 @@ else
 
 @code {
     [Parameter] public int wantedListId { get; set; }
+
     private WantedList? _wantedList;
     private bool _loading = true;
+    private bool _deletingList = false;
+
     private Dictionary<(int, int), Dictionary<string, int>> _ownedByBrand = new();
 
-        
+    private async Task DeleteList()
+    {
+        if (_deletingList) return;
 
-                    private async Task DeleteItem(int wantedListItemId)
-                    {
-                        var success = await WantedListService.DeleteWantedListItemAsync(wantedListItemId);
-                        if (success)
-                        {
-                            _wantedList = await WantedListService.GetWantedListByIdAsync(wantedListId);
-                            NotificationService.Success("Item deleted from wanted list.");
-                            StateHasChanged();
-                        }
-                        else
-                        {
-                            NotificationService.Error("Failed to delete item.");
-                        }
-                    }
+        _deletingList = true;
+        try
+        {
+            var success = await WantedListService.DeleteWantedListAsync(wantedListId);
+            if (success)
+            {
+                NotificationService.Success("Liste erfolgreich gelöscht");
+                Nav.NavigateTo("/mywantedlists");
+            }
+            else
+            {
+                NotificationService.Error("Failed to delete wanted list.");
+            }
+        }
+        finally
+        {
+            _deletingList = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task DeleteItem(int wantedListItemId)
+    {
+        var success = await WantedListService.DeleteWantedListItemAsync(wantedListItemId);
+        if (success)
+        {
+            _wantedList = await WantedListService.GetWantedListByIdAsync(wantedListId);
+            NotificationService.Success("Item deleted from wanted list.");
+            StateHasChanged();
+        }
+        else
+        {
+            NotificationService.Error("Failed to delete item.");
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         _loading = true;
+
         _wantedList = await WantedListService.GetWantedListByIdAsync(wantedListId);
+
         var inventory = await InventoryService.GetCurrentUserInventoryAsync();
         _ownedByBrand = inventory
             .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
             .ToDictionary(
                 g => g.Key,
                 g => g.GroupBy(i => i.Brand)
-                    .ToDictionary(
-                        bg => bg.Key,
-                        bg => bg.Sum(i => i.Quantity)
-                    )
+                      .ToDictionary(bg => bg.Key, bg => bg.Sum(i => i.Quantity))
             );
+
         _loading = false;
     }
 
     protected int TotalNeeded => _wantedList?.Items?.Sum(b => b.Quantity) ?? 0;
     protected int TotalOwned => _wantedList?.Items?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
+
     protected int Percent => (TotalNeeded > 0 && TotalOwned == TotalNeeded)
         ? 100
         : (TotalNeeded > 0 ? (int)Math.Floor(100.0 * (double)TotalOwned / TotalNeeded) : 0);
+
     protected bool HasAll => TotalNeeded > 0 && TotalOwned == TotalNeeded;
 
     private int GetOwnedQuantity(WantedListItem item)
