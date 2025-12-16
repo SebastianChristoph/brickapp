@@ -18,7 +18,7 @@ public class MappedBrickExportService
         _storage = storage;
     }
 
-    public string GetExportPath() => _storage.DescribeTarget($"mappedData/{ExportRelPath}");
+    public string GetExportPath() => _storage.DescribeTarget(ExportRelPath);
 
     public async Task<int> ExportMappedBricksAsync()
     {
@@ -46,7 +46,7 @@ public class MappedBrickExportService
 
         var json = JsonSerializer.Serialize(exportList, new JsonSerializerOptions { WriteIndented = true });
 
-        await _storage.WriteTextAsync($"mappedData/{ExportRelPath}", "application/json", json);
+        await _storage.WriteTextAsync(ExportRelPath, "application/json", json);
         return exportList.Count;
     }
 

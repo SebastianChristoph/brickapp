@@ -2,7 +2,7 @@ using System.Globalization;
 using CsvHelper;
 using Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using Services.Storage; // <- NEU
+using Services.Storage;
 
 namespace Data;
 
@@ -11,22 +11,25 @@ public static class RebrickableSeeder
     public static async Task SeedAsync(
         AppDbContext db,
         IDbContextFactory<AppDbContext> dbFactory,
-        IExportStorage exportStorage,          // <- NEU
+        IExportStorage exportStorage,
         string contentRootPath)
     {
-        // Sets Import aus ExportStorage (lokal: mappedData/, azure: blob mappedData/)
+        // 1) Erst versuchen wir "Overrides" aus ExportStorage (lokal: mappedData/, Azure: Blob mappedData/)
+        //    Das ist safe: wenn nix da ist, ImportSets/ImportMappedBricks geben 0 zurück.
         var setsExportService = new Data.Services.ItemSetExportService(dbFactory, exportStorage);
         await setsExportService.ImportSetsAsync();
 
+        var mappedExportService = new Data.Services.MappedBrickExportService(dbFactory, exportStorage);
+        await mappedExportService.ImportMappedBricksAsync();
+
+        // 2) CSV Seeder nur wenn RebrickableData vorhanden ist (typisch lokal)
         var dataDir = Path.Combine(contentRootPath, "RebrickableData");
         if (!Directory.Exists(dataDir))
             return;
 
+        // Nur importieren, wenn noch keine LEGO-Daten existieren
         if (!await db.MappedBricks.AnyAsync())
             await ImportPartsAsync(db, Path.Combine(dataDir, "parts.csv"));
-
-        var mappedExportService = new Data.Services.MappedBrickExportService(dbFactory, exportStorage);
-        await mappedExportService.ImportMappedBricksAsync();
 
         if (!await db.BrickColors.AnyAsync())
             await ImportColorsAsync(db, Path.Combine(dataDir, "colors.csv"));
@@ -34,13 +37,13 @@ public static class RebrickableSeeder
         if (!await db.ItemSets.AnyAsync())
             await ImportSetsAsync(db, Path.Combine(dataDir, "sets.csv"));
 
+        // ItemSetBricks: Verknüpfung zwischen Sets und MappedBricks
         if (!await db.ItemSetBricks.AnyAsync())
             await ImportInventoryPartsAsync(db,
                 Path.Combine(dataDir, "inventories.csv"),
                 Path.Combine(dataDir, "inventory_parts.csv"));
     }
-    
-    
+
     private static async Task ImportPartsAsync(AppDbContext db, string partsPath)
     {
         if (!File.Exists(partsPath)) return;
@@ -50,16 +53,11 @@ public static class RebrickableSeeder
 
         var records = csv.GetRecords<RebrickablePart>();
 
-
         foreach (var p in records)
         {
-            string? imagePath = null;
-            var pngPath = Path.Combine("wwwroot", "part_images", p.part_num + ".png");
-            var jpgPath = Path.Combine("wwwroot", "part_images", p.part_num + ".jpg");
-            if (File.Exists(pngPath))
-                imagePath = $"/part_images/{p.part_num}.png";
-            else if (File.Exists(jpgPath))
-                imagePath = $"/part_images/{p.part_num}.jpg";
+            // imagePath wird hier aktuell nicht persistiert – kann bleiben oder raus.
+            // (Falls du später Bild-URLs speichern willst, dann hier setzen.)
+            _ = p.part_num;
 
             var brick = new MappedBrick
             {
@@ -145,16 +143,14 @@ public static class RebrickableSeeder
             .AsNoTracking()
             .ToDictionaryAsync(c => c.RebrickableColorId, c => c.Id);
 
-        // Inventories laden
-        var inventories = new Dictionary<int, string>(); // inventory_id -> set_num
+        // Inventories laden (inventory_id -> set_num)
+        var inventories = new Dictionary<int, string>();
         using (var reader = new StreamReader(inventoriesPath))
         using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
         {
             var records = csv.GetRecords<RebrickableInventory>();
             foreach (var inv in records)
-            {
                 inventories[inv.id] = inv.set_num;
-            }
         }
 
         // Inventory Parts laden und ItemSetBricks erstellen
@@ -164,43 +160,31 @@ public static class RebrickableSeeder
             var records = csv.GetRecords<RebrickableInventoryPart>();
             foreach (var invPart in records)
             {
-                // inventory_id -> set_num
                 if (!inventories.TryGetValue(invPart.inventory_id, out var setNum))
                     continue;
 
-                // set_num -> ItemSet Id
                 if (!setMapping.TryGetValue(setNum, out var itemSetId))
                     continue;
 
-                // part_num -> MappedBrick Id
                 if (!partMapping.TryGetValue(invPart.part_num, out var mappedBrickId))
                     continue;
 
-                // color_id -> BrickColor Id (0 = standardfarbe, aber default auf 1 wenn vorhanden)
                 int? colorId = null;
                 if (invPart.color_id > 0 && colorMapping.TryGetValue(invPart.color_id, out var brickColorId))
-                {
                     colorId = brickColorId;
-                }
                 else if (colorMapping.TryGetValue(0, out var defaultColorId))
-                {
-                    // Fallback auf color_id 0 (default)
                     colorId = defaultColorId;
-                }
 
-                // Wenn keine Farbe gefunden -> skip
                 if (!colorId.HasValue)
                     continue;
 
-                var itemSetBrick = new ItemSetBrick
+                db.ItemSetBricks.Add(new ItemSetBrick
                 {
                     ItemSetId = itemSetId,
                     MappedBrickId = mappedBrickId,
                     BrickColorId = colorId.Value,
                     Quantity = invPart.quantity
-                };
-
-                db.ItemSetBricks.Add(itemSetBrick);
+                });
             }
         }
 
@@ -208,7 +192,6 @@ public static class RebrickableSeeder
     }
 
     // Hilfs-Klassen für CSV-Mapping
-
     private class RebrickablePart
     {
         public string part_num { get; set; } = default!;

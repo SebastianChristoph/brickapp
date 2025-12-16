@@ -64,3 +64,4 @@ bricksdb.db-wal
 wwwroot/part_images/new
 .env
 appsettings.Development.json
+mappedData
