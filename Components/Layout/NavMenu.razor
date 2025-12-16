@@ -28,11 +28,16 @@
             <MudNavLink Href="mymocs" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Build">
                 My MOCs
             </MudNavLink>
+              <MudNavLink Href="mywantedlists" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">
+                My Wanted Lists
+            </MudNavLink>
             <MudNavLink Href="myrequests" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.AppRegistration">
                 My Requests
             </MudNavLink>
 
-            @if (_isAdmin)
+          
+        </MudNavGroup>
+          @if (_isAdmin)
             {
                 <MudNavLink Href="admin-requests" Match="NavLinkMatch.Prefix"
                             Icon="@Icons.Material.Filled.AdminPanelSettings">
@@ -43,7 +48,6 @@
                     Admin Panel
                 </MudNavLink>
             }
-        </MudNavGroup>
     }
     else
     {

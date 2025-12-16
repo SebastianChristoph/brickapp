@@ -75,6 +75,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<MappedBrickService>();
 builder.Services.AddScoped<UserNotificationService>();
 builder.Services.AddScoped<RequestService>();
+builder.Services.AddScoped<WantedListService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<ItemSetService>();
 builder.Services.AddScoped<ItemSetExportService>();

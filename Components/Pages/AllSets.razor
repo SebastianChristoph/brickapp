@@ -17,7 +17,24 @@
 
  </MudStack>
 
-<MudTextField @bind-Value="_searchText" Label="Search by name or ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true" Placeholder="At least 3 characters..." Class="mb-4" />
+<MudTextField T="string"
+              Value="@_searchText"
+              ValueChanged="OnSearchChanged"
+              Immediate="true"
+              Label="Search by name or ID"
+              Variant="Variant.Outlined"
+              Margin="Margin.Normal"
+              Placeholder="At least 3 characters..."
+              Class="mb-4" />
+
+
+@if (_searchingSets)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        <MudText Typo="Typo.body2">Searching sets…</MudText>
+    </MudStack>
+}
 
 @if (!string.IsNullOrWhiteSpace(_searchText) && _searchText.Length >= 3)
 {
@@ -68,6 +85,8 @@
 
 @code {
     private string? _username;
+    private bool _searchingSets = false;
+private int _searchRequestId = 0;
     private List<ItemSet>? sets;
     private string _searchText = string.Empty;
     private bool _addSetDialogOpen = false;
@@ -80,6 +99,31 @@
                 || (s.SetNum?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
                 || s.Id.ToString().Contains(_searchText)
             ).ToList();
+
+private async Task OnSearchChanged(string value)
+{
+    _searchText = value ?? "";
+
+    var reqId = ++_searchRequestId;
+
+    if (_searchText.Length < 3)
+    {
+        _searchingSets = false;
+        await InvokeAsync(StateHasChanged);
+        return;
+    }
+
+    _searchingSets = true;
+    await InvokeAsync(StateHasChanged);
+
+    await Task.Delay(200);
+
+    if (reqId != _searchRequestId) return;
+
+    _searchingSets = false;
+    await InvokeAsync(StateHasChanged);
+}
+
 
     void OpenAddSetDialog() => _addSetDialogOpen = true;
     void CloseAddSetDialog() => _addSetDialogOpen = false;

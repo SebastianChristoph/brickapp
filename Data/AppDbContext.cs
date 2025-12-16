@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
 
     // --- DbSets ----------------------------------------------------
 
+
     public DbSet<MappedBrick> MappedBricks => Set<MappedBrick>();
     public DbSet<BrickColor> BrickColors => Set<BrickColor>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
@@ -27,6 +28,10 @@ public class AppDbContext : DbContext
 
     public DbSet<Mock> Mocks => Set<Mock>();
     public DbSet<MockItem> MockItems => Set<MockItem>();
+
+    // WantedList
+    public DbSet<WantedList> WantedLists => Set<WantedList>();
+    public DbSet<WantedListItem> WantedListItems => Set<WantedListItem>();
 
 
     // --- Model-Konfiguration ---------------------------------------
@@ -214,6 +219,30 @@ public class AppDbContext : DbContext
             .HasOne(mi => mi.BrickColor)
             .WithMany()
             .HasForeignKey(mi => mi.BrickColorId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // ----------------- WantedList & WantedListItem ------------------
+
+        modelBuilder.Entity<WantedList>().ToTable("wantedlists");
+        modelBuilder.Entity<WantedListItem>().ToTable("wantedlistitems");
+
+        // Explizite Beziehung: WantedList <-> WantedListItem
+        modelBuilder.Entity<WantedList>()
+            .HasMany(w => w.Items)
+            .WithOne(i => i.WantedList)
+            .HasForeignKey(i => i.WantedListId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<WantedListItem>()
+            .HasOne(i => i.MappedBrick)
+            .WithMany()
+            .HasForeignKey(i => i.MappedBrickId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<WantedListItem>()
+            .HasOne(i => i.BrickColor)
+            .WithMany()
+            .HasForeignKey(i => i.BrickColorId)
             .OnDelete(DeleteBehavior.Restrict);
 
         base.OnModelCreating(modelBuilder);

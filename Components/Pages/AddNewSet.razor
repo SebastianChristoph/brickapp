@@ -149,6 +149,13 @@ else
             <div class="mb-2">
                 <MudTextField T="string" Value="@brickSearchText" ValueChanged="OnBrickSearchChanged" Immediate="true"
                               Label="Search Item by Name or PartNumber" Variant="Variant.Text" Style="max-width:800px;" />
+                @if (_searchingBricks)
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        <MudText Typo="Typo.body2">Grabbing all items</MudText>
+    </MudStack>
+}
 
                 @if (brickSearchResults.Any())
                 {
@@ -298,6 +305,8 @@ else
 
 @code {
     private string? imagePreviewUrl;
+    private bool _searchingBricks = false;
+private int _brickSearchRequestId = 0;
     private string? imageError;
     private IBrowserFile? uploadedImageFile;
     private bool _loading = false;
@@ -462,17 +471,29 @@ else
     }
 
     private async Task OnBrickSearchChanged(string value)
+{
+    brickSearchText = value ?? "";
+
+    // neue Request-ID (alles davor ist "alt")
+    var reqId = ++_brickSearchRequestId;
+
+    if (brickSearchText.Length < 2)
     {
-        brickSearchText = value ?? "";
+        brickSearchResults.Clear();
+        _searchingBricks = false;
+        await InvokeAsync(StateHasChanged);
+        return;
+    }
 
-        if (brickSearchText.Length < 2)
-        {
-            brickSearchResults.Clear();
-            await InvokeAsync(StateHasChanged);
-            return;
-        }
+    _searchingBricks = true;
+    await InvokeAsync(StateHasChanged);
 
+    try
+    {
         var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
+
+        // Wenn inzwischen schon eine neuere Suche gestartet wurde: Ergebnis ignorieren
+        if (reqId != _brickSearchRequestId) return;
 
         brickSearchResults = allBricks
             .Where(b =>
@@ -490,19 +511,31 @@ else
                 _brickImageCache[partNum] = string.IsNullOrWhiteSpace(url) ? "/part_images/placeholder.png" : url;
             }
         }
-
-        await InvokeAsync(StateHasChanged);
     }
-
-    private void SelectBrick(MappedBrick brick)
+    finally
     {
-        selectedBrick = brick;
-        selectedColor = "";
-        brickQuantity = 1;
-        brickSearchResults.Clear();
-        brickSearchText = brick.LegoPartNum ?? brick.LegoName ?? "";
-        StateHasChanged();
+        // Spinner nur ausmachen, wenn das noch die aktuelle Suche ist
+        if (reqId == _brickSearchRequestId)
+        {
+            _searchingBricks = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
+}
+
+   private void SelectBrick(MappedBrick brick)
+{
+    // laufende/ausstehende Suche ungültig machen
+    _brickSearchRequestId++;
+    _searchingBricks = false;
+
+    selectedBrick = brick;
+    selectedColor = "";
+    brickQuantity = 1;
+    brickSearchResults.Clear();
+    brickSearchText = brick.LegoPartNum ?? brick.LegoName ?? "";
+    StateHasChanged();
+}
 
     private void AddBrickToSet()
     {

@@ -12,6 +12,7 @@
 @inject NavigationManager Nav
 @inject Data.Services.ImageService ImageService
 @inject Services.NotificationService NotificationService
+@inject Data.Services.WantedListService WantedListService
 
 
 <PageTitle>My Inventory</PageTitle>
@@ -144,7 +145,21 @@ else
                                 <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">No image</span>
                             }
                         </MudTd>
-                        <MudTd DataLabel="Brick">@context.MappedBrick?.Name</MudTd>
+                        <MudTd DataLabel="Brick">
+                           
+                            @if (_wantedListNamesByItem.TryGetValue((context.MappedBrickId, context.BrickColorId), out var wantedLists) && wantedLists.Any())
+                            {
+                                <MudAlert Severity="Severity.Info">
+                                    @context.MappedBrick?.Name <br />is in the following wanted lists:
+                                    @foreach (var wlName in wantedLists)
+                                    {
+                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled" Class="mt-1" Size="Size.Small">@wlName</MudChip>
+                                    }
+                                </MudAlert>
+                            }else{
+                                 @context.MappedBrick?.Name
+                            }
+                        </MudTd>
                         <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
                         <MudTd DataLabel="Brand">@context.Brand</MudTd>
                         <MudTd DataLabel="Brand ID">
@@ -251,6 +266,8 @@ else
         };
     }
 
+    private Dictionary<(int, int), List<string>> _wantedListNamesByItem = new();
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _authChecked)
@@ -269,7 +286,16 @@ else
         _username = await UserService.GetUsernameAsync();
         items = await InventoryService.GetCurrentUserInventoryAsync();
 
-        // Bild-URLs werden jetzt direkt über ImageService.GetMappedBrickImagePath geladen
+        // Hole alle WantedList-Namen pro Item
+        var user = await UserService.GetCurrentUserAsync();
+        if (user != null)
+        {
+            _wantedListNamesByItem = await WantedListService.GetWantedListNamesByBrickAndColorAsync(user.Id);
+        }
+        else
+        {
+            _wantedListNamesByItem = new();
+        }
 
         StateHasChanged();
     }
