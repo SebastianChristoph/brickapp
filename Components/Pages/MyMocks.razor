@@ -324,7 +324,7 @@
            _loading = true;
             await InvokeAsync(StateHasChanged);
             await Task.Delay(50); // UI-Render-Sicherheit
-        LoadingService.Show();
+        LoadingService.Show("Analyzing file...");
 
 
         try
@@ -467,7 +467,7 @@
     _loading = true;
     await InvokeAsync(StateHasChanged);
     await Task.Delay(100); // optional, damit UI sicher rendert
-    LoadingService.Show();
+    LoadingService.Show("Creating your MOC...");
 
     try
     {

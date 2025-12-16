@@ -12,7 +12,7 @@ namespace Helpers
         private static readonly Dictionary<string, string> BrickColorToHex = new(StringComparer.OrdinalIgnoreCase)
         {
             { "Aqua", "#B3D7D1" }, // rgb(179,215,209)
-            { "Black", "#6e6e6eff" }, // rgb(33,33,33)
+            { "Black", "#000000ff" }, // rgb(33,33,33)
             { "Blue", "#214291" }, // rgb(33,66,145<w)
             { "Blue-Violet", "#5B3573" }, // rgb(91,53,115)
             { "Bright Green", "#4B974A" }, // rgb(75,151,74)

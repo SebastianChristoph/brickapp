@@ -11,48 +11,34 @@
     <DialogContent>
         <MudStack Spacing="3">
             <!-- Brick Image -->
-            @{
-                var overlay = SelectedColor != null ? Helpers.BrickColorHelper.GetHexForColor(SelectedColor.Name) : null;
-            }
-            <div style="margin-bottom:8px; min-height:68px; text-align:center;">
-                @if (SelectedBrick != null)
-                {
-                    var imgUrl = ImageService.GetMappedBrickImagePath(SelectedBrick);
-                    if (overlay != null)
-                    {
-                        <div class="brick" style="--brick-overlay:@overlay">
-                            <img src="@imgUrl" alt="" style="max-width:64px;max-height:64px;border-radius:4px;border:1px solid #ccc;" />
-                        </div>
-                    }
-                    else
-                    {
-                        <img src="@imgUrl" alt="" style="max-width:64px;max-height:64px;border-radius:4px;border:1px solid #ccc;" />
-                    }
-                }
-                else
-                {
-                    <img src="/placeholder-image.png" alt="" style="max-width:64px;max-height:64px;opacity:0.5;border-radius:4px;border:1px solid #ccc;" />
-                }
-            </div>
-            <style>
-            .brick {
-                position: relative;
-                display: inline-block;
-                isolation: isolate;
-            }
-            .brick img {
-                display: block;
-            }
-            .brick::after {
-                content: "";
-                position: absolute;
-                inset: 0;
-                background: var(--brick-overlay, transparent);
-                mix-blend-mode: multiply;
-                pointer-events: none;
-                border-radius: 4px;
-            }
-            </style>
+           @{
+    var overlay = SelectedColor != null ? Helpers.BrickColorHelper.GetHexForColor(SelectedColor.Name) : null;
+    var overlayCss = overlay ?? "transparent";
+
+    var imgUrl = SelectedBrick != null
+        ? ImageService.GetMappedBrickImagePath(SelectedBrick)
+        : "/placeholder-image.png";
+
+    var hasImage = !string.IsNullOrWhiteSpace(imgUrl) && imgUrl != "/placeholder-image.png";
+}
+
+<div style="margin-bottom:8px; min-height:68px; text-align:center;">
+    <div class="brick" style="--brick-color:@overlayCss">
+        @if (SelectedBrick != null && hasImage)
+        {
+            <img src="@imgUrl" alt="" class="brick-img"
+                 onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+        }
+        else
+        {
+            <img src="/placeholder-image.png" alt="" class="brick-img" style="opacity:0.5;" />
+        }
+    </div>
+</div>
+
+   
+
+        
             <!-- Brand Selection -->
             <MudSelect Value="Brand" Label="Brand" Variant="Variant.Outlined" ValueChanged="@((string value) => OnBrandChanged(value))">
                 <MudSelectItem Value="@("Lego")">Lego</MudSelectItem>

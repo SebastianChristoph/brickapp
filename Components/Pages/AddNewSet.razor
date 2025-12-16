@@ -1,644 +1,725 @@
 @page "/add-new-set"
 @using Data.Entities
-
 @using Services
+@using Helpers
+
 @inject Data.Services.RequestService RequestService
 @inject UserService UserService
 @inject Services.ItemSetService ItemSetService
 @inject Services.MappedBrickService MappedBrickService
-
 @inject Services.NotificationService NotificationService
 @inject Data.Services.ImageService ImageService
 @inject Services.LoadingService LoadingService
 
 <MudText Typo="Typo.h4" GutterBottom="true">Add new sets</MudText>
 
+<style>
+    .brick {
+        position: relative;
+        display: inline-block;
+        width: 56px;
+        height: 56px;
+        min-width: 56px;
+        min-height: 56px;
+        box-sizing: border-box;
+    }
+
+    .brick-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 4px;
+        border: 2px solid #ccc;
+        background: #fff;
+        display: block;
+    }
+
+    .brick::after {
+        content: "";
+        position: absolute;
+        right: .5px;
+        bottom: 0px;
+        width: 0;
+        height: 0;
+        border-bottom: 28px solid var(--brick-color, transparent);
+        border-left: 28px solid transparent;
+        border-radius: 0 0 4px 0;
+        z-index: 2;
+        pointer-events: none;
+    }
+</style>
 
 <MudText Typo="Typo.h6" GutterBottom="true">Your drafts</MudText>
 
 @if (draftSets == null)
 {
-	<p><em>Loading drafts...</em></p>
+    <p><em>Loading drafts...</em></p>
 }
 else if (!draftSets.Any())
 {
-	<MudAlert Severity="Severity.Info">You don't have any drafts.</MudAlert>
+    <MudAlert Severity="Severity.Info">You don't have any drafts.</MudAlert>
 }
 else
 {
-	   <MudTable Items="draftSets" Hover="true" Striped="true">
-		   <HeaderContent>
-			   <MudTh>Image</MudTh>
-			   <MudTh>Name</MudTh>
-			   <MudTh>Brand</MudTh>
-			   <MudTh>Actions</MudTh>
-		   </HeaderContent>
-		   <RowTemplate Context="set">
-			   <MudTd DataLabel="Image">
-				   <img src="@ImageService.GetNewSetRequestImagePath(set)" alt="Set image" style="width:48px;height:48px;border-radius:4px;border:1px solid #ccc;" />
-			   </MudTd>
-			   <MudTd DataLabel="Name">@set.SetName (@set.SetNo)</MudTd>
-			   <MudTd DataLabel="Brand">@set.Brand</MudTd>
-			   <MudTd DataLabel="Actions">
-				   <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="me-2"
-					   OnClick="@(() => EditDraftAsync(set.Id))">Edit</MudButton>
-				   <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
-					   OnClick="@(() => DeleteDraftAsync(set.Id))">Delete</MudButton>
-			   </MudTd>
-		   </RowTemplate>
-	   </MudTable>
+    <MudTable Items="draftSets" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Image</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Brand</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+
+        <RowTemplate Context="set">
+            <MudTd DataLabel="Image">
+                @{
+                    var img = ImageService.GetNewSetRequestImagePath(set);
+                    var has = !string.IsNullOrWhiteSpace(img) && img != "/placeholder-image.png";
+                }
+                <div class="brick" style="--brick-color:transparent; width:48px; height:48px; min-width:48px; min-height:48px;">
+                    <img src="@(has ? img : "/placeholder-image.png")"
+                         alt="Set image"
+                         class="brick-img"
+                         style="border-width:1px;@(has ? "" : "opacity:0.5;")" />
+                </div>
+            </MudTd>
+
+            <MudTd DataLabel="Name">@set.SetName (@set.SetNo)</MudTd>
+            <MudTd DataLabel="Brand">@set.Brand</MudTd>
+
+            <MudTd DataLabel="Actions">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="me-2"
+                           OnClick="@(() => EditDraftAsync(set.Id))">
+                    Edit
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                           OnClick="@(() => DeleteDraftAsync(set.Id))">
+                    Delete
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
 }
 
 <br />
+
 <MudPaper Class="pa-4">
-	<MudText Typo="Typo.h6" GutterBottom="true">Add a new set</MudText>
+    <MudText Typo="Typo.h6" GutterBottom="true">Add a new set</MudText>
 
-	<EditForm Model="newSetModel" OnValidSubmit="HandleDraftSubmit">
-		<div class="mb-2">
-			<label for="setImage">Set image *</label>
-			<InputFile id="setImage" OnChange="OnImageSelected" accept="image/*" />
+    <EditForm Model="newSetModel" OnValidSubmit="HandleDraftSubmit">
+        <div class="mb-2">
+            <label for="setImage">Set image *</label>
+            <InputFile id="setImage" OnChange="OnImageSelected" accept="image/*" />
 
-			@if (!string.IsNullOrEmpty(imageError))
-			{
-				<div class="alert alert-danger">@imageError</div>
-			}
-			@if (!string.IsNullOrEmpty(imagePreviewUrl))
-			{
-				<div class="mt-2">
-					<img src="@imagePreviewUrl" alt="set image preview"
-						style="max-width: 300px; max-height: 300px; border: 1px solid #ccc; border-radius: 6px;" />
-				</div>
-			}
-		</div>
-		@if (!string.IsNullOrEmpty(errorMessage))
-		{
-			<div class="alert alert-danger">@errorMessage</div>
-		}
-		<DataAnnotationsValidator />
-		<ValidationSummary />
+            @if (!string.IsNullOrEmpty(imageError))
+            {
+                <div class="alert alert-danger">@imageError</div>
+            }
+            @if (!string.IsNullOrEmpty(imagePreviewUrl))
+            {
+                <div class="mt-2">
+                    <img src="@imagePreviewUrl" alt="set image preview"
+                         style="max-width: 300px; max-height: 300px; border: 1px solid #ccc; border-radius: 6px;" />
+                </div>
+            }
+        </div>
 
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
 
-		<div style="max-width: 400px">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
 
-			<MudTextField @bind-Value="newSetModel.SetName" Label="Set Name" Variant="Variant.Text"
-				Style="max-width:800px;" />
+        <div style="max-width: 400px">
+            <MudTextField @bind-Value="newSetModel.SetName" Label="Set Name" Variant="Variant.Text" Style="max-width:800px;" />
+            <MudTextField @bind-Value="newSetModel.SetNo" Label="Set Number" Variant="Variant.Text" Style="max-width:800px;" />
 
-			<MudTextField @bind-Value="newSetModel.SetNo" Label="Set Number" Variant="Variant.Text"
-				Style="max-width:800px;" />
+            <MudSelect T="string" @bind-Value="newSetModel.Brand" Label="Select brand" Style="max-width:800px;">
+                <MudSelectItem Value="@("Lego")">Lego</MudSelectItem>
+                <MudSelectItem Value="@("Cada")">Cada</MudSelectItem>
+                <MudSelectItem Value="@("Unknown")">Unknown</MudSelectItem>
+            </MudSelect>
 
+            <hr />
+            <MudText Typo="Typo.body1" GutterBottom="true" Style="font-weight:bold; margin-top:16px;">
+                Add set items
+            </MudText>
 
-			<MudSelect T="string" @bind-Value="newSetModel.Brand" Label="Select brand" Style="max-width:800px;">
-				<MudSelectItem Value="@("Lego")">Lego</MudSelectItem>
-				<MudSelectItem Value="@("Cada")">Cada</MudSelectItem>
-				<MudSelectItem Value="@("Unknown")">Unknown</MudSelectItem>
-			</MudSelect>
+            <div class="mb-2">
+                <MudTextField T="string" Value="@brickSearchText" ValueChanged="OnBrickSearchChanged" Immediate="true"
+                              Label="Search Item by Name or PartNumber" Variant="Variant.Text" Style="max-width:800px;" />
 
+                @if (brickSearchResults.Any())
+                {
+                    <ul class="list-group mt-1">
+                        @foreach (var brick in brickSearchResults)
+                        {
+                            <li class="list-group-item list-group-item-action"
+                                style="cursor:pointer; display:flex; align-items:center; gap:8px;"
+                                @onclick="() => SelectBrick(brick)">
 
+                                @{
+                                    var overlay = !string.IsNullOrWhiteSpace(selectedColor)
+                                        ? BrickColorHelper.GetHexForColor(selectedColor)
+                                        : null;
+                                    var overlayCss = overlay ?? "transparent";
+                                }
 
-			<hr />
-			<MudText Typo="Typo.body1" GutterBottom="true" Style="font-weight:bold; margin-top:16px;">Add set items
-			</MudText>
+                                <div class="brick"
+                                     style="--brick-color:@overlayCss; width:32px; height:32px; min-width:32px; min-height:32px;">
+                                    <img src="@GetBrickImageUrl(brick)" alt=""
+                                         class="brick-img"
+                                         style="border-width:1px;" />
+                                </div>
 
-			<div class="mb-2">
-				@* <label for="brickSearch">Brick suchen</label>
-		<InputText id="brickSearch" class="form-control" @bind-Value="brickSearchText" @oninput="OnBrickSearchInput"
-			placeholder="ID oder Name..." /> *@
+                                <span>@brick.LegoPartNum - @brick.LegoName</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
 
+            @if (selectedBrick != null)
+            {
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+                    @{
+                        var overlay = !string.IsNullOrWhiteSpace(selectedColor)
+                            ? BrickColorHelper.GetHexForColor(selectedColor)
+                            : null;
+                        var overlayCss = overlay ?? "transparent";
 
-				<MudTextField T="string" Value="@brickSearchText" ValueChanged="OnBrickSearchChanged" Immediate="true"
-					Label="Search Item by Name or PartNumber" Variant="Variant.Text" Style="max-width:800px;" />
+                        var url = ImageService.GetMappedBrickImagePath(selectedBrick);
+                        var has = !string.IsNullOrWhiteSpace(url) && url != "/placeholder-image.png";
+                    }
 
+                    <div class="brick" style="--brick-color:@overlayCss; width:40px; height:40px; min-width:40px; min-height:40px;">
+                        <img src="@(has ? url : "/placeholder-image.png")" alt="Brick image"
+                             class="brick-img"
+                             style="border-width:1px;@(has ? "" : "opacity:0.5;")" />
+                    </div>
 
+                    <span style="font-size:1.1em;">@selectedBrick.LegoPartNum - @selectedBrick.LegoName</span>
+                </div>
 
-				@if (brickSearchResults.Any())
-				{
-					<ul class="list-group mt-1">
-						@foreach (var brick in brickSearchResults)
-						{
-							<li class="list-group-item list-group-item-action"
-								style="cursor:pointer; display:flex; align-items:center; gap:8px;"
-								@onclick="() => SelectBrick(brick)">
-								<img src="@GetBrickImageUrl(brick)" alt=""
-									style="width:32px;height:32px;border-radius:4px;border:1px solid #ccc;" />
-								<span>@brick.LegoPartNum - @brick.LegoName</span>
-							</li>
-						}
-					</ul>
-				}
-			</div>
-			@if (selectedBrick != null)
-			{
-				<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-					<img src="@ImageService.GetMappedBrickImagePath(selectedBrick)" alt="Brick image"
-						style="width:40px;height:40px;border-radius:4px;border:1px solid #ccc;" />
-					<span style="font-size:1.1em;">@selectedBrick.LegoPartNum - @selectedBrick.LegoName</span>
-				</div>
-				<MudSelect T="string" @bind-Value="selectedColor" Label="Color" Placeholder="Please select"
-					Style="max-width:400px;">
-					@foreach (var color in brickColors)
-					{
-						<MudSelectItem Value="@color.Name">@color.Name</MudSelectItem>
-					}
-				</MudSelect>
-				<MudTextField @bind-Value="brickQuantity" Label="Quantity" Variant="Variant.Text" Type="number" Min="1" />
+                <MudSelect T="string" @bind-Value="selectedColor" Label="Color" Placeholder="Please select"
+                           Style="max-width:400px;">
+                    @foreach (var color in brickColors)
+                    {
+                        <MudSelectItem Value="@color.Name">@color.Name</MudSelectItem>
+                    }
+                </MudSelect>
 
-				<br>
-				<MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary"
-					OnClick="@AddBrickToSet" Class="mb-4">
+                <MudTextField @bind-Value="brickQuantity" Label="Quantity" Variant="Variant.Text" Type="number" Min="1" />
 
-					Add item to new set
-				</MudButton>
-			}
-		</div>
-		<br>
-		<br>
-		<MudText Typo="Typo.body2" GutterBottom="true" Style="font-weight:bold; margin-top:16px;">Added set items
-		</MudText>
+                <br />
+                <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary"
+                           OnClick="@AddBrickToSet" Class="mb-4">
+                    Add item to new set
+                </MudButton>
+            }
+        </div>
 
-		@if (newSetModel.Bricks.Any())
-		{
-			<MudTable Items="newSetModel.Bricks" Hover="true" Striped="true">
-				<HeaderContent>
-					<MudTh>Image</MudTh>
-					<MudTh>Brick</MudTh>
-					<MudTh>Color</MudTh>
-					<MudTh>Brand ID</MudTh>
-					<MudTh>Quantity</MudTh>
+        <br />
+        <br />
 
-					<MudTh>Actions</MudTh>
-				</HeaderContent>
-				<RowTemplate Context="brick">
-					<MudTd DataLabel="Image">
-						<img src="@ImageService.GetMappedBrickImagePath(new MappedBrick { LegoPartNum = brick.LegoPartNum, Uuid = brick.Uuid ?? string.Empty })"
-							alt="" style="width:48px;height:48px;border-radius:4px;border:1px solid #ccc;" />
-					</MudTd>
-					<MudTd DataLabel="Brick">@brick.BrickName</MudTd>
-					<MudTd DataLabel="Color">@brick.Color</MudTd>
-					<MudTd DataLabel="Brand ID">@brick.BrickId</MudTd>
-					<MudTd DataLabel="Quantity">@brick.Quantity</MudTd>
+        <MudText Typo="Typo.body2" GutterBottom="true" Style="font-weight:bold; margin-top:16px;">
+            Added set items
+        </MudText>
 
-					<MudTd DataLabel="Actions">
+        @if (newSetModel.Bricks.Any())
+        {
+            <MudTable Items="newSetModel.Bricks" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Image</MudTh>
+                    <MudTh>Brick</MudTh>
+                    <MudTh>Color</MudTh>
+                    <MudTh>Brand ID</MudTh>
+                    <MudTh>Quantity</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
 
-						<MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
-							@onclick="() => RemoveBrick(brick)">Delete</MudButton>
-					</MudTd>
-				</RowTemplate>
-			</MudTable>
-		}
+                <RowTemplate Context="brick">
+                    <MudTd DataLabel="Image">
+                        @{
+                            var overlay = !string.IsNullOrWhiteSpace(brick.Color)
+                                ? BrickColorHelper.GetHexForColor(brick.Color)
+                                : null;
+                            var overlayCss = overlay ?? "transparent";
 
+                            var mb = new MappedBrick { LegoPartNum = brick.LegoPartNum, Uuid = brick.Uuid ?? string.Empty };
+                            var url = ImageService.GetMappedBrickImagePath(mb);
+                            var has = !string.IsNullOrWhiteSpace(url) && url != "/placeholder-image.png";
+                        }
 
-		<div class="mt-3">
+                        <div class="brick" style="--brick-color:@overlayCss; width:48px; height:48px; min-width:48px; min-height:48px;">
+                            <img src="@(has ? url : "/placeholder-image.png")" alt=""
+                                 class="brick-img"
+                                 style="border-width:1px;@(has ? "" : "opacity:0.5;")" />
+                        </div>
+                    </MudTd>
 
-			<MudButton StartIcon="@Icons.Material.Filled.Save"
-           Variant="Variant.Filled"
-           Color="Color.Primary"
-           ButtonType="ButtonType.Submit"
-           Class="mb-4"
-           Disabled="_loading">
-    Save as draft
-</MudButton>
+                    <MudTd DataLabel="Brick">@brick.BrickName</MudTd>
+                    <MudTd DataLabel="Color">@brick.Color</MudTd>
+                    <MudTd DataLabel="Brand ID">@brick.BrickId</MudTd>
+                    <MudTd DataLabel="Quantity">@brick.Quantity</MudTd>
 
+                    <MudTd DataLabel="Actions">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                                   @onclick="() => RemoveBrick(brick)">
+                            Delete
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
 
-		<MudButton StartIcon="@Icons.Material.Filled.Add"
-           Variant="Variant.Filled"
-           Color="Color.Primary"
-           OnClick="@HandlePublish"
-           Class="mb-4"
-           Disabled="_loading">
-    Publish set
-</MudButton>
+        <div class="mt-3">
+            <MudButton StartIcon="@Icons.Material.Filled.Save"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       ButtonType="ButtonType.Submit"
+                       Class="mb-4"
+                       Disabled="_loading">
+                Save as draft
+            </MudButton>
 
-			@* <button type="submit" class="btn btn-secondary me-2">Als Entwurf speichern</button>
-		<button type="button" class="btn btn-primary" @onclick="HandlePublish">Veröffentlichen</button> *@
-		</div>
-	</EditForm>
+            <MudButton StartIcon="@Icons.Material.Filled.Add"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="@HandlePublish"
+                       Class="mb-4"
+                       Disabled="_loading">
+                Publish set
+            </MudButton>
+        </div>
+    </EditForm>
 </MudPaper>
 
 @code {
-	private string? imagePreviewUrl;
-	private string? imageError;
-	private IBrowserFile? uploadedImageFile;
-	private bool _loading = false;
+    private string? imagePreviewUrl;
+    private string? imageError;
+    private IBrowserFile? uploadedImageFile;
+    private bool _loading = false;
 
-	private async Task OnImageSelected(InputFileChangeEventArgs e)
-	{
-		imageError = null;
-		imagePreviewUrl = null;
-		uploadedImageFile = null;
-		var file = e.File;
-		if (file == null)
-		{
-			imageError = "Please select an image.";
-			StateHasChanged();
-			return;
-		}
-		if (file.Size > 3 * 1024 * 1024)
-		{
-			imageError = "The image must be max 3MB.";
-			StateHasChanged();
-			return;
-		}
-		try
-		{
-			using var stream = file.OpenReadStream(3 * 1024 * 1024);
-			using var ms = new MemoryStream();
-			await stream.CopyToAsync(ms);
-			var buffer = ms.ToArray();
-			var base64 = Convert.ToBase64String(buffer);
-			imagePreviewUrl = $"data:{file.ContentType};base64,{base64}";
-			uploadedImageFile = file;
-		}
-		catch (Exception ex)
-		{
-			imageError = $"Error loading image: {ex.Message}";
-		}
-		StateHasChanged();
-	}
-	private bool _hasLoaded = false;
-	protected override async Task OnAfterRenderAsync(bool firstRender)
-	{
-		if (!_hasLoaded && firstRender)
-		{
-			_hasLoaded = true;
-			await LoadDraftsAndData();
-		}
-	}
-	private List<Data.Entities.NewSetRequest>? draftSets;
-	private List<string> brands = new();
-	private NewSetModel newSetModel = new();
-	private int? editingDraftId = null;
-	private string? errorMessage;
-
-	// Brick hinzufügen
-	private string brickSearchText = "";
-	private List<MappedBrick> brickSearchResults = new();
-	private MappedBrick? selectedBrick;
-	private List<BrickColor> brickColors = new();
-	private string selectedColor = "";
-	private int brickQuantity = 1;
-
-	private string GetBrickImageUrlFromId(int brickId)
-	{
-		var brick = brickSearchResults.FirstOrDefault(b => b.Id == brickId);
-		if (brick != null)
-		{
-			var partNum = brick.LegoPartNum;
-			if (!string.IsNullOrWhiteSpace(partNum) && _brickImageCache.TryGetValue(partNum, out var url))
-				return url;
-		}
-		return "/part_images/placeholder.png";
-	}
-
-	private async Task EditDraftAsync(int draftId)
-	{
-		var draft = draftSets?.FirstOrDefault(d => d.Id == draftId);
-		if (draft == null) return;
-		editingDraftId = draft.Id;
-		var bricks = new List<NewSetBrickModel>();
-		var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
-		foreach (var item in draft.Items)
-		{
-			int brickId = 0;
-			string brickName = item.ItemIdOrName;
-			if (int.TryParse(item.ItemIdOrName, out var id))
-			{
-				brickId = id;
-				var brick = allBricks.FirstOrDefault(b => b.Id == id);
-				if (brick != null)
-				{
-					brickName = brick.LegoName ?? brick.LegoPartNum ?? item.ItemIdOrName;
-				}
-			}
-			var mappedBrick = allBricks.FirstOrDefault(b => b.Id == brickId);
-			bricks.Add(new NewSetBrickModel
-			{
-				BrickId = brickId,
-				BrickName = brickName,
-				LegoPartNum = mappedBrick?.LegoPartNum,
-				Uuid = mappedBrick?.Uuid,
-				Color = item.Color,
-				Quantity = item.Quantity
-			});
-		}
-		newSetModel = new NewSetModel
-		{
-			SetName = draft.SetName,
-			SetNo = draft.SetNo,
-			Brand = draft.Brand,
-			Bricks = bricks
-		};
-		uploadedImageFile = null;
-		// Show image preview for draft using ImageService
-		imagePreviewUrl = ImageService.GetNewSetRequestImagePath(draft);
-		StateHasChanged();
-	}
-
-	private async Task LoadDraftsAndData()
-	{
-		var user = await UserService.GetCurrentUserAsync();
-		if (user == null)
-		{
-			draftSets = new List<Data.Entities.NewSetRequest>();
-			return;
-		}
-		var allSets = await RequestService.GetNewSetRequestsByUserAsync(user.Uuid);
-		draftSets = allSets.Where(s => s.Status == Data.Entities.NewSetRequestStatus.Draft).ToList();
-		brands = await GetAllBrandsAsync();
-		brickColors = await MappedBrickService.GetAllColorsAsync();
-		StateHasChanged();
-	}
-
-	private void RemoveBrick(NewSetBrickModel brick)
-	{
-		newSetModel.Bricks.Remove(brick);
-		StateHasChanged();
-	}
-
-
-	private Dictionary<string, string> _brickImageCache = new();
-
-	private string GetBrickImageUrl(MappedBrick brick)
-	{
-		var partNum = brick.LegoPartNum;
-		if (!string.IsNullOrWhiteSpace(partNum) && _brickImageCache.TryGetValue(partNum, out var url))
-			return url;
-		return "/part_images/placeholder.png";
-	}
-	private async Task OnBrickSearchChanged(string value)
-	{
-		brickSearchText = value ?? "";
-
-		if (brickSearchText.Length < 2)
-		{
-			brickSearchResults.Clear();
-			await InvokeAsync(StateHasChanged);
-			return;
-		}
-
-		var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
-
-		brickSearchResults = allBricks
-		.Where(b =>
-		(b.LegoPartNum?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-		(b.LegoName?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false))
-		.Take(10)
-		.ToList();
-
-		foreach (var brick in brickSearchResults)
-		{
-			var partNum = brick.LegoPartNum;
-			if (!string.IsNullOrWhiteSpace(partNum) && !_brickImageCache.ContainsKey(partNum))
-			{
-				var url = ImageService.GetMappedBrickImagePath(brick);
-				_brickImageCache[partNum] = string.IsNullOrWhiteSpace(url) ? "/part_images/placeholder.png" : url;
-			}
-		}
-
-		await InvokeAsync(StateHasChanged);
-	}
-
-
-	private void SelectBrick(MappedBrick brick)
-	{
-		selectedBrick = brick;
-		selectedColor = "";
-		brickQuantity = 1;
-		brickSearchResults.Clear();
-		brickSearchText = brick.LegoPartNum ?? brick.LegoName ?? "";
-		StateHasChanged();
-	}
-
-	private void AddBrickToSet()
-	{
-		if (selectedBrick == null || string.IsNullOrEmpty(selectedColor) || brickQuantity < 1)
-			return;
-		newSetModel.Bricks.Add(new NewSetBrickModel
-		{
-			BrickId = selectedBrick.Id,
-			BrickName = selectedBrick.LegoName ?? selectedBrick.LegoPartNum ?? "",
-			LegoPartNum = selectedBrick.LegoPartNum,
-			Uuid = selectedBrick.Uuid,
-			Color = selectedColor,
-			Quantity = brickQuantity
-		});
-		selectedBrick = null;
-		selectedColor = "";
-		brickQuantity = 1;
-		brickSearchText = "";
-		StateHasChanged();
-	}
-
-	private async Task<List<string>> GetAllBrandsAsync()
-	{
-		// Hole alle Brands aus ItemSets
-		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-		return itemSets.Items.Select(s => s.Brand).Distinct().OrderBy(b => b).ToList();
-	}
-
-	private async Task HandleDraftSubmit()
-	{
-		if (_loading) return;
-		errorMessage = null;
-		var user = await UserService.GetCurrentUserAsync();
-		if (user == null)
-		{
-			NotificationService.Error("No user found. Please log in.");
-			return;
-		}
-		if (uploadedImageFile == null)
-		{
-			errorMessage = "Please upload an image for the set.";
-			StateHasChanged();
-			return;
-		}
-		// Check for duplicates
-		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.SetNum ==
-		newSetModel.SetNo));
-		if (exists)
-		{
-			errorMessage = "A set with this brand and name or set ID already exists.";
-			StateHasChanged();
-			return;
-		}
-
-		
-    	    _loading = true;
-			await InvokeAsync(StateHasChanged);
-			await Task.Delay(100); // optional, damit UI rendern kann
-			LoadingService.Show();
-
-		string? imagePath = null;
-		try
-		{
-			imagePath = await ImageService.SaveSetImageAsync(uploadedImageFile, newSetModel.Brand, newSetModel.SetNo);
-		}
-		catch (Exception ex)
-		{
-			errorMessage = $"Error saving image: {ex.Message}";
-			StateHasChanged();
-			return;
-		}
-		 finally
-		{
-			LoadingService.Hide();
-			_loading = false;
-			await InvokeAsync(StateHasChanged);
-		}
-
-
-		var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem
-		{
-			ItemIdOrName = b.BrickId != 0 ? b.BrickId.ToString() : b.BrickName,
-			Quantity = b.Quantity,
-			Color = b.Color
-		}).ToList();
-		if (editingDraftId.HasValue)
-		{
-			// Update existing draft in-place
-			await RequestService.UpdateNewSetRequestAsync(editingDraftId.Value, newSetModel.Brand, newSetModel.SetNo,
-			newSetModel.SetName, imagePath, items, Data.Entities.NewSetRequestStatus.Draft);
-		}
-		else
-		{
-			await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath,
-			user.Uuid, items, Data.Entities.NewSetRequestStatus.Draft);
-		}
-		await LoadDraftsAndData();
-		newSetModel = new();
-		editingDraftId = null;
-		uploadedImageFile = null;
-		imagePreviewUrl = null;
-		NotificationService.Success("Set successfully saved as draft.");
-		StateHasChanged();
-	}
-
-	private async Task HandlePublish()
-	{
-		if (_loading) return;
-		errorMessage = null;
-		var user = await UserService.GetCurrentUserAsync();
-		if (user == null) return;
-
-		// Check for duplicates
-		var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-		var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.SetNum ==
-		newSetModel.SetNo));
-		if (exists)
-		{
-			errorMessage = "A set with this brand and name or set ID already exists.";
-			StateHasChanged();
-			return;
-		}
-
-		string? imagePath = null;
-
-		    _loading = true;
-    	await InvokeAsync(StateHasChanged);
-    
-    	LoadingService.Show();
-
-	try
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
     {
-		if (uploadedImageFile != null)
-		{
-			try
-			{
-				imagePath = await ImageService.SaveSetImageAsync(uploadedImageFile, newSetModel.Brand, newSetModel.SetNo);
-			}
-			catch (Exception ex)
-			{
-				errorMessage = $"Error saving image: {ex.Message}";
-				StateHasChanged();
-				return;
-			}
-		}
-		else if (editingDraftId.HasValue)
-		{
-			// Wenn kein neues Bild hochgeladen wurde, aber ein Entwurfsbild existiert, verwende dieses
-			var draft = draftSets?.FirstOrDefault(d => d.Id == editingDraftId.Value);
-			@* if (draft != null && !string.IsNullOrWhiteSpace(draft.ImagePath))
-			{
-				imagePath = draft.ImagePath;
-			}
-			else
-			{
-				errorMessage = "Please upload an image for the set.";
-				StateHasChanged();
-				return;
-			} *@
-		}
-		else
-		{
-			errorMessage = "Please upload an image for the set.";
-			StateHasChanged();
-			return;
-		}
+        imageError = null;
+        imagePreviewUrl = null;
+        uploadedImageFile = null;
 
-		// Publish: Status Pending
-		var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem
-		{
-			ItemIdOrName = b.BrickId != 0 ? b.BrickId.ToString() : b.BrickName,
-			Quantity = b.Quantity,
-			Color = b.Color
-		}).ToList();
-		if (editingDraftId.HasValue)
-		{
-			// Update draft to Pending (publish)
-			var draft = draftSets?.FirstOrDefault(d => d.Id == editingDraftId.Value);
-			if (draft != null)
-			{
-				await RequestService.DeleteNewSetRequestAsync(draft.Id); // Remove old draft
-			}
-		}
-		await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath,
-		user.Uuid, items, Data.Entities.NewSetRequestStatus.Pending);
-		await LoadDraftsAndData();
-		newSetModel = new();
-		editingDraftId = null;
-		uploadedImageFile = null;
-		imagePreviewUrl = null;
-		NotificationService.Success("Set successfully submitted for review.");
-		}
-    catch (Exception ex)
-   {
-        errorMessage = $"Error while publishing: {ex.Message}";
-        NotificationService.Error("Publishing failed.");
+        var file = e.File;
+        if (file == null)
+        {
+            imageError = "Please select an image.";
+            StateHasChanged();
+            return;
+        }
+
+        if (file.Size > 3 * 1024 * 1024)
+        {
+            imageError = "The image must be max 3MB.";
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream(3 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var buffer = ms.ToArray();
+            var base64 = Convert.ToBase64String(buffer);
+            imagePreviewUrl = $"data:{file.ContentType};base64,{base64}";
+            uploadedImageFile = file;
+        }
+        catch (Exception ex)
+        {
+            imageError = $"Error loading image: {ex.Message}";
+        }
+
+        StateHasChanged();
     }
-    finally
+
+    private bool _hasLoaded = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        LoadingService.Hide();
-        _loading = false;
+        if (!_hasLoaded && firstRender)
+        {
+            _hasLoaded = true;
+            await LoadDraftsAndData();
+        }
+    }
+
+    private List<Data.Entities.NewSetRequest>? draftSets;
+    private List<string> brands = new();
+    private NewSetModel newSetModel = new();
+    private int? editingDraftId = null;
+    private string? errorMessage;
+
+    // Brick hinzufügen
+    private string brickSearchText = "";
+    private List<MappedBrick> brickSearchResults = new();
+    private MappedBrick? selectedBrick;
+    private List<BrickColor> brickColors = new();
+    private string selectedColor = "";
+    private int brickQuantity = 1;
+
+    private string GetBrickImageUrlFromId(int brickId)
+    {
+        var brick = brickSearchResults.FirstOrDefault(b => b.Id == brickId);
+        if (brick != null)
+        {
+            var partNum = brick.LegoPartNum;
+            if (!string.IsNullOrWhiteSpace(partNum) && _brickImageCache.TryGetValue(partNum, out var url))
+                return url;
+        }
+        return "/part_images/placeholder.png";
+    }
+
+    private async Task EditDraftAsync(int draftId)
+    {
+        var draft = draftSets?.FirstOrDefault(d => d.Id == draftId);
+        if (draft == null) return;
+
+        editingDraftId = draft.Id;
+        var bricks = new List<NewSetBrickModel>();
+        var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
+
+        foreach (var item in draft.Items)
+        {
+            int brickId = 0;
+            string brickName = item.ItemIdOrName;
+
+            if (int.TryParse(item.ItemIdOrName, out var id))
+            {
+                brickId = id;
+                var brick = allBricks.FirstOrDefault(b => b.Id == id);
+                if (brick != null)
+                    brickName = brick.LegoName ?? brick.LegoPartNum ?? item.ItemIdOrName;
+            }
+
+            var mappedBrick = allBricks.FirstOrDefault(b => b.Id == brickId);
+
+            bricks.Add(new NewSetBrickModel
+            {
+                BrickId = brickId,
+                BrickName = brickName,
+                LegoPartNum = mappedBrick?.LegoPartNum,
+                Uuid = mappedBrick?.Uuid,
+                Color = item.Color,
+                Quantity = item.Quantity
+            });
+        }
+
+        newSetModel = new NewSetModel
+        {
+            SetName = draft.SetName,
+            SetNo = draft.SetNo,
+            Brand = draft.Brand,
+            Bricks = bricks
+        };
+
+        uploadedImageFile = null;
+        imagePreviewUrl = ImageService.GetNewSetRequestImagePath(draft);
+
+        StateHasChanged();
+    }
+
+    private async Task LoadDraftsAndData()
+    {
+        var user = await UserService.GetCurrentUserAsync();
+        if (user == null)
+        {
+            draftSets = new List<Data.Entities.NewSetRequest>();
+            return;
+        }
+
+        var allSets = await RequestService.GetNewSetRequestsByUserAsync(user.Uuid);
+        draftSets = allSets.Where(s => s.Status == Data.Entities.NewSetRequestStatus.Draft).ToList();
+
+        brands = await GetAllBrandsAsync();
+        brickColors = await MappedBrickService.GetAllColorsAsync();
+
+        StateHasChanged();
+    }
+
+    private void RemoveBrick(NewSetBrickModel brick)
+    {
+        newSetModel.Bricks.Remove(brick);
+        StateHasChanged();
+    }
+
+    private Dictionary<string, string> _brickImageCache = new();
+
+    private string GetBrickImageUrl(MappedBrick brick)
+    {
+        var partNum = brick.LegoPartNum;
+        if (!string.IsNullOrWhiteSpace(partNum) && _brickImageCache.TryGetValue(partNum, out var url))
+            return url;
+
+        return "/part_images/placeholder.png";
+    }
+
+    private async Task OnBrickSearchChanged(string value)
+    {
+        brickSearchText = value ?? "";
+
+        if (brickSearchText.Length < 2)
+        {
+            brickSearchResults.Clear();
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
+
+        brickSearchResults = allBricks
+            .Where(b =>
+                (b.LegoPartNum?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (b.LegoName?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false))
+            .Take(10)
+            .ToList();
+
+        foreach (var brick in brickSearchResults)
+        {
+            var partNum = brick.LegoPartNum;
+            if (!string.IsNullOrWhiteSpace(partNum) && !_brickImageCache.ContainsKey(partNum))
+            {
+                var url = ImageService.GetMappedBrickImagePath(brick);
+                _brickImageCache[partNum] = string.IsNullOrWhiteSpace(url) ? "/part_images/placeholder.png" : url;
+            }
+        }
+
         await InvokeAsync(StateHasChanged);
     }
-	}
 
-	private async Task DeleteDraftAsync(int id)
-	{
-		await RequestService.DeleteNewSetRequestAsync(id);
-		var user = await UserService.GetCurrentUserAsync();
-		if (user != null)
-		{
-			await LoadDraftsAndData();
-			StateHasChanged();
-		}
-	}
+    private void SelectBrick(MappedBrick brick)
+    {
+        selectedBrick = brick;
+        selectedColor = "";
+        brickQuantity = 1;
+        brickSearchResults.Clear();
+        brickSearchText = brick.LegoPartNum ?? brick.LegoName ?? "";
+        StateHasChanged();
+    }
 
-	public class NewSetModel
-	{
-		public string SetName { get; set; } = string.Empty;
-		public string SetNo { get; set; } = string.Empty;
-		public string Brand { get; set; } = string.Empty;
-		public List<NewSetBrickModel> Bricks { get; set; } = new();
-	}
+    private void AddBrickToSet()
+    {
+        if (selectedBrick == null || string.IsNullOrEmpty(selectedColor) || brickQuantity < 1)
+            return;
 
-	public class NewSetBrickModel
-	{
-		public int BrickId { get; set; }
-		public string BrickName { get; set; } = string.Empty;
-		public string? LegoPartNum { get; set; }
-		public string? Uuid { get; set; }
-		public string Color { get; set; } = string.Empty;
-		public int Quantity { get; set; }
-	}
+        newSetModel.Bricks.Add(new NewSetBrickModel
+        {
+            BrickId = selectedBrick.Id,
+            BrickName = selectedBrick.LegoName ?? selectedBrick.LegoPartNum ?? "",
+            LegoPartNum = selectedBrick.LegoPartNum,
+            Uuid = selectedBrick.Uuid,
+            Color = selectedColor,
+            Quantity = brickQuantity
+        });
+
+        selectedBrick = null;
+        selectedColor = "";
+        brickQuantity = 1;
+        brickSearchText = "";
+		NotificationService.Success("Item added to the set.");
+        StateHasChanged();
+    }
+
+    private async Task<List<string>> GetAllBrandsAsync()
+    {
+        var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
+        return itemSets.Items.Select(s => s.Brand).Distinct().OrderBy(b => b).ToList();
+    }
+
+    private async Task HandleDraftSubmit()
+    {
+        if (_loading) return;
+
+        errorMessage = null;
+
+        var user = await UserService.GetCurrentUserAsync();
+        if (user == null)
+        {
+            NotificationService.Error("No user found. Please log in.");
+            return;
+        }
+
+        if (uploadedImageFile == null)
+        {
+            errorMessage = "Please upload an image for the set.";
+            StateHasChanged();
+            return;
+        }
+
+        // Check for duplicates
+        var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
+        var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.SetNum == newSetModel.SetNo));
+        if (exists)
+        {
+            errorMessage = "A set with this brand and name or set ID already exists.";
+            StateHasChanged();
+            return;
+        }
+
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(100);
+        LoadingService.Show(message: "Saving your draft...");
+
+        string? imagePath = null;
+        try
+        {
+            imagePath = await ImageService.SaveSetImageAsync(uploadedImageFile, newSetModel.Brand, newSetModel.SetNo);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving image: {ex.Message}";
+            StateHasChanged();
+            return;
+        }
+        finally
+        {
+            LoadingService.Hide();
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem
+        {
+            ItemIdOrName = b.BrickId != 0 ? b.BrickId.ToString() : b.BrickName,
+            Quantity = b.Quantity,
+            Color = b.Color
+        }).ToList();
+
+        if (editingDraftId.HasValue)
+        {
+            await RequestService.UpdateNewSetRequestAsync(editingDraftId.Value, newSetModel.Brand, newSetModel.SetNo,
+                newSetModel.SetName, imagePath, items, Data.Entities.NewSetRequestStatus.Draft);
+        }
+        else
+        {
+            await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath,
+                user.Uuid, items, Data.Entities.NewSetRequestStatus.Draft);
+        }
+
+        await LoadDraftsAndData();
+        newSetModel = new();
+        editingDraftId = null;
+        uploadedImageFile = null;
+        imagePreviewUrl = null;
+
+        NotificationService.Success("Set successfully saved as draft.");
+        StateHasChanged();
+    }
+
+    private async Task HandlePublish()
+    {
+        if (_loading) return;
+
+        errorMessage = null;
+        var user = await UserService.GetCurrentUserAsync();
+        if (user == null) return;
+
+        // Check for duplicates
+        var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
+        var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.SetNum == newSetModel.SetNo));
+        if (exists)
+        {
+            errorMessage = "A set with this brand and name or set ID already exists.";
+            StateHasChanged();
+            return;
+        }
+
+        string? imagePath = null;
+
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
+        LoadingService.Show(message: "Publishing set...");
+
+        try
+        {
+            if (uploadedImageFile != null)
+            {
+                imagePath = await ImageService.SaveSetImageAsync(uploadedImageFile, newSetModel.Brand, newSetModel.SetNo);
+            }
+            else if (editingDraftId.HasValue)
+            {
+                // kein neues Bild: ok (du hattest hier Logik auskommentiert)
+            }
+            else
+            {
+                errorMessage = "Please upload an image for the set.";
+                StateHasChanged();
+                return;
+            }
+
+            var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem
+            {
+                ItemIdOrName = b.BrickId != 0 ? b.BrickId.ToString() : b.BrickName,
+                Quantity = b.Quantity,
+                Color = b.Color
+            }).ToList();
+
+            if (editingDraftId.HasValue)
+            {
+                var draft = draftSets?.FirstOrDefault(d => d.Id == editingDraftId.Value);
+                if (draft != null)
+                    await RequestService.DeleteNewSetRequestAsync(draft.Id);
+            }
+
+            await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath,
+                user.Uuid, items, Data.Entities.NewSetRequestStatus.Pending);
+
+            await LoadDraftsAndData();
+            newSetModel = new();
+            editingDraftId = null;
+            uploadedImageFile = null;
+            imagePreviewUrl = null;
+
+            NotificationService.Success("Set successfully submitted for review.");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error while publishing: {ex.Message}";
+            NotificationService.Error("Publishing failed.");
+        }
+        finally
+        {
+            LoadingService.Hide();
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task DeleteDraftAsync(int id)
+    {
+        await RequestService.DeleteNewSetRequestAsync(id);
+
+        var user = await UserService.GetCurrentUserAsync();
+        if (user != null)
+        {
+            await LoadDraftsAndData();
+            StateHasChanged();
+        }
+    }
+
+    public class NewSetModel
+    {
+        public string SetName { get; set; } = string.Empty;
+        public string SetNo { get; set; } = string.Empty;
+        public string Brand { get; set; } = string.Empty;
+        public List<NewSetBrickModel> Bricks { get; set; } = new();
+    }
+
+    public class NewSetBrickModel
+    {
+        public int BrickId { get; set; }
+        public string BrickName { get; set; } = string.Empty;
+        public string? LegoPartNum { get; set; }
+        public string? Uuid { get; set; }
+        public string Color { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+    }
 }
