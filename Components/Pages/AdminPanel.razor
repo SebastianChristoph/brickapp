@@ -1,27 +1,56 @@
 @page "/admin-panel"
 @inject Data.Services.MappedBrickExportService MappedExport
 @inject Data.Services.ItemSetExportService SetExport
+@inject Services.UserService UserService
 
 <MudText Typo="Typo.h4" GutterBottom="true">Admin Panel</MudText>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportMappings">Export Mappings</MudButton>
-<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportSets">Export Sets</MudButton>
+
+@* <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportMappings">Export Mappings</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportSets">Export Sets</MudButton> *@
+
+<MudDivider Class="my-4" />
+<MudText Typo="Typo.h6">Create new AppUser</MudText>
+<MudTextField @bind-Value="newUserName" Label="Username" Variant="Variant.Outlined" />
+<MudButton StartIcon="Icons.Material.Filled.PersonAdd" Variant="Variant.Filled" Color="Color.Secondary" OnClick="CreateUser">Create AppUser</MudButton>
+<div>@createUserMessage</div>
 
 <div>@statusMessage</div>
 
 @code {
     private string statusMessage = "";
+    private string newUserName = string.Empty;
+    private string createUserMessage = string.Empty;
+    private async Task CreateUser()
+    {
+        createUserMessage = string.Empty;
+        if (string.IsNullOrWhiteSpace(newUserName))
+        {
+            createUserMessage = "Please enter a username.";
+            return;
+        }
+        var user = await UserService.AddUserAsync(newUserName);
+        if (user != null)
+        {
+            createUserMessage = $"User created: {user.Name} (UUID: {user.Uuid})";
+            newUserName = string.Empty;
+        }
+        else
+        {
+            createUserMessage = "Error creating user.";
+        }
+    }
 
-    private async Task ExportMappings()
+    /*private async Task ExportMappings()
     {
         try
         {
             var count = await MappedExport.ExportMappedBricksAsync();
-            statusMessage = $"Export erfolgreich: {count} Mappings gespeichert. (Pfad: {MappedExport.GetExportPath()})";
+            statusMessage = $"Export successful: {count} mappings saved. (Path: {MappedExport.GetExportPath()})";
         }
         catch (Exception ex)
         {
-            statusMessage = $"Fehler beim Export: {ex.Message}";
+            statusMessage = $"Error during export: {ex.Message}";
         }
     }
 
@@ -30,11 +59,11 @@
         try
         {
             var count = await SetExport.ExportSetsAsync();
-            statusMessage = $"Sets-Export erfolgreich: {count} Sets gespeichert. (Pfad: {count})";
+            statusMessage = $"Sets export successful: {count} sets saved. (Path: {SetExport.GetExportPath()})";
         }
         catch (Exception ex)
         {
-            statusMessage = $"Fehler beim Sets-Export: {ex.Message}";
+            statusMessage = $"Error during sets export: {ex.Message}";
         }
-    }
+    }*/
 }

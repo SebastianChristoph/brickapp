@@ -1,4 +1,5 @@
-// API-Controller-Support aktivieren
+using Services.Storage;
+
 using MudBlazor.Services;
 using Data;
 using Microsoft.EntityFrameworkCore;
@@ -6,19 +7,41 @@ using Services;
 using brickapp.Components;
 using Data.Services;
 
+
 var builder = WebApplication.CreateBuilder(args);
-
-// ----------------------------
-// Configuration / Environment
-// ----------------------------
-builder.Services.AddControllers();
-
-var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION");
+var connectionString =
+    builder.Configuration.GetConnectionString("Default")
+    ?? Environment.GetEnvironmentVariable("POSTGRES_CONNECTION");
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    throw new Exception("POSTGRES_CONNECTION environment variable is not set");
+    throw new Exception("Connection string not set. Provide ConnectionStrings:Default or POSTGRES_CONNECTION.");
 }
+
+builder.Services.AddControllers();
+
+if (builder.Environment.IsDevelopment())
+{
+   builder.Services.AddSingleton<IImageStorage>(sp =>
+{
+    var env = sp.GetRequiredService<IWebHostEnvironment>();
+    return new LocalImageStorage(env.WebRootPath); // oder ContentRootPath + "wwwroot"
+});
+}
+else
+{
+    var blobConn =
+        Environment.GetEnvironmentVariable("AZURE_BLOB_CONNECTION");
+
+    if (string.IsNullOrWhiteSpace(blobConn))
+        throw new Exception("AZURE_BLOB_CONNECTION not set");
+
+  builder.Services.AddSingleton<IImageStorage>(sp =>
+    new AzureBlobImageStorage(blobConn)
+);
+}
+
+
 
 // ----------------------------
 // Database (PostgreSQL)
@@ -55,14 +78,7 @@ builder.Services.AddScoped<MappedBrickExportService>(sp =>
 // Global Services
 builder.Services.AddSingleton<LoadingService>();
 builder.Services.AddScoped<NotificationService>();
-
-// ImageService (wwwroot)
-builder.Services.AddScoped<ImageService>(sp =>
-    new ImageService(
-        sp.GetRequiredService<IWebHostEnvironment>().WebRootPath,
-        sp.GetRequiredService<NotificationService>()
-    )
-);
+builder.Services.AddScoped<ImageService>();
 
 // ----------------------------
 // UI / Blazor / MudBlazor

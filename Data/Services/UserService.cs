@@ -1,3 +1,4 @@
+
 using Data;
 using Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,26 @@ public class UserService
         _dbFactory = dbFactory;
         _js = js;
         _nav = nav;
+    }
+
+        public async Task<AppUser?> AddUserAsync(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+            return null;
+
+        var uuid = Guid.NewGuid().ToString();
+        var user = new AppUser
+        {
+            Uuid = uuid,
+            Name = username,
+            IsAdmin = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        return user;
     }
 
     public async Task<bool> IsAuthenticatedAsync()

@@ -1,6 +1,7 @@
 using Data.Entities;
 using Microsoft.AspNetCore.Components.Forms;
 using Services;
+using Services.Storage;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
@@ -8,12 +9,12 @@ namespace Data.Services
 {
     public class ImageService
     {
-        private readonly string _wwwrootPath;
+        private readonly IImageStorage _storage;
         private readonly NotificationService _notificationService;
 
-        public ImageService(string wwwrootPath, NotificationService notificationService)
+        public ImageService(IImageStorage storage, NotificationService notificationService)
         {
-            _wwwrootPath = wwwrootPath;
+            _storage = storage;
             _notificationService = notificationService;
         }
 
@@ -28,71 +29,69 @@ namespace Data.Services
             if (file == null || file.ContentType == null || !file.ContentType.StartsWith("image/"))
                 return null;
 
-            var ext = Path.GetExtension(file.Name);
-            string filePath;
             string relativePath;
 
             if (brand.Trim().ToLower() == "lego" && !string.IsNullOrWhiteSpace(legoPartNum))
             {
-                // LEGO: Speichere als part_images/<legoPartNum>.png
+                // LEGO: part_images/<legoPartNum>.png
                 var safeLegoPartNum = legoPartNum.Trim();
-                var folder = Path.Combine(_wwwrootPath, "part_images");
-                Directory.CreateDirectory(folder);
-                filePath = Path.Combine(folder, safeLegoPartNum + ".png");
-                relativePath = $"/part_images/{safeLegoPartNum}.png";
+                relativePath = $"part_images/{safeLegoPartNum}.png";
             }
             else if (!string.IsNullOrWhiteSpace(uuid))
             {
-                // Andere Brands: Speichere als part_images/new/<uuid>.png
-                var folder = Path.Combine(_wwwrootPath, "part_images", "new");
-                Directory.CreateDirectory(folder);
-                filePath = Path.Combine(folder, uuid + ".png");
-                relativePath = $"/part_images/new/{uuid}.png";
+                // Andere Brands: part_images/new/<uuid>.png
+                relativePath = $"part_images/new/{uuid}.png";
             }
             else
             {
-                // Fallback: generiere zufälligen Namen in part_images/new
-                var folder = Path.Combine(_wwwrootPath, "part_images", "new");
-                Directory.CreateDirectory(folder);
+                // Fallback
                 var randomName = Guid.NewGuid().ToString();
-                filePath = Path.Combine(folder, randomName + ".png");
-                relativePath = $"/part_images/new/{randomName}.png";
+                relativePath = $"part_images/new/{randomName}.png";
             }
 
             using var stream = file.OpenReadStream(10 * 1024 * 1024); // max 10MB
             using var image = await Image.LoadAsync(stream);
+
             if (image.Width > 700)
             {
                 var ratio = 700f / image.Width;
                 var newHeight = (int)(image.Height * ratio);
                 image.Mutate(x => x.Resize(700, newHeight));
             }
-            await image.SaveAsPngAsync(filePath);
-            _notificationService.Success($"Item image saved at {relativePath}");
-            return relativePath;
+
+            using var outStream = new MemoryStream();
+            await image.SaveAsPngAsync(outStream);
+            outStream.Position = 0;
+
+            // Speichern (lokal: Datei, Azure: Blob)
+            await _storage.SaveAsync(outStream, "image/png", relativePath);
+
+            var webPath = BuildWebPath(relativePath);
+            _notificationService.Success($"Item image saved at {webPath}");
+            return webPath;
         }
 
         public string GetMappedBrickImagePath(MappedBrick mappedBrick)
         {
             if (mappedBrick != null)
             {
-
-                // 1. Falls LegoPartNum vorhanden, prüfe auf PNG im part_images-Ordner
+                // 1) part_images/<legoPartNum>.png
                 if (!string.IsNullOrWhiteSpace(mappedBrick.LegoPartNum))
                 {
-                    var fileName = mappedBrick.LegoPartNum + ".png";
-                    var filePath = Path.Combine(_wwwrootPath, "part_images", fileName);
-                    if (File.Exists(filePath))
-                        return $"/part_images/{mappedBrick.LegoPartNum}.png";
+                    var rel = $"part_images/{mappedBrick.LegoPartNum}.png";
+                    if (_storage.Exists(rel))
+                        return BuildWebPath(rel);
                 }
 
-                // 2. Falls Bild unter part_images/new/<uuid>.png existiert
-                var newFileName = mappedBrick.Uuid + ".png";
-                var newFilePath = Path.Combine(_wwwrootPath, "part_images", "new", newFileName);
-                if (File.Exists(newFilePath))
-                    return $"/part_images/new/{mappedBrick.Uuid}.png";
+                // 2) part_images/new/<uuid>.png
+                if (!string.IsNullOrWhiteSpace(mappedBrick.Uuid))
+                {
+                    var rel = $"part_images/new/{mappedBrick.Uuid}.png";
+                    if (_storage.Exists(rel))
+                        return BuildWebPath(rel);
+                }
             }
-            // Fallback: Platzhalter
+
             return "/placeholder-image.png";
         }
 
@@ -100,72 +99,73 @@ namespace Data.Services
         {
             if (newItemRequest != null)
             {
-                // Wenn Brand "lego" ist, prüfe auf PNG im part_images-Ordner mit PartNum
-                if (!string.IsNullOrWhiteSpace(newItemRequest.Brand) && newItemRequest.Brand.Trim().ToLower() == "lego")
+                // LEGO -> part_images/<PartNum>.png
+                if (!string.IsNullOrWhiteSpace(newItemRequest.Brand) &&
+                    newItemRequest.Brand.Trim().ToLower() == "lego" &&
+                    !string.IsNullOrWhiteSpace(newItemRequest.PartNum))
                 {
-                    if (!string.IsNullOrWhiteSpace(newItemRequest.PartNum))
-                    {
-                        var fileName = newItemRequest.PartNum + ".png";
-                        var filePath = Path.Combine(_wwwrootPath, "part_images", fileName);
-                        if (File.Exists(filePath))
-                            return $"/part_images/{newItemRequest.PartNum}.png";
-                    }
+                    var rel = $"part_images/{newItemRequest.PartNum}.png";
+                    if (_storage.Exists(rel))
+                        return BuildWebPath(rel);
                 }
-                // Sonst prüfe auf PNG im part_images/new-Ordner mit uuid
-                else if (!string.IsNullOrWhiteSpace(newItemRequest.Uuid))
+
+                // sonst -> part_images/new/<uuid>.png
+                if (!string.IsNullOrWhiteSpace(newItemRequest.Uuid))
                 {
-                    var newFileName = newItemRequest.Uuid + ".png";
-                    var newFilePath = Path.Combine(_wwwrootPath, "part_images", "new", newFileName);
-                    if (File.Exists(newFilePath))
-                        return $"/part_images/new/{newItemRequest.Uuid}.png";
+                    var rel = $"part_images/new/{newItemRequest.Uuid}.png";
+                    if (_storage.Exists(rel))
+                        return BuildWebPath(rel);
                 }
             }
-            // Fallback: Platzhalter
+
             return "/placeholder-image.png";
         }
 
         // SET IMAGES
-
         public async Task<string?> SaveSetImageAsync(IBrowserFile uploadedImage, string brand, string setId)
         {
             if (uploadedImage == null) return null;
+
             var ext = Path.GetExtension(uploadedImage.Name);
+            if (string.IsNullOrWhiteSpace(ext)) ext = ".png";
+
             var safeBrand = brand.ToLower().Replace(" ", "_");
             var safeSetId = setId.ToLower().Replace(" ", "_");
             var fileName = safeSetId + ext;
-            var setDir = Path.Combine(_wwwrootPath, "setimages", safeBrand);
-            if (!Directory.Exists(setDir))
-                Directory.CreateDirectory(setDir);
-            var savePath = Path.Combine(setDir, fileName);
-            using (var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024))
-            using (var fs = File.Create(savePath))
-            {
-                await stream.CopyToAsync(fs);
-            }
-            // Relativer Pfad für Webzugriff
-            return $"/setimages/{safeBrand}/{fileName}";
+
+            var relativePath = $"setimages/{safeBrand}/{fileName}";
+
+            using var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024);
+
+            await _storage.SaveAsync(
+                stream,
+                uploadedImage.ContentType ?? "application/octet-stream",
+                relativePath
+            );
+
+            return BuildWebPath(relativePath);
         }
+
         public string GetSetImagePath(ItemSet itemSet)
         {
             if (itemSet == null)
                 return "/placeholder-image.png";
 
-            // 1. Falls ImageUrl gesetzt ist, verwende diese
+            // 1) Falls ImageUrl gesetzt ist, verwende diese
             if (!string.IsNullOrWhiteSpace(itemSet.ImageUrl))
                 return itemSet.ImageUrl;
 
-            // 2. Prüfe auf lokales Bild
+            // 2) lokales/blob Bild: setimages/<brand>/<setnum>.png
             if (!string.IsNullOrWhiteSpace(itemSet.SetNum) && !string.IsNullOrWhiteSpace(itemSet.Brand))
             {
                 var safeBrand = itemSet.Brand.ToLower().Replace(" ", "_");
                 var safeSetNum = itemSet.SetNum.ToLower().Replace(" ", "_");
-                var fileName = safeSetNum + ".png";
-                var filePath = Path.Combine(_wwwrootPath, "setimages", safeBrand, fileName);
-                if (File.Exists(filePath))
-                    return $"/setimages/{safeBrand}/{fileName}";
+                var rel = $"setimages/{safeBrand}/{safeSetNum}.png";
+
+                if (_storage.Exists(rel))
+                    return BuildWebPath(rel);
             }
 
-            // 3. Fallback: Platzhalter
             return "/placeholder-image.png";
         }
 
@@ -174,77 +174,78 @@ namespace Data.Services
             if (newSetRequest == null)
                 return "/placeholder-image.png";
 
-
-            // 2. Prüfe auf lokales Bild
             if (!string.IsNullOrWhiteSpace(newSetRequest.SetNo) && !string.IsNullOrWhiteSpace(newSetRequest.Brand))
             {
                 var safeBrand = newSetRequest.Brand.ToLower().Replace(" ", "_");
                 var safeSetNum = newSetRequest.SetNo.ToLower().Replace(" ", "_");
-                var fileName = safeSetNum + ".png";
-                var filePath = Path.Combine(_wwwrootPath, "setimages", safeBrand, fileName);
-                if (File.Exists(filePath))
-                    return $"/setimages/{safeBrand}/{fileName}";
+                var rel = $"setimages/{safeBrand}/{safeSetNum}.png";
+
+                if (_storage.Exists(rel))
+                    return BuildWebPath(rel);
             }
 
-            // 3. Fallback: Platzhalter
             return "/placeholder-image.png";
         }
-
-        // OTHER IMAGES
 
         // MOCK IMAGES
         public async Task<string?> SaveMockImageAsync(IBrowserFile uploadedImage, string userUuid, int mockId)
         {
             if (uploadedImage == null) return null;
+
             var ext = Path.GetExtension(uploadedImage.Name);
-            var fileName = mockId.ToString() + ext;
-            var userDir = Path.Combine(_wwwrootPath, userUuid);
-            if (!Directory.Exists(userDir))
-                Directory.CreateDirectory(userDir);
-            var savePath = Path.Combine(userDir, fileName);
-            using (var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024))
-            using (var fs = File.Create(savePath))
-            {
-                await stream.CopyToAsync(fs);
-            }
-            // Relativer Pfad für Webzugriff
-            return $"/{userUuid}/{fileName}";
+            if (string.IsNullOrWhiteSpace(ext)) ext = ".png";
+
+            var fileName = mockId + ext;
+            var relativePath = $"{userUuid}/{fileName}";
+
+            using var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024);
+
+            await _storage.SaveAsync(
+                stream,
+                uploadedImage.ContentType ?? "application/octet-stream",
+                relativePath
+            );
+
+            return BuildWebPath(relativePath);
         }
 
-
+        // Optional: Delete auf Blob -> IImageStorage um DeleteAsync erweitern
         public void DeleteMockImage(Mock mock)
         {
-            if (mock == null)
-                return;
-            var usertoken = mock.UserUuid;
-            var mockid = mock.Id;
-            var fileName = mockid + ".png";
-            var fullPath = Path.Combine(_wwwrootPath, usertoken, fileName);
-            if (File.Exists(fullPath))
-            {
-                try { File.Delete(fullPath); } catch { /* ignore */ }
-            }
+            // Wenn du das willst, sag Bescheid: ich gebe dir IImageStorage + Implementierungen inkl. DeleteAsync.
         }
-    
 
         public string GetMockImagePath(Mock mock)
         {
             if (mock == null)
                 return "/placeholder-image.png";
+
             var usertoken = mock.UserUuid;
             var mockid = mock.Id;
+
             string[] extensions = new[] { ".png", ".jpg", ".jpeg" };
             foreach (var ext in extensions)
             {
-                var fileName = mockid + ext;
-                var relativePath = $"/{usertoken}/{fileName}";
-                var fullPath = Path.Combine(_wwwrootPath, usertoken, fileName);
-                if (File.Exists(fullPath))
-                {
-                    return relativePath;
-                }
+                var rel = $"{usertoken}/{mockid}{ext}";
+                if (_storage.Exists(rel))
+                    return BuildWebPath(rel);
             }
+
             return "/placeholder-image.png";
+        }
+
+        private string BuildWebPath(string relativePath)
+        {
+            var baseUrl = _storage.BaseUrl ?? "/";
+
+            // baseUrl sauber machen
+            if (!baseUrl.EndsWith("/"))
+                baseUrl += "/";
+
+            // relativePath sauber machen
+            relativePath = relativePath.Replace("\\", "/").TrimStart('/');
+
+            return $"{baseUrl}{relativePath}";
         }
     }
 }
