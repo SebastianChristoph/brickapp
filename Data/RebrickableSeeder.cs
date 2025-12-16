@@ -2,6 +2,7 @@ using System.Globalization;
 using CsvHelper;
 using Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Services.Storage; // <- NEU
 
 namespace Data;
 
@@ -10,48 +11,36 @@ public static class RebrickableSeeder
     public static async Task SeedAsync(
         AppDbContext db,
         IDbContextFactory<AppDbContext> dbFactory,
+        IExportStorage exportStorage,          // <- NEU
         string contentRootPath)
     {
-        // Importiere Sets aus JSON-Exportdatei im mappedData-Ordner
-        var setsExportPath = Path.Combine(contentRootPath, "mappedData", "exported_sets.json");
-        var setsExportService = new Data.Services.ItemSetExportService(dbFactory, setsExportPath);
+        // Sets Import aus ExportStorage (lokal: mappedData/, azure: blob mappedData/)
+        var setsExportService = new Data.Services.ItemSetExportService(dbFactory, exportStorage);
         await setsExportService.ImportSetsAsync();
 
         var dataDir = Path.Combine(contentRootPath, "RebrickableData");
         if (!Directory.Exists(dataDir))
-        {
             return;
-        }
 
-        // Nur importieren, wenn noch keine LEGO-Daten existieren
         if (!await db.MappedBricks.AnyAsync())
-        {
             await ImportPartsAsync(db, Path.Combine(dataDir, "parts.csv"));
-        }
 
-        // Importiere gemappte Bricks aus JSON-Exportdatei im mappedData-Ordner
-        var exportPath = Path.Combine(contentRootPath, "mappedData", "exported_mappedbricks.json");
-        var exportService = new Data.Services.MappedBrickExportService(dbFactory, exportPath);
-        await exportService.ImportMappedBricksAsync();
+        var mappedExportService = new Data.Services.MappedBrickExportService(dbFactory, exportStorage);
+        await mappedExportService.ImportMappedBricksAsync();
 
         if (!await db.BrickColors.AnyAsync())
-        {
             await ImportColorsAsync(db, Path.Combine(dataDir, "colors.csv"));
-        }
 
         if (!await db.ItemSets.AnyAsync())
-        {
             await ImportSetsAsync(db, Path.Combine(dataDir, "sets.csv"));
-        }
 
         if (!await db.ItemSetBricks.AnyAsync())
-        {
             await ImportInventoryPartsAsync(db,
                 Path.Combine(dataDir, "inventories.csv"),
                 Path.Combine(dataDir, "inventory_parts.csv"));
-        }
-    
     }
+    
+    
     private static async Task ImportPartsAsync(AppDbContext db, string partsPath)
     {
         if (!File.Exists(partsPath)) return;

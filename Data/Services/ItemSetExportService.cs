@@ -1,21 +1,26 @@
 using System.Text.Json;
+using Data;                  // <- WICHTIG für AppDbContext
 using Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Services.Storage;
 
 namespace Data.Services;
 
 public class ItemSetExportService
 {
     private readonly IDbContextFactory<AppDbContext> _factory;
-    private readonly string _exportPath;
+    private readonly IExportStorage _storage;
 
-    public ItemSetExportService(
-        IDbContextFactory<AppDbContext> factory,
-        string exportPath)
+    // liegt unter mappedData/
+    private const string ExportRelPath = "exported_sets.json";
+
+    public ItemSetExportService(IDbContextFactory<AppDbContext> factory, IExportStorage storage)
     {
         _factory = factory;
-        _exportPath = exportPath;
+        _storage = storage;
     }
+
+    public string GetExportPath() => _storage.DescribeTarget($"mappedData/{ExportRelPath}");
 
     public async Task<int> ExportSetsAsync()
     {
@@ -28,30 +33,29 @@ public class ItemSetExportService
             SetNum = s.SetNum,
             Name = s.Name,
             Brand = s.Brand,
-            Year = (int)s.Year,
+            Year = (int)(s.Year ?? 0), // falls Year nullable ist
             ImageUrl = s.ImageUrl
         }).ToList();
 
-        var json = JsonSerializer.Serialize(exportList, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
+        var json = JsonSerializer.Serialize(exportList, new JsonSerializerOptions { WriteIndented = true });
 
-        var dir = Path.GetDirectoryName(_exportPath);
-        if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-            Directory.CreateDirectory(dir);
-
-        await File.WriteAllTextAsync(_exportPath, json);
+        await _storage.WriteTextAsync($"mappedData/{ExportRelPath}", "application/json", json);
         return exportList.Count;
     }
 
     public async Task<int> ImportSetsAsync()
     {
-        if (!File.Exists(_exportPath)) return 0;
+        // Wichtig: nicht crashen wenn Datei nicht existiert
+        if (!await _storage.ExistsAsync($"mappedData/{ExportRelPath}"))
+            return 0;
 
-        var json = await File.ReadAllTextAsync(_exportPath);
+        var json = await _storage.ReadTextAsync($"mappedData/{ExportRelPath}");
+        if (string.IsNullOrWhiteSpace(json))
+            return 0;
+
         var imported = JsonSerializer.Deserialize<List<ExportSet>>(json);
-        if (imported == null) return 0;
+        if (imported == null || imported.Count == 0)
+            return 0;
 
         await using var db = await _factory.CreateDbContextAsync();
 

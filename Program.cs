@@ -23,10 +23,18 @@ builder.Services.AddControllers();
 if (builder.Environment.IsDevelopment())
 {
    builder.Services.AddSingleton<IImageStorage>(sp =>
-{
-    var env = sp.GetRequiredService<IWebHostEnvironment>();
-    return new LocalImageStorage(env.WebRootPath); // oder ContentRootPath + "wwwroot"
-});
+    {
+        var env = sp.GetRequiredService<IWebHostEnvironment>();
+        return new LocalImageStorage(env.WebRootPath); // oder ContentRootPath + "wwwroot"
+    });
+
+    builder.Services.AddSingleton<IExportStorage>(sp =>
+    {
+        var env = sp.GetRequiredService<IWebHostEnvironment>();
+        // mappedData im ContentRoot (nicht wwwroot)
+        var baseDir = Path.Combine(env.ContentRootPath, "mappedData");
+        return new LocalExportStorage(baseDir);
+    });
 }
 else
 {
@@ -35,6 +43,12 @@ else
 
     if (string.IsNullOrWhiteSpace(blobConn))
         throw new Exception("AZURE_BLOB_CONNECTION not set");
+
+    const string exportContainer = "brickapp"; // <- HIER deinen Container-Namen eintragen
+
+    builder.Services.AddSingleton<IExportStorage>(_ =>
+        new AzureBlobExportStorage(blobConn, exportContainer)
+    );
 
   builder.Services.AddSingleton<IImageStorage>(sp =>
     new AzureBlobImageStorage(blobConn)
@@ -60,20 +74,8 @@ builder.Services.AddScoped<UserNotificationService>();
 builder.Services.AddScoped<RequestService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<ItemSetService>();
-
-builder.Services.AddScoped<ItemSetExportService>(sp =>
-    new ItemSetExportService(
-        sp.GetRequiredService<IDbContextFactory<AppDbContext>>(),
-        Path.Combine(builder.Environment.ContentRootPath, "mappedData", "exported_sets.json")
-    )
-);
-
-builder.Services.AddScoped<MappedBrickExportService>(sp =>
-    new MappedBrickExportService(
-        sp.GetRequiredService<IDbContextFactory<AppDbContext>>(),
-        Path.Combine(builder.Environment.ContentRootPath, "mappedData", "exported_mappedbricks.json")
-    )
-);
+builder.Services.AddScoped<ItemSetExportService>();
+builder.Services.AddScoped<MappedBrickExportService>();
 
 // Global Services
 builder.Services.AddSingleton<LoadingService>();
@@ -102,7 +104,9 @@ using (var scope = app.Services.CreateScope())
 await using var db = await factory.CreateDbContextAsync();
 
 await db.Database.MigrateAsync();
-await RebrickableSeeder.SeedAsync(db, factory, builder.Environment.ContentRootPath);
+var exportStorage = scope.ServiceProvider.GetRequiredService<IExportStorage>();
+await RebrickableSeeder.SeedAsync(db, factory, exportStorage, builder.Environment.ContentRootPath);
+
 }
 
 // ----------------------------
