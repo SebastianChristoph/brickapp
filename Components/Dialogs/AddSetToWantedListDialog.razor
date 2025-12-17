@@ -1,0 +1,136 @@
+@using MudBlazor
+@using Data.DTOs
+@using Data.Services
+
+@inject WantedListService WantedListService
+@inject Services.NotificationService NotificationService
+@inject Services.LoadingService LoadingService
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" GutterBottom="true">Add set to wanted list</MudText>
+
+        @if (_loadingLists)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudStack Spacing="2">
+                <MudSelect T="int?" Label="Add to existing wanted list" Variant="Variant.Outlined"
+                           @bind-Value="_selectedWantedListId" Disabled="_saving">
+                    <MudSelectItem T="int?" Value="null">-- select --</MudSelectItem>
+                    @foreach (var wl in _wantedLists)
+                    {
+                        <MudSelectItem T="int?" Value="@wl.Id">@wl.Name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudDivider />
+
+                <MudTextField Label="Or create a new wanted list" Variant="Variant.Outlined"
+                              @bind-Value="_newListName" Disabled="_saving" />
+
+                @if (!string.IsNullOrWhiteSpace(_error))
+                {
+                    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel"  Color="Color.Secondary" Disabled="_saving">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(_saving || _loadingLists)">
+            Add to Wanted List
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    // Parameter aus SetDetails
+    [Parameter] public string? SetName { get; set; }
+    [Parameter] public List<NewWantedListItemModel> Items { get; set; } = new();
+
+    private bool _loadingLists = true;
+    private bool _saving = false;
+    private string _error = "";
+
+    private int? _selectedWantedListId = null;
+    private string _newListName = "";
+
+    private List<Data.Entities.WantedList> _wantedLists = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loadingLists = true;
+        try
+        {
+            _wantedLists = await WantedListService.GetCurrentUserWantedListsAsync();
+        }
+        finally
+        {
+            _loadingLists = false;
+        }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private async Task Save()
+    {
+        _error = "";
+
+        if (Items == null || Items.Count == 0)
+        {
+            _error = "This set has no items.";
+            return;
+        }
+
+        var createNew = !string.IsNullOrWhiteSpace(_newListName);
+
+        if (!createNew && !_selectedWantedListId.HasValue)
+        {
+            _error = "Please select an existing wanted list OR enter a name for a new one.";
+            return;
+        }
+
+        _saving = true;
+        LoadingService?.Show();
+
+        try
+        {
+            bool ok;
+
+            if (createNew)
+            {
+                var model = new NewWantedListModel
+                {
+                    Name = _newListName.Trim(),
+                    Items = Items
+                };
+
+                ok = await WantedListService.CreateWantedListAsync(model);
+            }
+            else
+            {
+                ok = await WantedListService.AddItemsToWantedListAsync(_selectedWantedListId!.Value, Items);
+            }
+
+            if (!ok)
+            {
+                _error = "Saving failed.";
+                return;
+            }
+
+            NotificationService.Success("Wanted list successfully updated.");
+            MudDialog?.Close(true);
+        }
+        finally
+        {
+            LoadingService?.Hide();
+            _saving = false;
+        }
+    }
+}

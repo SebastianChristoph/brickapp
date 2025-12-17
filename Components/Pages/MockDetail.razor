@@ -15,6 +15,20 @@
 
 <MudText Typo="Typo.h4" GutterBottom="true">MOC Detail</MudText>
 
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+        @_error
+        @if (!string.IsNullOrWhiteSpace(_errorDetails))
+        {
+            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.caption" Style="white-space:pre-wrap;">
+                @_errorDetails
+            </MudText>
+        }
+    </MudAlert>
+}
+
 @if (_loading)
 {
     <MudProgressCircular Indeterminate="true" />
@@ -176,6 +190,17 @@ else
 
     private Dictionary<(int, int), Dictionary<string, int>> _ownedByBrand = new();
 
+    private string? _error;
+    private string? _errorDetails;
+
+    private void SetError(Exception ex, string? context = null)
+    {
+        _error = context == null
+            ? $"An error happened: {ex.Message}"
+            : $"An error happened ({context}): {ex.Message}";
+        _errorDetails = ex.ToString(); // Testphase
+    }
+
     private int TotalNeeded => _mock?.Items?.Sum(i => i.Quantity) ?? 0;
     private int TotalOwned => _mock?.Items?.Sum(i => Math.Min(GetOwnedQuantity(i), i.Quantity)) ?? 0;
     private int TotalMissing => TotalNeeded - TotalOwned;
@@ -186,39 +211,58 @@ else
     {
         if (!firstRender) return;
 
-        await LoadMockAsync();
-        _loading = false;
-        StateHasChanged();
+        try
+        {
+            await LoadMockAsync();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex, "OnAfterRender");
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task LoadMockAsync()
     {
-        using var scope = ServiceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+        try
+        {
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
 
-        _mock = db.Mocks
-            .Include(m => m.Items)
-                .ThenInclude(i => i.MappedBrick)
-            .Include(m => m.Items)
-                .ThenInclude(i => i.BrickColor)
-            .FirstOrDefault(m => m.Id == mockId);
+            _mock = db.Mocks
+                .Include(m => m.Items)
+                    .ThenInclude(i => i.MappedBrick)
+                .Include(m => m.Items)
+                    .ThenInclude(i => i.BrickColor)
+                .FirstOrDefault(m => m.Id == mockId);
 
-        _mockImageUrl = _mock != null
-            ? ImageService.GetMockImagePath(_mock)
-            : "/placeholder-image.png";
+            _mockImageUrl = _mock != null
+                ? ImageService.GetMockImagePath(_mock)
+                : "/placeholder-image.png";
 
-        var inventory = await InventoryService.GetCurrentUserInventoryAsync();
+            var inventory = await InventoryService.GetCurrentUserInventoryAsync();
 
-        _ownedByBrand = inventory
-            .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
-            .ToDictionary(
-                g => g.Key,
-                g => g.GroupBy(i => i.Brand)
-                      .ToDictionary(bg => bg.Key, bg => bg.Sum(i => i.Quantity))
-            );
+            _ownedByBrand = inventory
+                .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.GroupBy(i => i.Brand)
+                          .ToDictionary(bg => bg.Key, bg => bg.Sum(i => i.Quantity))
+                );
 
-        UpdateTableItems();
-        _tableKey = Guid.NewGuid();
+            UpdateTableItems();
+            _tableKey = Guid.NewGuid();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex, "LoadMockAsync");
+            NotificationService.Error(_error);
+            _mock = null;
+        }
     }
 
     private void UpdateTableItems()
@@ -233,7 +277,6 @@ else
 
         if (_showOnlyMissing)
         {
-            // 🔥 nur Items, wo du NICHT genug hast
             items = items.Where(i => GetOwnedQuantity(i) < i.Quantity);
         }
 
@@ -267,14 +310,22 @@ else
 
     private async Task OpenAddMockDialog()
     {
-        var parameters = new DialogParameters { ["MockId"] = mockId };
-        var dialog = await DialogService.ShowAsync<Components.Dialogs.AddMockToInventoryDialog>("", parameters);
-        var result = await dialog.Result;
-
-        if (result?.Data is bool ok && ok)
+        try
         {
-            NotificationService.Success("MOC items successfully added.");
-            Nav.NavigateTo("/myinventory");
+            var parameters = new DialogParameters { ["MockId"] = mockId };
+            var dialog = await DialogService.ShowAsync<Components.Dialogs.AddMockToInventoryDialog>("", parameters);
+            var result = await dialog.Result;
+
+            if (result?.Data is bool ok && ok)
+            {
+                NotificationService.Success("MOC items successfully added.");
+                Nav.NavigateTo("/myinventory");
+            }
+        }
+        catch (Exception ex)
+        {
+            SetError(ex, "OpenAddMockDialog");
+            NotificationService.Error(_error);
         }
     }
 

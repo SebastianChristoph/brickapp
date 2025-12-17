@@ -15,8 +15,22 @@
 @inject IDialogService DialogService
 @inject Services.NotificationService NotificationService
 @inject Data.Services.ImageService ImageService
+@inject Services.LoadingService LoadingService
 
 <PageTitle>Set Details</PageTitle>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+        @_error
+
+        @if (!string.IsNullOrWhiteSpace(_errorDetails))
+        {
+            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.caption" Style="white-space:pre-wrap;">@_errorDetails</MudText>
+        }
+    </MudAlert>
+}
 
 @if (_loading)
 {
@@ -44,16 +58,13 @@ else
                          style="height:200px; width:auto; object-fit:contain; border-radius:4px;" />
                 </div>
             }
+
             <MudStack Spacing="1" Style="flex: 1;">
-                <MudText Typo="Typo.h4" GutterBottom="true">
-                    @_itemSet.Name
-                </MudText>
-                <MudText Typo="Typo.subtitle1">
-                    Brand: @_itemSet.Brand
-                </MudText>
-                <MudText Typo="Typo.subtitle2">
-                    Set Nr: @_itemSet.SetNum | Year: @_itemSet.Year
-                </MudText>
+                <MudText Typo="Typo.h4" GutterBottom="true">@_itemSet.Name</MudText>
+
+                <MudText Typo="Typo.subtitle1">Brand: @_itemSet.Brand</MudText>
+
+                <MudText Typo="Typo.subtitle2">Set Nr: @_itemSet.SetNum | Year: @_itemSet.Year</MudText>
 
                 <MudButton StartIcon="@Icons.Material.Filled.Add"
                            Variant="Variant.Filled"
@@ -63,15 +74,22 @@ else
                            Class="mt-2">
                     Add all items to my inventory
                 </MudButton>
+
+                <MudButton StartIcon="@Icons.Material.Filled.List"
+                           Variant="Variant.Outlined"
+                           Color="Color.Secondary"
+                           OnClick="@OpenAddSetToWantedListDialog"
+                           Size="Size.Large"
+                           Class="mt-2">
+                    Add set to wanted list
+                </MudButton>
             </MudStack>
         </MudStack>
     </MudPaper>
 
     <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudText Typo="Typo.subtitle1">
-                Can you build this set?
-            </MudText>
+            <MudText Typo="Typo.subtitle1">Can you build this set?</MudText>
 
             <MudProgressLinear Color="Color.Primary"
                                Striped="true"
@@ -163,17 +181,20 @@ else
         <RowTemplate>
             <MudTd DataLabel="Image">
                 @{
-                    var imgUrl = ImageService.GetMappedBrickImagePath(context.MappedBrick);
+                    var imgUrl = context.MappedBrick != null
+                        ? ImageService.GetMappedBrickImagePath(context.MappedBrick)
+                        : "/placeholder-image.png";
+
                     var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
                 }
+
                 <div style="position:relative;display:inline-block;min-width:48px;min-height:48px;">
                     @if (!string.IsNullOrWhiteSpace(imgUrl) && imgUrl != "/placeholder-image.png")
                     {
                         if (overlay != null)
                         {
                             <div class="brick" style="--brick-color:@overlay">
-                                <img src="@imgUrl" alt=""
-                                     class="brick-img"
+                                <img src="@imgUrl" alt="" class="brick-img"
                                      onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
                             </div>
                         }
@@ -193,54 +214,54 @@ else
                 </div>
             </MudTd>
 
-            <MudTd DataLabel="Standard Name">@context.MappedBrick.Name</MudTd>
+            <MudTd DataLabel="Standard Name">@context.MappedBrick?.Name</MudTd>
             <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
 
             <MudTd DataLabel="Lego">
-                @context.MappedBrick.LegoName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.LegoPartNum))
+                @context.MappedBrick?.LegoName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.LegoPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.LegoPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.LegoPartNum)</span>
                 }
             </MudTd>
 
             <MudTd DataLabel="BlueBrixx">
-                @context.MappedBrick.BluebrixxName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.BluebrixxPartNum))
+                @context.MappedBrick?.BluebrixxName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.BluebrixxPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.BluebrixxPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.BluebrixxPartNum)</span>
                 }
             </MudTd>
 
             <MudTd DataLabel="Cada">
-                @context.MappedBrick.CadaName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.CadaPartNum))
+                @context.MappedBrick?.CadaName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.CadaPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.CadaPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.CadaPartNum)</span>
                 }
             </MudTd>
 
             <MudTd DataLabel="Pantasy">
-                @context.MappedBrick.PantasyName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.PantasyPartNum))
+                @context.MappedBrick?.PantasyName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.PantasyPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.PantasyPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.PantasyPartNum)</span>
                 }
             </MudTd>
 
             <MudTd DataLabel="Mould King">
-                @context.MappedBrick.MouldKingName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.MouldKingPartNum))
+                @context.MappedBrick?.MouldKingName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.MouldKingPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.MouldKingPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.MouldKingPartNum)</span>
                 }
             </MudTd>
 
             <MudTd DataLabel="Unknown">
-                @context.MappedBrick.UnknownName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.UnknownPartNum))
+                @context.MappedBrick?.UnknownName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.UnknownPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.UnknownPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.UnknownPartNum)</span>
                 }
             </MudTd>
 
@@ -272,19 +293,12 @@ else
 
 @code {
 
-    protected int TotalNeeded => _itemSet?.Bricks?.Sum(b => b.Quantity) ?? 0;
-    protected int TotalOwned => _itemSet?.Bricks?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
-    protected int Percent => (TotalNeeded > 0 && TotalOwned == TotalNeeded)
-        ? 100
-        : (TotalNeeded > 0 ? (int)Math.Floor(100.0 * (double)TotalOwned / TotalNeeded) : 0);
-    protected bool HasAll => TotalNeeded > 0 && TotalOwned == TotalNeeded;
-
     [Parameter] public int itemSetId { get; set; }
 
     private ItemSet? _itemSet;
     private UserItemSet? _userItemSet;
-    private bool _loading = true;
 
+    private bool _loading = true;
     private bool _showOnlyMissing = false;
 
     // Table state (force rebuild on filter changes)
@@ -300,14 +314,41 @@ else
         Enough
     }
 
+    private string? _error;
+    private string? _errorDetails;
+
+    private void SetError(Exception ex)
+    {
+        _error = $"An error happened: {ex.Message}";
+        _errorDetails = ex.ToString();
+    }
+
+    protected int TotalNeeded => _itemSet?.Bricks?.Sum(b => b.Quantity) ?? 0;
+    protected int TotalOwned => _itemSet?.Bricks?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
+
+    protected int Percent => (TotalNeeded > 0 && TotalOwned == TotalNeeded)
+        ? 100
+        : (TotalNeeded > 0 ? (int)Math.Floor(100.0 * (double)TotalOwned / TotalNeeded) : 0);
+
+    protected bool HasAll => TotalNeeded > 0 && TotalOwned == TotalNeeded;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
 
-        await LoadDataAsync();
-        _loading = false;
-
-        StateHasChanged();
+        try
+        {
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task LoadDataAsync()
@@ -319,7 +360,7 @@ else
         else
             _itemSet = await ItemSetService.GetItemSetByIdAsync(itemSetId);
 
-        var inventory = await InventoryService.GetCurrentUserInventoryAsync();
+        var inventory = await InventoryService.GetCurrentUserInventoryAsync() ?? new List<InventoryItem>();
 
         _ownedByBrand = inventory
             .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
@@ -333,6 +374,44 @@ else
         _tableKey = Guid.NewGuid();
     }
 
+    private async Task OpenAddSetToWantedListDialog()
+    {
+        try
+        {
+            if (_itemSet?.Bricks == null || !_itemSet.Bricks.Any())
+                return;
+
+            var items = _itemSet.Bricks
+                .Where(b => b.MappedBrickId > 0 && b.BrickColorId > 0 && b.Quantity > 0)
+                .Select(b => new Data.DTOs.NewWantedListItemModel
+                {
+                    MappedBrickId = b.MappedBrickId,
+                    ColorId = b.BrickColorId,
+                    Quantity = b.Quantity
+                })
+                .ToList();
+
+            var parameters = new DialogParameters<AddSetToWantedListDialog>();
+            parameters.Add(x => x.SetName, _itemSet.Name);
+            parameters.Add(x => x.Items, items);
+
+            var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            };
+
+            await DialogService.ShowAsync<AddSetToWantedListDialog>("Wanted List", parameters, options);
+        }
+        catch (Exception ex)
+        {
+            SetError(ex);
+            NotificationService.Error(_error ?? "An error happened.");
+            StateHasChanged();
+        }
+    }
+
     private void UpdateTableItems()
     {
         var all = _itemSet?.Bricks ?? Enumerable.Empty<ItemSetBrick>();
@@ -341,11 +420,8 @@ else
 
         if (_showOnlyMissing)
         {
-            // "missing" = du hast nicht genug (None + Partial)
+            // missing = nicht genug (None + Partial)
             filtered = all.Where(b => GetOwnershipState(b) != BrickOwnershipState.Enough);
-
-            // Wenn du wirklich NUR komplett fehlende willst, nimm stattdessen:
-            // filtered = all.Where(b => GetOwnedQuantity(b) == 0);
         }
 
         _tableItems = filtered
@@ -376,29 +452,38 @@ else
 
     private async Task OpenAddSetDialog()
     {
-        if (_itemSet?.Bricks == null || !_itemSet.Bricks.Any())
-            return;
-
-        var itemCount = _itemSet.Bricks.Count;
-
-        var parameters = new DialogParameters<AddSetToInventoryDialog>();
-        parameters.Add(x => x.ItemCount, itemCount);
-        parameters.Add(x => x.ItemSetId, itemSetId);
-
-        var dialog = await DialogService.ShowAsync<AddSetToInventoryDialog>("Set zum Inventar hinzufügen", parameters);
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled && result.Data is bool confirmed && confirmed)
+        try
         {
-            _loading = true;
+            if (_itemSet?.Bricks == null || !_itemSet.Bricks.Any())
+                return;
+
+            var itemCount = _itemSet.Bricks.Count;
+
+            var parameters = new DialogParameters<AddSetToInventoryDialog>();
+            parameters.Add(x => x.ItemCount, itemCount);
+            parameters.Add(x => x.ItemSetId, itemSetId);
+
+            var dialog = await DialogService.ShowAsync<AddSetToInventoryDialog>("Set zum Inventar hinzufügen", parameters);
+            var result = await dialog.Result;
+
+            if (result != null && !result.Canceled && result.Data is bool confirmed && confirmed)
+            {
+                _loading = true;
+                StateHasChanged();
+
+                await LoadDataAsync();
+
+                _loading = false;
+                StateHasChanged();
+
+                NotificationService.Success("Items erfolgreich zum Inventar hinzugefügt.");
+            }
+        }
+        catch (Exception ex)
+        {
+            SetError(ex);
+            NotificationService.Error(_error ?? "An error happened.");
             StateHasChanged();
-
-            await LoadDataAsync();
-
-            _loading = false;
-            StateHasChanged();
-
-            NotificationService.Success("Items erfolgreich zum Inventar hinzugefügt.");
         }
     }
 

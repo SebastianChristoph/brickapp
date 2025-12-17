@@ -22,37 +22,39 @@ namespace Data.Services
          /// <summary>
         /// Gibt für jedes InventoryItem (nach BrickId und ColorId) die zugehörigen WantedLists zurück.
         /// </summary>
-        public async Task<Dictionary<(int BrickId, int ColorId), List<string>>> GetWantedListNamesByBrickAndColorAsync(int userId)
+       public async Task<Dictionary<(int BrickId, int ColorId), List<string>>> GetWantedListNamesByBrickAndColorAsync(int userId)
+{
+    await using var db = await _factory.CreateDbContextAsync();
+    var user = await _userService.GetCurrentUserAsync();
+    if (user == null || user.Id != userId)
+        return new();
+
+    var lists = await db.WantedLists
+        .Include(wl => wl.Items)
+        .Where(wl => wl.AppUserId == user.Id.ToString())
+        .ToListAsync();
+
+    var dict = new Dictionary<(int, int), HashSet<string>>();
+
+    foreach (var wl in lists)
+    {
+        foreach (var item in wl.Items)
         {
-            await using var db = await _factory.CreateDbContextAsync();
-            var user = await _userService.GetCurrentUserAsync();
-            if (user == null || user.Id != userId)
-                return new();
+            var key = (item.MappedBrickId, item.BrickColorId);
 
-            // Hole alle WantedLists inkl. Items für den User
-            var lists = await db.WantedLists
-                .Include(wl => wl.Items)
-                .Where(wl => wl.AppUserId == user.Id.ToString())
-                .ToListAsync();
-
-            var dict = new Dictionary<(int, int), List<string>>();
-            foreach (var wl in lists)
+            if (!dict.TryGetValue(key, out var set))
             {
-                foreach (var item in wl.Items)
-                {
-                    var key = (item.MappedBrickId, item.BrickColorId);
-                    if (!dict.TryGetValue(key, out var list))
-                    {
-                        list = new List<string>();
-                        dict[key] = list;
-                    }
-                    list.Add(wl.Name);
-                }
+                set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                dict[key] = set;
             }
-            return dict;
-        }
-  
 
+            set.Add(wl.Name); // <- kein doppelter Name mehr
+        }
+    }
+
+    // zurück in List<string>
+    return dict.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.OrderBy(x => x).ToList());
+}
 
         public async Task<List<WantedList>> GetCurrentUserWantedListsAsync()
         {
@@ -75,6 +77,48 @@ namespace Data.Services
         {
             var id = await CreateWantedListAndReturnIdAsync(model);
             return id > 0;
+        }
+        public async Task<bool> AddItemsToWantedListAsync(int wantedListId, IEnumerable<NewWantedListItemModel> itemsToAdd)
+        {
+            var user = await _userService.GetCurrentUserAsync();
+            if (user == null)
+                return false;
+
+            await using var db = await _factory.CreateDbContextAsync();
+
+            var list = await db.WantedLists
+                .Include(w => w.Items)
+                .FirstOrDefaultAsync(w => w.Id == wantedListId && w.AppUserId == user.Id.ToString());
+
+            if (list == null)
+                return false;
+
+            foreach (var item in itemsToAdd)
+            {
+                if (item.MappedBrickId <= 0 || item.ColorId <= 0 || item.Quantity <= 0)
+                    continue;
+
+                var existing = list.Items.FirstOrDefault(x =>
+                    x.MappedBrickId == item.MappedBrickId &&
+                    x.BrickColorId == item.ColorId);
+
+                if (existing != null)
+                {
+                    existing.Quantity += item.Quantity;
+                }
+                else
+                {
+                    list.Items.Add(new WantedListItem
+                    {
+                        MappedBrickId = item.MappedBrickId,
+                        BrickColorId = item.ColorId,
+                        Quantity = item.Quantity
+                    });
+                }
+            }
+
+            await db.SaveChangesAsync();
+            return true;
         }
 
         public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
