@@ -14,24 +14,26 @@
 @inject Services.NotificationService NotificationService
 @inject Data.Services.WantedListService WantedListService
 
-
 <PageTitle>My Inventory</PageTitle>
 <MudText Typo="Typo.h4" GutterBottom="true">My Inventory</MudText>
 
- <MudStack Row="true" Justify="Justify.FlexEnd"Spacing="2" Style="margin-bottom: 16px;">
-    <MudButton StartIcon="@Icons.Material.Filled.Add"  Variant="Variant.Filled" Color="Color.Primary" OnClick="@OpenAddItemDialog" Class="mb-4">
-   
-    Add item
-</MudButton>
-    <MudButton StartIcon="@Icons.Material.Filled.Delete" Variant="Variant.Filled" Color="Color.Error" OnClick="OpenDeleteAllDialog" Class="mb-4">
-    Delete entire inventory
-</MudButton>
+<MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Style="margin-bottom: 16px;">
+    <MudButton StartIcon="@Icons.Material.Filled.Add"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               OnClick="@OpenAddItemDialog"
+               Class="mb-4">
+        Add item
+    </MudButton>
 
-
- </MudStack>
-
-
-
+    <MudButton StartIcon="@Icons.Material.Filled.Delete"
+               Variant="Variant.Filled"
+               Color="Color.Error"
+               OnClick="OpenDeleteAllDialog"
+               Class="mb-4">
+        Delete entire inventory
+    </MudButton>
+</MudStack>
 
 @if (!_authChecked)
 {
@@ -70,13 +72,12 @@ else
                           Items="brandItems"
                           Hover="true"
                           Striped="true"
-                          Sortable="true">
+                          Sortable="true"
+                          RowsPerPage="25">
 
                     <HeaderContent>
-                        
-                        <MudTh>
-                            Image
-                        </MudTh>
+                        <MudTh>Image</MudTh>
+
                         <MudTh>
                             <MudTableSortLabel T="InventoryItem"
                                                SortBy="@(x => x.MappedBrick?.Name ?? string.Empty)">
@@ -112,14 +113,11 @@ else
                             </MudTableSortLabel>
                         </MudTh>
 
-
-                        <MudTh>
-                            Actions
-                        </MudTh>
+                        <MudTh>Actions</MudTh>
                     </HeaderContent>
 
                     <RowTemplate>
-                          <MudTd DataLabel="Image">
+                        <MudTd DataLabel="Image">
                             @{
                                 var imgUrl = ImageService.GetMappedBrickImagePath(context.MappedBrick);
                                 var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
@@ -142,26 +140,32 @@ else
                             }
                             else
                             {
-                                <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">No image</span>
+                                <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">
+                                    No image
+                                </span>
                             }
                         </MudTd>
+
                         <MudTd DataLabel="Brick">
-                           
                             @if (_wantedListNamesByItem.TryGetValue((context.MappedBrickId, context.BrickColorId), out var wantedLists) && wantedLists.Any())
                             {
                                 <MudAlert Severity="Severity.Info">
                                     @context.MappedBrick?.Name <br />is in the following wanted lists:
                                     @foreach (var wlName in wantedLists)
                                     {
-                                    <MudChip T="string" Color="Color.Info" Variant="Variant.Filled" Class="mt-1" Size="Size.Small">@wlName</MudChip>
+                                        <MudChip T="string" Color="Color.Info" Variant="Variant.Filled" Class="mt-1" Size="Size.Small">@wlName</MudChip>
                                     }
                                 </MudAlert>
-                            }else{
-                                 @context.MappedBrick?.Name
+                            }
+                            else
+                            {
+                                @context.MappedBrick?.Name
                             }
                         </MudTd>
+
                         <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
                         <MudTd DataLabel="Brand">@context.Brand</MudTd>
+
                         <MudTd DataLabel="Brand ID">
                             @if (context.Brand?.ToLower() == "lego")
                             {
@@ -188,8 +192,9 @@ else
                                 <span>-</span>
                             }
                         </MudTd>
+
                         <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
-                      
+
                         <MudTd DataLabel="Actions">
                             <MudButton Size="Size.Small"
                                        Variant="Variant.Outlined"
@@ -205,44 +210,52 @@ else
                             </MudButton>
                         </MudTd>
                     </RowTemplate>
+
+                    <PagerContent>
+                        <!-- Pro Brand-Tabelle eigener Pager -->
+                        <MudTablePager PageSizeOptions="new int[] { 25 }" />
+                    </PagerContent>
+
                 </MudTable>
             </MudExpansionPanel>
         }
     </MudExpansionPanels>
 
-        <style>
-            .brick {
-                position: relative;
-                display: inline-block;
-                width: 56px;
-                height: 56px;
-                min-width: 56px;
-                min-height: 56px;
-                box-sizing: border-box;
-            }
-            .brick-img {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-                border-radius: 4px;
-                border: 2px solid #ccc;
-                background: #fff;
-                display: block;
-            }
-            .brick::after {
-                content: "";
-                position: absolute;
-                right: .5px;
-                bottom: 0px;
-                width: 0;
-                height: 0;
-                border-bottom: 28px solid var(--brick-color, transparent);
-                border-left: 28px solid transparent;
-                border-radius: 0 0 4px 0;
-                z-index: 2;
-                pointer-events: none;
-            }
-        </style>
+    <style>
+        .brick {
+            position: relative;
+            display: inline-block;
+            width: 56px;
+            height: 56px;
+            min-width: 56px;
+            min-height: 56px;
+            box-sizing: border-box;
+        }
+
+        .brick-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 2px solid #ccc;
+            background: #fff;
+            display: block;
+        }
+
+        .brick::after {
+            content: "";
+            position: absolute;
+            right: .5px;
+            bottom: 0px;
+            width: 0;
+            height: 0;
+            border-bottom: 28px solid var(--brick-color, transparent);
+            border-left: 28px solid transparent;
+            border-radius: 0 0 4px 0;
+            z-index: 2;
+            pointer-events: none;
+        }
+    </style>
 }
 
 @code {
@@ -251,7 +264,6 @@ else
     private bool _authChecked;
     private bool _isAuth;
 
-    // Selector for brand specific part number
     private static string BrandIdSelector(InventoryItem i)
     {
         var brand = i.Brand?.ToLowerInvariant();
@@ -286,16 +298,11 @@ else
         _username = await UserService.GetUsernameAsync();
         items = await InventoryService.GetCurrentUserInventoryAsync();
 
-        // Hole alle WantedList-Namen pro Item
         var user = await UserService.GetCurrentUserAsync();
         if (user != null)
-        {
             _wantedListNamesByItem = await WantedListService.GetWantedListNamesByBrickAndColorAsync(user.Id);
-        }
         else
-        {
             _wantedListNamesByItem = new();
-        }
 
         StateHasChanged();
     }
