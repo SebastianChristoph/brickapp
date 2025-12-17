@@ -39,7 +39,7 @@
         _loading = true;
         await InvokeAsync(StateHasChanged);
         await Task.Delay(100); // UI-Render-Pause für Spinner
-        LoadingService.Show();
+        LoadingService.Show(message: "Adding set bricks to inventory...");
         try
         {
             await InventoryService.AddSetBricksToInventoryAsync(ItemSetId);

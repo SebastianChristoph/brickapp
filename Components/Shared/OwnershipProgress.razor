@@ -1,0 +1,42 @@
+@using MudBlazor
+
+<MudPaper Class="pa-4 my-4" Elevation="4">
+    @* Progress bar with dynamic colors based on your requirements *@
+    <MudProgressLinear Color="Color.Default" 
+                       Size="Size.Large" 
+                       Value="@Percent" 
+                       Striped="true" 
+                       Style="@($"min-width:200px; max-width:300px; background-color: {GetColorHex()};")" />
+    
+    <MudText Typo="Typo.body1">
+        @if (Percent >= 100)
+        {
+            @* 100% logic: Green success text [cite: 55, 111] *@
+            <MudText Color="Color.Default"> <strong> You can build this! (@OwnedCount / @TotalCount items)</strong></MudText>
+         
+    
+        }
+        else
+        {
+            @* Logic for <100%: Shows current progress [cite: 12, 113] *@
+            <span>You have <strong>@OwnedCount</strong> of <strong>@TotalCount</strong> items (@Percent%)</span>
+        }
+    </MudText>
+</MudPaper>
+
+@code {
+    [Parameter] public int OwnedCount { get; set; }
+    [Parameter] public int TotalCount { get; set; }
+
+    // Calculation logic from your existing scripts [cite: 53, 54, 111]
+    private int Percent => (TotalCount > 0 && OwnedCount >= TotalCount)
+        ? 100
+        : (TotalCount > 0 ? (int)Math.Floor(100.0 * OwnedCount / TotalCount) : 0);
+
+    private string GetColorHex()
+    {
+        if (Percent >= 100) return "#00ff18"; // Green [cite: 114]
+        if (Percent >= 25)  return "#ffeb3b"; // Yellow
+        return "#a6a6a6";                     // Black
+    }
+}

@@ -80,6 +80,7 @@ builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<ItemSetService>();
 builder.Services.AddScoped<ItemSetExportService>();
 builder.Services.AddScoped<MappedBrickExportService>();
+builder.Services.AddScoped<StatsService>();
 
 // Global Services
 builder.Services.AddSingleton<LoadingService>();

@@ -9,6 +9,10 @@
 @inject Data.Services.ImageService ImageService
 @inject Services.NotificationService NotificationService
 
+  <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.ArrowBack" Class="my-4" Variant="Variant.Outlined" OnClick="GoBack">
+        Back
+    </MudButton>
+
 <PageTitle>Wanted List Details</PageTitle>
 
 @if (_loading)
@@ -23,7 +27,7 @@ else if (_wantedList == null)
 else
 {
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2" Style="margin-bottom: 16px;">
-        <MudText Typo="Typo.h4" GutterBottom="true">@_wantedList.Name</MudText>
+        <MudText Typo="Typo.h4" GutterBottom="true">My wanted list: @_wantedList.Name</MudText>
 
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Error"
@@ -34,26 +38,8 @@ else
         </MudButton>
     </MudStack>
 
-    <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudText Typo="Typo.subtitle1">Can you complete this list?</MudText>
-            <MudProgressLinear Color="@(Percent == 100 ? Color.Success : Color.Primary)"
-                               Striped="true"
-                               Size="Size.Large"
-                               Value="@Percent"
-                               Style="min-width:200px;max-width:300px;width:30vw;" />
-            <MudText Typo="Typo.body1" Class="ml-4">
-                @if (HasAll)
-                {
-                    <b>You own all items, you can complete this list!</b>
-                }
-                else
-                {
-                    <span>You have <strong>@TotalOwned</strong> of <strong>@TotalNeeded</strong> items in your inventory (@Percent%)</span>
-                }
-            </MudText>
-        </MudStack>
-    </MudPaper>
+   
+    <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
 
     <MudText Typo="Typo.h6" GutterBottom="true">Items in this list</MudText>
 
@@ -255,7 +241,9 @@ else
         }
     }
 
-    private async Task DeleteItem(int wantedListItemId)
+   private async Task DeleteItem(int wantedListItemId)
+{
+    try
     {
         var success = await WantedListService.DeleteWantedListItemAsync(wantedListItemId);
         if (success)
@@ -269,6 +257,11 @@ else
             NotificationService.Error("Failed to delete item.");
         }
     }
+    catch (Exception ex)
+    {
+        NotificationService.Error($"Delete failed: {ex.Message}");
+    }
+}
 
     protected override async Task OnInitializedAsync()
     {

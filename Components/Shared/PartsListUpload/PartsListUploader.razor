@@ -1,0 +1,259 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using brickapp.Components.Shared.PartsListUpload
+@typeparam TItem
+
+<MudText Typo="Typo.body1" GutterBottom="true" Style="font-weight:bold;">@Title</MudText>
+@if (!string.IsNullOrWhiteSpace(HelpText))
+{
+    <MudText Typo="Typo.caption" Class="mb-2" Style="color:#666;">@HelpText</MudText>
+}
+
+@if (Formats is not null && Formats.Count > 1)
+{
+    <MudSelect T="PartsUploadFormat"
+               @bind-Value="_selectedFormat"
+               Label="Upload format"
+               Dense="true"
+               Disabled="@(_uploading || Disabled)"
+               Style="max-width:360px;">
+        @foreach (var f in Formats)
+        {
+            <MudSelectItem Value="@f">@FormatLabel(f)</MudSelectItem>
+        }
+    </MudSelect>
+}
+else
+{
+    <MudText Typo="Typo.caption" Class="mb-1" Style="color:#666;">
+        Upload format: <b>@FormatLabel(_selectedFormat)</b>
+    </MudText>
+}
+
+<InputFile OnChange="OnFileSelected"
+           accept="@EffectiveAccept"
+           disabled="@(_uploading || Disabled)"
+           class="mt-2" />
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <MudAlert Severity="Severity.Error" Class="mt-2">@_error</MudAlert>
+}
+
+@if (_result is not null)
+{
+    @if (_result.MappedItems.Count > 0)
+    {
+        <MudAlert Severity="Severity.Success" Class="mt-3">
+            Upload parsed: @_result.MappedItems.Count item(s) ready.
+        </MudAlert>
+    }
+
+    @if (_result.Unmapped.Count > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mt-3">
+            Unmapped parts: @_result.Unmapped.Count (ignored).
+        </MudAlert>
+
+        <MudExpansionPanels>
+            <MudExpansionPanel Text="Show unmapped items" Expanded="false" MaxHeight="450">
+                <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
+                    <MudList T="string">
+                        @foreach (var u in _result.Unmapped)
+                        {
+                            <MudChip>@u.PartNum ColorId: @u.ColorId, Qty: @u.Quantity</MudChip>
+                        }
+                    </MudList>
+                </MudPaper>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    }
+
+    @if (_result.InvalidColorIds.Count > 0)
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-3">
+            Invalid ColorId(s): <b>@string.Join(", ", _result.InvalidColorIds.OrderBy(x => x))</b> (ignored).
+        </MudAlert>
+    }
+
+    @if (_result.InvalidRows.Count > 0)
+    {
+        <MudExpansionPanels>
+            <MudExpansionPanel Text="Show invalid rows (details)" Expanded="false" MaxHeight="450">
+                <MudPaper Class="pa-2 mb-2" Style="background:#fff5f5;border:1px solid #ffcdd2;">
+                    <MudList T="string">
+                        @foreach (var r in _result.InvalidRows.Take(MaxInvalidRowsShown))
+                        {
+                            <MudChip>@r.PartNum ColorId: @r.ColorId, Qty: @r.Qty, @r.Reason</MudChip>
+                        }
+                    </MudList>
+                </MudPaper>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    }
+
+    @if (ShowAddButton && _result.MappedItems.Count > 0)
+    {
+        <MudStack Row="true" Spacing="2" Class="mt-2 mb-2">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@(_uploading || Disabled)"
+                       OnClick="AddItems">
+                @AddButtonText
+            </MudButton>
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       Disabled="@(_uploading || Disabled)"
+                       OnClick="Clear">
+                @ClearButtonText
+            </MudButton>
+        </MudStack>
+    }
+    else
+    {
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Secondary"
+                   Disabled="@(_uploading || Disabled)"
+                   Class="mt-2"
+                   OnClick="Clear">
+            @ClearButtonText
+        </MudButton>
+    }
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = "Upload parts list";
+    [Parameter] public string? HelpText { get; set; }
+
+    // Optional override. Wenn null/leer, wird accept automatisch aus dem Format abgeleitet.
+    [Parameter] public string? Accept { get; set; }
+
+    [Parameter] public bool Disabled { get; set; }
+
+    [Parameter] public IReadOnlyList<PartsUploadFormat> Formats { get; set; }
+        = new[] { PartsUploadFormat.RebrickableCsv, PartsUploadFormat.RebrickableXml, PartsUploadFormat.BricklinkXml };
+
+    [Parameter] public Func<PartsUploadFormat, string>? FormatLabelFunc { get; set; }
+    private string FormatLabel(PartsUploadFormat f)
+        => FormatLabelFunc?.Invoke(f) ?? f.ToString();
+
+    [Parameter] public long MaxFileBytes { get; set; } = 10 * 1024 * 1024;
+    [Parameter] public int MaxInvalidRowsShown { get; set; } = 500;
+
+    [Parameter] public Func<string, PartsUploadFormat, Task<ParseResult<TItem>>> ParseAsync { get; set; } = default!;
+
+    [Parameter] public EventCallback<ParseResult<TItem>> OnParsed { get; set; }
+    [Parameter] public EventCallback<List<TItem>> OnAdd { get; set; }
+    [Parameter] public EventCallback OnCleared { get; set; }
+
+    [Parameter] public bool ShowAddButton { get; set; } = true;
+    [Parameter] public string AddButtonText { get; set; } = "Add upload items";
+    [Parameter] public string ClearButtonText { get; set; } = "Clear upload";
+
+    private bool _uploading;
+    private string? _error;
+    private ParseResult<TItem>? _result;
+
+    private PartsUploadFormat _selectedFormat = PartsUploadFormat.RebrickableCsv;
+
+    protected override void OnParametersSet()
+    {
+        if (Formats is not null && Formats.Count == 1)
+            _selectedFormat = Formats[0];
+    }
+
+    private string EffectiveAccept
+        => !string.IsNullOrWhiteSpace(Accept)
+            ? Accept!
+            : (_selectedFormat == PartsUploadFormat.RebrickableCsv ? ".csv" : ".xml");
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        if (Disabled) return;
+
+        _error = null;
+        _result = null;
+
+        var file = e.File;
+        if (file is null) return;
+
+        if (file.Size > MaxFileBytes)
+        {
+            _error = $"File too large (max {(MaxFileBytes / (1024 * 1024))}MB).";
+            return;
+        }
+
+        _uploading = true;
+        StateHasChanged();
+
+        try
+        {
+            using var stream = file.OpenReadStream(MaxFileBytes);
+            using var reader = new StreamReader(stream);
+            var content = (await reader.ReadToEndAsync())?.Trim() ?? "";
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                _error = "File is empty.";
+                return;
+            }
+
+            bool looksLikeXml = content.TrimStart().StartsWith("<")
+                                || file.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
+
+            if (_selectedFormat == PartsUploadFormat.RebrickableCsv && looksLikeXml)
+            {
+                _error = "Selected CSV format, but file looks like XML.";
+                return;
+            }
+            if (_selectedFormat != PartsUploadFormat.RebrickableCsv && !looksLikeXml)
+            {
+                _error = "Selected XML format, but file does not look like XML.";
+                return;
+            }
+
+            var parsed = await ParseAsync(content, _selectedFormat);
+            _result = parsed;
+
+            if (!string.IsNullOrWhiteSpace(parsed.FatalError))
+                _error = parsed.FatalError;
+            else if (parsed.MappedItems.Count == 0 &&
+                     (parsed.Unmapped.Count > 0 || parsed.InvalidColorIds.Count > 0 || parsed.InvalidRows.Count > 0))
+                _error = "No usable items after validation (unmapped / invalid colors / invalid rows).";
+            else if (parsed.MappedItems.Count == 0)
+                _error = "No valid items found in file.";
+
+            if (OnParsed.HasDelegate && _result is not null)
+                await OnParsed.InvokeAsync(_result);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error processing file: {ex.Message}";
+        }
+        finally
+        {
+            _uploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddItems()
+    {
+        if (Disabled) return;
+        if (_result is null || _result.MappedItems.Count == 0) return;
+
+        if (OnAdd.HasDelegate)
+            await OnAdd.InvokeAsync(_result.MappedItems);
+    }
+
+    private async Task Clear()
+    {
+        _error = null;
+        _result = null;
+
+        if (OnCleared.HasDelegate)
+            await OnCleared.InvokeAsync();
+
+        StateHasChanged();
+    }
+}

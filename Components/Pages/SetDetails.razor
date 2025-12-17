@@ -7,6 +7,7 @@
 @using MudBlazor.Services
 @using Components.Pages
 @using Components.Dialogs
+
 @inject ItemSetService ItemSetService
 @inject UserService UserService
 @inject NavigationManager Nav
@@ -14,17 +15,29 @@
 @inject IDialogService DialogService
 @inject Services.NotificationService NotificationService
 @inject Data.Services.ImageService ImageService
+@inject Services.LoadingService LoadingService
 
 <PageTitle>Set Details</PageTitle>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+        @_error
+
+        @if (!string.IsNullOrWhiteSpace(_errorDetails))
+        {
+            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.caption" Style="white-space:pre-wrap;">@_errorDetails</MudText>
+        }
+    </MudAlert>
+}
 
 @if (_loading)
 {
     <MudStack Justify="Justify.Center" Spacing="2" Style="margin-bottom: 16px; margin-top:16px;">
         <MudText>Loading set details...</MudText>
         <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-
     </MudStack>
-
 }
 else if (_itemSet is null)
 {
@@ -42,71 +55,79 @@ else
             {
                 <div style="flex-shrink:0;">
                     <img src="@setImgUrl" alt="@_itemSet.Name"
-                        style="height:200px; width:auto; object-fit:contain; border-radius:4px;" />
+                         style="height:200px; width:auto; object-fit:contain; border-radius:4px;" />
                 </div>
             }
-            <MudStack Spacing="1" Style="flex: 1;">
-                <MudText Typo="Typo.h4" GutterBottom="true">
-                    @_itemSet.Name
-                </MudText>
-                <MudText Typo="Typo.subtitle1">
-                    Brand: @_itemSet.Brand
-                </MudText>
-                <MudText Typo="Typo.subtitle2">
-                    Set Nr: @_itemSet.SetNum | Year: @_itemSet.Year
-                </MudText>
 
-                <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary"
-                    OnClick="@OpenAddSetDialog" Size="Size.Large" Class="mt-2">
+            <MudStack Spacing="1" Style="flex: 1;">
+                <MudText Typo="Typo.h4" GutterBottom="true">@_itemSet.Name</MudText>
+
+                <MudText Typo="Typo.subtitle1">Brand: @_itemSet.Brand</MudText>
+
+                <MudText Typo="Typo.subtitle2">Set Nr: @_itemSet.SetNum | Year: @_itemSet.Year</MudText>
+
+                <MudButton StartIcon="@Icons.Material.Filled.Add"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="@OpenAddSetDialog"
+                           Size="Size.Large"
+                           Class="mt-2">
                     Add all items to my inventory
+                </MudButton>
+
+                <MudButton StartIcon="@Icons.Material.Filled.List"
+                           Variant="Variant.Outlined"
+                           Color="Color.Secondary"
+                           OnClick="@OpenAddSetToWantedListDialog"
+                           Size="Size.Large"
+                           Class="mt-2">
+                    Add set to wanted list
                 </MudButton>
             </MudStack>
         </MudStack>
     </MudPaper>
 
-    <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudText Typo="Typo.subtitle1">
-                Can you build this set?</MudText>
-            <MudProgressLinear Color="Color.Primary" Striped="true" Size="Size.Large" Value="@Percent" )"
-                Style="min-width:200px;max-width:300px;width:30vw;" />
-            <MudText Typo="Typo.body1" Class="ml-4">
-                @if (HasAll)
-                {
-                    <b>You own all items, you can build this set!</b>
-                }
-                else
-                {
-                    <span>You have <strong>@TotalOwned</strong> of <strong>@TotalNeeded</strong> items in your inventory
-                        (@Percent%)</span>
-                }
-            </MudText>
-        </MudStack>
-    </MudPaper>
+ 
+    <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
 
-    <MudText Typo="Typo.h6" GutterBottom="true">
-        Item in this set
-    </MudText>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+        <MudText Typo="Typo.h6" GutterBottom="true">Items in this set</MudText>
+
+        <MudButton Variant="@(_showOnlyMissing ? Variant.Outlined : Variant.Filled)"
+                   Color="Color.Primary"
+                   OnClick="@ShowAllItems"
+                   Class="ml-4">
+            Show all items
+        </MudButton>
+
+        <MudButton Variant="@(_showOnlyMissing ? Variant.Filled : Variant.Outlined)"
+                   Color="Color.Primary"
+                   OnClick="@ShowOnlyMissingItems">
+            Show only missing items
+        </MudButton>
+    </MudStack>
 
     <style>
-      .brick {
-    position: relative;
-    display: inline-block;
-    width: 56px;
-    height: 56px;
-    min-width: 56px;
-    min-height: 56px;
-    box-sizing: border-box;
-}
-.brick-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    border-radius: 4px;
-    border: 2px solid #ccc;
-    background: #fff;
-    display: block;
-}
+        .brick {
+            position: relative;
+            display: inline-block;
+            width: 56px;
+            height: 56px;
+            min-width: 56px;
+            min-height: 56px;
+            box-sizing: border-box;
+        }
+
+        .brick-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 2px solid #ccc;
+            background: #fff;
+            display: block;
+        }
+
         .brick::after {
             content: "";
             position: absolute;
@@ -114,7 +135,7 @@ else
             bottom: 0px;
             width: 0;
             height: 0;
-            border-bottom: 28px solid var(--brick-color, transparent); /* Dreieck-Farbe */
+            border-bottom: 28px solid var(--brick-color, transparent);
             border-left: 28px solid transparent;
             border-radius: 0 0 4px 0;
             z-index: 2;
@@ -122,7 +143,7 @@ else
         }
     </style>
 
-    <MudTable Items="(_itemSet.Bricks ?? Enumerable.Empty<ItemSetBrick>()).OrderBy(b => b.BrickColor?.Name)">
+    <MudTable @key="_tableKey" Items="@_tableItems">
         <HeaderContent>
             <MudTh>Image</MudTh>
             <MudTh>Standard Name</MudTh>
@@ -140,94 +161,91 @@ else
         <RowTemplate>
             <MudTd DataLabel="Image">
                 @{
-                    var imgUrl = ImageService.GetMappedBrickImagePath(context.MappedBrick);
+                    var imgUrl = context.MappedBrick != null
+                        ? ImageService.GetMappedBrickImagePath(context.MappedBrick)
+                        : "/placeholder-image.png";
+
                     var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
                 }
+
                 <div style="position:relative;display:inline-block;min-width:48px;min-height:48px;">
                     @if (!string.IsNullOrWhiteSpace(imgUrl) && imgUrl != "/placeholder-image.png")
                     {
                         if (overlay != null)
                         {
-                           <div class="brick" style="--brick-color:@overlay">
-    <img src="@imgUrl" alt=""
-         class="brick-img"
-         onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
-</div>
+                            <div class="brick" style="--brick-color:@overlay">
+                                <img src="@imgUrl" alt="" class="brick-img"
+                                     onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                            </div>
                         }
                         else
                         {
                             <img src="@imgUrl" alt=""
-                                style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
-                                onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                                 style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
+                                 onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
                         }
                     }
                     else
                     {
-                        <span
-                            style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">No
-                            image</span>
+                        <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">
+                            No image
+                        </span>
                     }
                 </div>
             </MudTd>
 
-            <MudTd DataLabel="Standard Name">@context.MappedBrick.Name</MudTd>
+            <MudTd DataLabel="Standard Name">@context.MappedBrick?.Name</MudTd>
             <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
 
-            <!-- Lego: Name + PartNo -->
             <MudTd DataLabel="Lego">
-                @context.MappedBrick.LegoName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.LegoPartNum))
+                @context.MappedBrick?.LegoName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.LegoPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.LegoPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.LegoPartNum)</span>
                 }
             </MudTd>
 
-            <!-- BlueBrixx: Name + PartNo -->
             <MudTd DataLabel="BlueBrixx">
-                @context.MappedBrick.BluebrixxName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.BluebrixxPartNum))
+                @context.MappedBrick?.BluebrixxName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.BluebrixxPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.BluebrixxPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.BluebrixxPartNum)</span>
                 }
             </MudTd>
 
-            <!-- Cada: Name + PartNo -->
             <MudTd DataLabel="Cada">
-                @context.MappedBrick.CadaName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.CadaPartNum))
+                @context.MappedBrick?.CadaName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.CadaPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.CadaPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.CadaPartNum)</span>
                 }
             </MudTd>
 
-            <!-- Pantasy: Name + PartNo -->
             <MudTd DataLabel="Pantasy">
-                @context.MappedBrick.PantasyName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.PantasyPartNum))
+                @context.MappedBrick?.PantasyName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.PantasyPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.PantasyPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.PantasyPartNum)</span>
                 }
             </MudTd>
 
-            <!-- Mould King: Name + PartNo -->
             <MudTd DataLabel="Mould King">
-                @context.MappedBrick.MouldKingName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.MouldKingPartNum))
+                @context.MappedBrick?.MouldKingName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.MouldKingPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.MouldKingPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.MouldKingPartNum)</span>
                 }
             </MudTd>
 
-            <!-- unknown: Name + PartNo -->
             <MudTd DataLabel="Unknown">
-                @context.MappedBrick.UnknownName
-                @if (!string.IsNullOrEmpty(context.MappedBrick.UnknownPartNum))
+                @context.MappedBrick?.UnknownName
+                @if (!string.IsNullOrEmpty(context.MappedBrick?.UnknownPartNum))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.UnknownPartNum)</span>
+                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.UnknownPartNum)</span>
                 }
             </MudTd>
 
-            <MudTd DataLabel="Anzahl">@context.Quantity</MudTd>
+            <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
 
             <MudTd DataLabel="Do you own?">
                 @{
@@ -244,32 +262,28 @@ else
                         <MudChip T="string" Color="Color.Default">None</MudChip>
                     }
                 }
-        </MudTd>
-    </RowTemplate>
-
-
+            </MudTd>
+        </RowTemplate>
     </MudTable>
-
 
     <MudButton Class="mt-4" Variant="Variant.Outlined" OnClick="@GoBack">
         Zurück
     </MudButton>
-
+}
 
 @code {
 
-    protected int TotalNeeded => _itemSet?.Bricks?.Sum(b => b.Quantity) ?? 0;
-    protected int TotalOwned => _itemSet?.Bricks?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
-    protected int Percent => (TotalNeeded > 0 && TotalOwned == TotalNeeded)
-    ? 100
-    : (TotalNeeded > 0 ? (int)Math.Floor(100.0 * (double)TotalOwned / TotalNeeded) : 0);
-    protected bool HasAll => TotalNeeded > 0 && TotalOwned == TotalNeeded;
-    [Parameter]
-    public int itemSetId { get; set; }
+    [Parameter] public int itemSetId { get; set; }
 
     private ItemSet? _itemSet;
     private UserItemSet? _userItemSet;
+
     private bool _loading = true;
+    private bool _showOnlyMissing = false;
+
+    // Table state (force rebuild on filter changes)
+    private Guid _tableKey = Guid.NewGuid();
+    private List<ItemSetBrick> _tableItems = new();
 
     private Dictionary<(int BrickId, int ColorId), Dictionary<string, int>> _ownedByBrand = new();
 
@@ -280,40 +294,134 @@ else
         Enough
     }
 
+    private string? _error;
+    private string? _errorDetails;
+
+    private void SetError(Exception ex)
+    {
+        _error = $"An error happened: {ex.Message}";
+        _errorDetails = ex.ToString();
+    }
+
+    protected int TotalNeeded => _itemSet?.Bricks?.Sum(b => b.Quantity) ?? 0;
+    protected int TotalOwned => _itemSet?.Bricks?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
+
+    protected int Percent => (TotalNeeded > 0 && TotalOwned == TotalNeeded)
+        ? 100
+        : (TotalNeeded > 0 ? (int)Math.Floor(100.0 * (double)TotalOwned / TotalNeeded) : 0);
+
+    protected bool HasAll => TotalNeeded > 0 && TotalOwned == TotalNeeded;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
 
-        // Versuche das Set aus dem User-Inventory zu laden
+        try
+        {
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
         _userItemSet = await ItemSetService.GetCurrentUserItemSetAsync(itemSetId);
 
-        // Falls nicht im User-Inventory, lade das Set generisch
         if (_userItemSet != null)
-        {
             _itemSet = _userItemSet.ItemSet;
-        }
         else
-        {
-            // Fallback: Lade das Set direkt
             _itemSet = await ItemSetService.GetItemSetByIdAsync(itemSetId);
-        }
 
-        // Inventory laden
-        var inventory = await InventoryService.GetCurrentUserInventoryAsync();
+        var inventory = await InventoryService.GetCurrentUserInventoryAsync() ?? new List<InventoryItem>();
 
         _ownedByBrand = inventory
-        .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
-        .ToDictionary(
-        g => g.Key,
-        g => g.GroupBy(i => i.Brand)
-        .ToDictionary(
-        bg => bg.Key,
-        bg => bg.Sum(i => i.Quantity)
-        )
-        );
+            .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
+            .ToDictionary(
+                g => g.Key,
+                g => g.GroupBy(i => i.Brand)
+                      .ToDictionary(bg => bg.Key, bg => bg.Sum(i => i.Quantity))
+            );
 
-        _loading = false;
+        UpdateTableItems();
+        _tableKey = Guid.NewGuid();
+    }
 
+    private async Task OpenAddSetToWantedListDialog()
+    {
+        try
+        {
+            if (_itemSet?.Bricks == null || !_itemSet.Bricks.Any())
+                return;
+
+            var items = _itemSet.Bricks
+                .Where(b => b.MappedBrickId > 0 && b.BrickColorId > 0 && b.Quantity > 0)
+                .Select(b => new Data.DTOs.NewWantedListItemModel
+                {
+                    MappedBrickId = b.MappedBrickId,
+                    ColorId = b.BrickColorId,
+                    Quantity = b.Quantity
+                })
+                .ToList();
+
+            var parameters = new DialogParameters<AddSetToWantedListDialog>();
+            parameters.Add(x => x.SetName, _itemSet.Name);
+            parameters.Add(x => x.Items, items);
+
+            var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            };
+
+            await DialogService.ShowAsync<AddSetToWantedListDialog>("Wanted List", parameters, options);
+        }
+        catch (Exception ex)
+        {
+            SetError(ex);
+            NotificationService.Error(_error ?? "An error happened.");
+            StateHasChanged();
+        }
+    }
+
+    private void UpdateTableItems()
+    {
+        var all = _itemSet?.Bricks ?? Enumerable.Empty<ItemSetBrick>();
+
+        IEnumerable<ItemSetBrick> filtered = all;
+
+        if (_showOnlyMissing)
+        {
+            // missing = nicht genug (None + Partial)
+            filtered = all.Where(b => GetOwnershipState(b) != BrickOwnershipState.Enough);
+        }
+
+        _tableItems = filtered
+            .OrderBy(b => b.BrickColor?.Name)
+            .ToList();
+    }
+
+    private void ShowAllItems()
+    {
+        _showOnlyMissing = false;
+        UpdateTableItems();
+        _tableKey = Guid.NewGuid();
+        StateHasChanged();
+    }
+
+    private void ShowOnlyMissingItems()
+    {
+        _showOnlyMissing = true;
+        UpdateTableItems();
+        _tableKey = Guid.NewGuid();
         StateHasChanged();
     }
 
@@ -324,37 +432,44 @@ else
 
     private async Task OpenAddSetDialog()
     {
-        if (_itemSet?.Bricks == null || !_itemSet.Bricks.Any())
-            return;
-
-
-        var itemCount = _itemSet.Bricks.Count;
-        var parameters = new DialogParameters<AddSetToInventoryDialog>();
-        parameters.Add(x => x.ItemCount, itemCount);
-        parameters.Add(x => x.ItemSetId, itemSetId);
-
-        var dialog = await DialogService.ShowAsync<AddSetToInventoryDialog>("Set zum Inventar hinzufügen", parameters);
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled && result.Data is bool confirmed && confirmed)
+        try
         {
-            if (confirmed)
+            if (_itemSet?.Bricks == null || !_itemSet.Bricks.Any())
+                return;
+
+            var itemCount = _itemSet.Bricks.Count;
+
+            var parameters = new DialogParameters<AddSetToInventoryDialog>();
+            parameters.Add(x => x.ItemCount, itemCount);
+            parameters.Add(x => x.ItemSetId, itemSetId);
+
+            var dialog = await DialogService.ShowAsync<AddSetToInventoryDialog>("Set zum Inventar hinzufügen", parameters);
+            var result = await dialog.Result;
+
+            if (result != null && !result.Canceled && result.Data is bool confirmed && confirmed)
             {
-                await OnInitializedAsync();
+                _loading = true;
                 StateHasChanged();
+
+                await LoadDataAsync();
+
+                _loading = false;
+                StateHasChanged();
+
                 NotificationService.Success("Items erfolgreich zum Inventar hinzugefügt.");
             }
-            else
-            {
-                NotificationService.Error("Fehler beim Hinzufügen der Items zum Inventar.");
-            }
+        }
+        catch (Exception ex)
+        {
+            SetError(ex);
+            NotificationService.Error(_error ?? "An error happened.");
+            StateHasChanged();
         }
     }
 
     private BrickOwnershipState GetOwnershipState(ItemSetBrick brick)
     {
-        if (!_ownedByBrand.TryGetValue((brick.MappedBrickId, brick.BrickColorId), out var brandDict) || brandDict.Values.Sum()
-        <= 0)
+        if (!_ownedByBrand.TryGetValue((brick.MappedBrickId, brick.BrickColorId), out var brandDict) || brandDict.Values.Sum() <= 0)
             return BrickOwnershipState.None;
 
         var total = brandDict.Values.Sum();
@@ -367,8 +482,7 @@ else
     private int GetOwnedQuantity(ItemSetBrick brick)
     {
         return _ownedByBrand.TryGetValue((brick.MappedBrickId, brick.BrickColorId), out var brandDict)
-        ? brandDict.Values.Sum()
-        : 0;
+            ? brandDict.Values.Sum()
+            : 0;
     }
-}
 }

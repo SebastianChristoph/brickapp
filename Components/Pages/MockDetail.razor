@@ -1,22 +1,33 @@
 @page "/mockdetail/{mockId:int}"
+
 @using Data.Entities
 @using Helpers
 @using Microsoft.EntityFrameworkCore
+@using MudBlazor
+
 @inject IServiceProvider ServiceProvider
 @inject NavigationManager Nav
 @inject Services.InventoryService InventoryService
-
 @inject IDialogService DialogService
 @inject Services.NotificationService NotificationService
-
 @inject Services.LoadingService LoadingService
 @inject Data.Services.ImageService ImageService
 
-@code {
-    private string? _mockImageUrl;
-}
-
 <MudText Typo="Typo.h4" GutterBottom="true">MOC Detail</MudText>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+        @_error
+        @if (!string.IsNullOrWhiteSpace(_errorDetails))
+        {
+            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.caption" Style="white-space:pre-wrap;">
+                @_errorDetails
+            </MudText>
+        }
+    </MudAlert>
+}
 
 @if (_loading)
 {
@@ -30,331 +41,286 @@ else if (_mock == null)
 else
 {
     <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
-        <MudStack Row="true" Spacing="8">
-            <div style="margin:16px 0;">
-                <img src="@_mockImageUrl" alt="MOC Image"
-                     style="max-width:180px;max-height:180px;border:1px solid #ccc;background:#fafafa;" />
-            </div>
+        <MudStack Row Spacing="8">
+            <img src="@_mockImageUrl"
+                 style="max-width:180px;max-height:180px;border:1px solid #ccc;background:#fafafa;" />
 
-            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="mt-16">
-                <MudProgressLinear Color="@(Percent == 100 ? Color.Success : Color.Primary)"
-                                   Striped="true"
-                                   Size="Size.Large"
-                                   Value="@Percent"
-                                   Style="min-width:200px;max-width:300px;width:30vw;" />
-                <MudText Typo="Typo.body1" Class="ml-4">
-                    @if (HasAll)
-                    {
-                        <b>You own all the bricks, you can build it!</b>
-                    }
-                    else
-                    {
-                        <span>@TotalOwned of @TotalNeeded bricks in inventory (@Percent%)<br />Missing: @TotalMissing</span>
-                    }
-                </MudText>
-            </MudStack>
+           
+            <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
         </MudStack>
     </MudPaper>
 
     <MudText Typo="Typo.h5">@_mock.Name</MudText>
     <MudText Typo="Typo.subtitle2" Class="mb-2">Type: @_mock.MockType</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OpenAddMockDialog" Size="Size.Large" Class="mt-2">
+
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Success"
+               OnClick="OpenAddMockDialog"
+               Size="Size.Large"
+               Class="mt-2">
         <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
         Add all MOC parts to inventory
     </MudButton>
 
-    @if (_mock?.Items != null && _mock.Items.Any(i => i.MappedBrickId == null))
-    {
-        <MudExpansionPanels>
-            <MudExpansionPanel Text="Für folgende Items wurde kein MappedBrick gefunden:" Color="Color.Warning"
-                               Style="background:#fffbe6;border:1px solid #ffe082;">
-                <MudList T="string">
-                    @foreach (var item in _mock.Items.Where(i => i.MappedBrickId == null))
-                    {
-                        var bricklinkUrl = $"https://www.bricklink.com/v2/search.page?q={item.ExternalPartNum}#T=P";
-                        <MudListItem T="string">
-                            <MudText>
-                                Item Number:
-                                @if (_mock.MockType == "bricklink" && !string.IsNullOrWhiteSpace(item.ExternalPartNum))
-                                {
-                                    <a href="@bricklinkUrl" target="_blank" rel="noopener noreferrer">
-                                        @item.ExternalPartNum
-                                    </a>
-                                }
-                                else
-                                {
-                                    <b>@item.ExternalPartNum blop</b>
-                                }
-                                , Color: <b>@item.BrickColorId</b>,
-                                Quantity: <b>@item.Quantity</b>
-                            </MudText>
-                        </MudListItem>
-                    }
-                </MudList>
-            </MudExpansionPanel>
-        </MudExpansionPanels>
-    }
+    <!-- FILTER BUTTONS -->
+    <MudStack Row Spacing="2" Class="mt-4 mb-2">
+        <MudButton Variant="@(_showOnlyMissing ? Variant.Outlined : Variant.Filled)"
+                   Color="Color.Primary"
+                   OnClick="ShowAllItems">
+            Show all items
+        </MudButton>
 
-   <style>
-    .brick {
-        position: relative;
-        display: inline-block;
-        width: 56px;
-        height: 56px;
-        min-width: 56px;
-        min-height: 56px;
-        box-sizing: border-box;
-    }
+        <MudButton Variant="@(_showOnlyMissing ? Variant.Filled : Variant.Outlined)"
+                   Color="Color.Primary"
+                   OnClick="ShowOnlyMissingItems">
+            Show only missing items
+        </MudButton>
+    </MudStack>
 
-    .brick-img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        border-radius: 4px;
-        border: 2px solid #ccc;
-        background: #fff;
-        display: block;
-    }
+    <style>
+        .brick {
+            position: relative;
+            width: 56px;
+            height: 56px;
+        }
 
-    .brick::after {
-        content: "";
-        position: absolute;
-        right: .5px;
-        bottom: 0px;
-        width: 0;
-        height: 0;
-        border-bottom: 28px solid var(--brick-color, transparent);
-        border-left: 28px solid transparent;
-        border-radius: 0 0 4px 0;
-        z-index: 2;
-        pointer-events: none;
-    }
-</style>
+        .brick-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 2px solid #ccc;
+            background: #fff;
+        }
 
+        .brick::after {
+            content: "";
+            position: absolute;
+            right: .5px;
+            bottom: 0;
+            border-bottom: 28px solid var(--brick-color, transparent);
+            border-left: 28px solid transparent;
+        }
+    </style>
 
-    <MudTable Items="GetFilteredItems()">
+    <MudTable @key="_tableKey" Items="@_tableItems">
         <HeaderContent>
             <MudTh>Image</MudTh>
-            <MudTh>Standard Name</MudTh>
+            <MudTh>Name</MudTh>
             <MudTh>Color</MudTh>
-            <MudTh>Lego</MudTh>
-            <MudTh>BlueBrixx</MudTh>
-            <MudTh>Cada</MudTh>
-            <MudTh>Pantasy</MudTh>
-            <MudTh>Mould King</MudTh>
-            <MudTh>Unknown</MudTh>
             <MudTh>Quantity</MudTh>
-            <MudTh>Do you have it?</MudTh>
+            <MudTh>Do you own?</MudTh>
         </HeaderContent>
 
         <RowTemplate>
-          <MudTd DataLabel="Image">
-    @{
-        var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
-        var url = context.MappedBrick != null
-            ? ImageService.GetMappedBrickImagePath(context.MappedBrick)
-            : "/placeholder-image.png";
-
-        // Wenn keine Farbe da ist: transparentes Dreieck
-        var overlayCss = overlay ?? "transparent";
-        var hasImage = !string.IsNullOrWhiteSpace(url) && url != "/placeholder-image.png";
-    }
-
-    <div class="brick" style="--brick-color:@overlayCss">
-        @if (hasImage)
-        {
-            <img src="@url" alt="" class="brick-img"
-                 onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
-        }
-        else
-        {
-            <img src="/placeholder-image.png" alt="" class="brick-img" style="opacity:0.5;" />
-        }
-    </div>
-</MudTd>
-
-
-            <MudTd DataLabel="Standard Name">@context.MappedBrick?.Name</MudTd>
-            <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
-
-            <MudTd DataLabel="Lego">
-                @context.MappedBrick?.LegoName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.LegoPartNum))
-                {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.LegoPartNum)</span>
+            <MudTd>
+                @{
+                    var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name) ?? "transparent";
+                    var img = context.MappedBrick != null
+                        ? ImageService.GetMappedBrickImagePath(context.MappedBrick)
+                        : "/placeholder-image.png";
                 }
+
+                <div class="brick" style="--brick-color:@overlay">
+                    <img src="@img" class="brick-img" />
+                </div>
             </MudTd>
 
-            <MudTd DataLabel="Mould King">
-                @context.MappedBrick?.MouldKingName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.MouldKingPartNum))
-                {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.MouldKingPartNum)</span>
-                }
-            </MudTd>
+            <MudTd>@context.MappedBrick?.Name</MudTd>
+            <MudTd>@context.BrickColor?.Name</MudTd>
+            <MudTd>@context.Quantity</MudTd>
 
-            <MudTd DataLabel="Unknown">
-                @context.MappedBrick?.UnknownName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.UnknownPartNum))
-                {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.UnknownPartNum)</span>
-                }
-            </MudTd>
-
-            <MudTd DataLabel="Anzahl">@context.Quantity</MudTd>
-
-            <MudTd DataLabel="Do you own?">
+            <MudTd>
                 @{
                     var key = (context.MappedBrickId ?? 0, context.BrickColorId ?? 0);
-
-                    if (_ownedByBrand.TryGetValue(key, out var brands) && brands.Count > 0)
+                    if (_ownedByBrand.TryGetValue(key, out var brands))
                     {
-                        foreach (var brand in brands)
+                        foreach (var b in brands)
                         {
-                            <MudChip T="string" Color="Color.Primary" Class="mr-1 mb-1">@brand.Key: @brand.Value</MudChip>
+                            <MudChip T="string" Color="Color.Primary" Class="mr-1">
+                                @b.Key: @b.Value
+                            </MudChip>
                         }
                     }
                     else
                     {
-                        <MudChip T="string" Color="Color.Default">None</MudChip>
+                        <MudChip T="string">None</MudChip>
                     }
                 }
             </MudTd>
         </RowTemplate>
     </MudTable>
 
-    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-4" Variant="Variant.Outlined" OnClick="GoBack">
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack"
+               Variant="Variant.Outlined"
+               Class="mt-4"
+               OnClick="GoBack">
         Back
     </MudButton>
 }
 
 @code {
+
     [Parameter] public int mockId { get; set; }
 
     private Mock? _mock;
+    private string? _mockImageUrl;
     private bool _loading = true;
 
+    private bool _showOnlyMissing = false;
+    private Guid _tableKey = Guid.NewGuid();
+    private List<MockItem> _tableItems = new();
+
     private Dictionary<(int, int), Dictionary<string, int>> _ownedByBrand = new();
+
+    private string? _error;
+    private string? _errorDetails;
+
+    private void SetError(Exception ex, string? context = null)
+    {
+        _error = context == null
+            ? $"An error happened: {ex.Message}"
+            : $"An error happened ({context}): {ex.Message}";
+        _errorDetails = ex.ToString(); // Testphase
+    }
 
     private int TotalNeeded => _mock?.Items?.Sum(i => i.Quantity) ?? 0;
     private int TotalOwned => _mock?.Items?.Sum(i => Math.Min(GetOwnedQuantity(i), i.Quantity)) ?? 0;
     private int TotalMissing => TotalNeeded - TotalOwned;
-
-    private int Percent => (TotalNeeded > 0 && TotalOwned == TotalNeeded)
-        ? 100
-        : (TotalNeeded > 0 ? (int)Math.Floor(100.0 * (double)TotalOwned / TotalNeeded) : 0);
-
+    private int Percent => TotalNeeded == 0 ? 0 : (int)(100.0 * TotalOwned / TotalNeeded);
     private bool HasAll => TotalNeeded > 0 && TotalOwned == TotalNeeded;
-
-    private int GetOwnedQuantity(MockItem item)
-    {
-        return _ownedByBrand.TryGetValue((item.MappedBrickId ?? 0, item.BrickColorId ?? 0), out var brandDict)
-            ? brandDict.Values.Sum()
-            : 0;
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadMock();
-    }
-
-    private async Task LoadMock()
-    {
-        _loading = true;
-
-        using var scope = ServiceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-
-        _mock = db.Mocks
-            .Include(m => m.Items)
-            .FirstOrDefault(m => m.Id == mockId);
-
-        _mockImageUrl = _mock != null ? ImageService.GetMockImagePath(_mock) : "/placeholder-image.png";
-
-        _loading = false;
-    }
-
-    private async Task OpenAddMockDialog()
-    {
-        var parameters = new DialogParameters { ["MockId"] = mockId };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
-
-        var dialog = await DialogService.ShowAsync<Components.Dialogs.AddMockToInventoryDialog>("", parameters, options);
-        var result = await dialog.Result;
-
-        if (result != null && result.Data is bool confirmed)
-        {
-            LoadingService?.Hide();
-
-            if (confirmed)
-            {
-                NotificationService.Success("MOC items successfully added to your inventory.");
-                Nav.NavigateTo("/myinventory");
-            }
-            else
-            {
-                NotificationService.Error("Error adding MOC items to your inventory.");
-            }
-        }
-    }
-
-    private IEnumerable<MockItem> GetFilteredItems()
-    {
-        if (_mock == null || _mock.Items == null)
-            return Enumerable.Empty<MockItem>();
-
-        if (_mock.MockType?.ToLower() == "bricklink")
-        {
-            // Nur Items mit Standard-Name anzeigen
-            return _mock.Items.Where(i => i.MappedBrick != null && !string.IsNullOrWhiteSpace(i.MappedBrick.Name));
-        }
-
-        // Sonst wie bisher
-        return _mock.Items.Where(i => i.MappedBrick != null || !string.IsNullOrWhiteSpace(i.ExternalPartNum) || i.Quantity > 0);
-    }
-
-    private bool _initialized = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _initialized) return;
+        if (!firstRender) return;
 
-        _initialized = true;
-        _loading = true;
-
-        using var scope = ServiceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-
-        _mock = db.Mocks.Where(m => m.Id == mockId).FirstOrDefault();
-
-        if (_mock != null)
+        try
         {
-            db.Entry(_mock).Collection(m => m.Items).Query()
-                .Include(i => i.MappedBrick)
-                .Include(i => i.BrickColor)
-                .Load();
+            await LoadMockAsync();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex, "OnAfterRender");
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadMockAsync()
+    {
+        try
+        {
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+
+            _mock = db.Mocks
+                .Include(m => m.Items)
+                    .ThenInclude(i => i.MappedBrick)
+                .Include(m => m.Items)
+                    .ThenInclude(i => i.BrickColor)
+                .FirstOrDefault(m => m.Id == mockId);
+
+            _mockImageUrl = _mock != null
+                ? ImageService.GetMockImagePath(_mock)
+                : "/placeholder-image.png";
+
+            var inventory = await InventoryService.GetCurrentUserInventoryAsync();
+
+            _ownedByBrand = inventory
+                .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.GroupBy(i => i.Brand)
+                          .ToDictionary(bg => bg.Key, bg => bg.Sum(i => i.Quantity))
+                );
+
+            UpdateTableItems();
+            _tableKey = Guid.NewGuid();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex, "LoadMockAsync");
+            NotificationService.Error(_error);
+            _mock = null;
+        }
+    }
+
+    private void UpdateTableItems()
+    {
+        if (_mock?.Items == null)
+        {
+            _tableItems = new();
+            return;
         }
 
-        // Inventory laden
-        var inventory = await InventoryService.GetCurrentUserInventoryAsync();
+        var items = _mock.Items.AsEnumerable();
 
-        _ownedByBrand = inventory
-            .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
-            .ToDictionary(
-                g => g.Key,
-                g => g.GroupBy(i => i.Brand)
-                      .ToDictionary(
-                          bg => bg.Key,
-                          bg => bg.Sum(i => i.Quantity)
-                      )
-            );
+        if (_showOnlyMissing)
+        {
+            items = items.Where(i => GetOwnedQuantity(i) < i.Quantity);
+        }
 
-        _loading = false;
+        _tableItems = items.ToList();
+    }
+
+    private int GetOwnedQuantity(MockItem item)
+    {
+        return _ownedByBrand.TryGetValue(
+            (item.MappedBrickId ?? 0, item.BrickColorId ?? 0),
+            out var brands)
+            ? brands.Values.Sum()
+            : 0;
+    }
+
+    private void ShowAllItems()
+    {
+        _showOnlyMissing = false;
+        UpdateTableItems();
+        _tableKey = Guid.NewGuid();
         StateHasChanged();
     }
 
-    private void GoBack()
+    private void ShowOnlyMissingItems()
     {
-        Nav.NavigateTo("/mymocks");
+        _showOnlyMissing = true;
+        UpdateTableItems();
+        _tableKey = Guid.NewGuid();
+        StateHasChanged();
     }
+
+   private async Task OpenAddMockDialog()
+{
+    try
+    {
+        var parameters = new DialogParameters { ["MockId"] = mockId };
+        
+        // WICHTIG: Den Dialog anzeigen
+        var dialog = await DialogService.ShowAsync<Components.Dialogs.AddMockToInventoryDialog>("Add MOC Items", parameters);
+        
+        // WICHTIG: Hier warten wir, bis der User im Dialog "Add" geklickt hat 
+        // UND der Prozess im Dialog (AddAllAsync) fertig ist.
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is bool ok && ok)
+        {
+            // Erst wenn der Dialog mit Ok(true) geschlossen wurde, kommt das hier:
+            NotificationService.Success("MOC items successfully added.");
+            
+            // Falls du die Daten auf der aktuellen Seite neu laden willst, statt zu navigieren:
+            // await LoadMockAsync(); 
+            
+            Nav.NavigateTo("/myinventory");
+        }
+    }
+    catch (Exception ex)
+    {
+        SetError(ex, "OpenAddMockDialog");
+        NotificationService.Error(_error);
+    }
+}
+
+    private void GoBack() => Nav.NavigateTo("/mymocks");
 }
