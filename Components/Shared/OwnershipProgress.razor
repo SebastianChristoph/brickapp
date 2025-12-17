@@ -1,12 +1,13 @@
 @using MudBlazor
 
-<MudPaper Class="pa-4 my-4" Elevation="4">
+<div>
     @* Progress bar with dynamic colors based on your requirements *@
     <MudProgressLinear Color="Color.Default" 
                        Size="Size.Large" 
                        Value="@Percent" 
                        Striped="true" 
-                       Style="@($"min-width:200px; max-width:300px; background-color: {GetColorHex()};")" />
+                       Style="@($" background-color: {GetColorHex()};")" />
+                       
     
     <MudText Typo="Typo.body1">
         @if (Percent >= 100)
@@ -22,8 +23,8 @@
             <span>You have <strong>@OwnedCount</strong> of <strong>@TotalCount</strong> items (@Percent%)</span>
         }
     </MudText>
-</MudPaper>
 
+</div>
 @code {
     [Parameter] public int OwnedCount { get; set; }
     [Parameter] public int TotalCount { get; set; }

@@ -2,6 +2,7 @@
 @using Data.Entities
 @using Data.Services
 @using Helpers
+@using MudBlazor
 
 @inject WantedListService WantedListService
 @inject Services.InventoryService InventoryService
@@ -9,37 +10,46 @@
 @inject Data.Services.ImageService ImageService
 @inject Services.NotificationService NotificationService
 
-  <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.ArrowBack" Class="my-4" Variant="Variant.Outlined" OnClick="GoBack">
-        Back
-    </MudButton>
-
 <PageTitle>Wanted List Details</PageTitle>
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudStack Justify="Justify.Center" Spacing="2" Style="margin-bottom: 16px; margin-top:16px;">
+        <MudText>Loading wanted list...</MudText>
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+    </MudStack>
 }
 else if (_wantedList == null)
 {
     <MudAlert Severity="Severity.Error">Wanted List not found.</MudAlert>
-    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="GoBack">Back</MudButton>
+    <MudButton Variant="Variant.Outlined" OnClick="@GoBack">Back</MudButton>
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2" Style="margin-bottom: 16px;">
-        <MudText Typo="Typo.h4" GutterBottom="true">My wanted list: @_wantedList.Name</MudText>
+    @* --- HEADER BEREICH (VEREINHEITLICHT) --- *@
+    <MudPaper Class="pa-4 mb-4">
+        <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h4">@_wantedList.Name</MudText>
+                <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Wanted List</MudText>
+            </MudStack>
+            
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Error"
+                       StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="DeleteList"
+                       Disabled="@_deletingList">
+                Delete this wanted list
+            </MudButton>
+        </MudStack>
+    </MudPaper>
 
-        <MudButton Variant="Variant.Outlined"
-                   Color="Color.Error"
-                   StartIcon="@Icons.Material.Filled.Delete"
-                   OnClick="DeleteList"
-                   Disabled="@_deletingList">
-                    Delete this wanted list
-        </MudButton>
+    @* --- PROGRESS BEREICH --- *@
+    <MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
+        <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
     </MudStack>
 
-   
-    <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
+    <br /><br />
 
     <MudText Typo="Typo.h6" GutterBottom="true">Items in this list</MudText>
 
@@ -91,11 +101,11 @@ else
             <MudTh>Mould King</MudTh>
             <MudTh>Unknown</MudTh>
             <MudTh>Quantity</MudTh>
-            <MudTh>Do you have this in your inventory?</MudTh>
+            <MudTh>In Inventory?</MudTh>
             <MudTh>Action</MudTh>
         </HeaderContent>
-
         <RowTemplate>
+            @* ... (RowTemplate bleibt identisch zu deinem Original) ... *@
             <MudTd DataLabel="Image">
                 @{
                     var imgUrl = context.MappedBrick != null
@@ -120,61 +130,16 @@ else
                     <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">No image</span>
                 }
             </MudTd>
-
             <MudTd DataLabel="Standard Name">@context.MappedBrick?.Name</MudTd>
             <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
-
-            <MudTd DataLabel="Lego">
-                @context.MappedBrick?.LegoName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.LegoPartNum))
-                {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.LegoPartNum)</span>
-                }
-            </MudTd>
-
-            <MudTd DataLabel="BlueBrixx">
-                @context.MappedBrick?.BluebrixxName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.BluebrixxPartNum))
-                {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.BluebrixxPartNum)</span>
-                }
-            </MudTd>
-
-            <MudTd DataLabel="Cada">
-                @context.MappedBrick?.CadaName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.CadaPartNum))
-                {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.CadaPartNum)</span>
-                }
-            </MudTd>
-
-            <MudTd DataLabel="Pantasy">
-                @context.MappedBrick?.PantasyName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.PantasyPartNum))
-                {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.PantasyPartNum)</span>
-                }
-            </MudTd>
-
-            <MudTd DataLabel="Mould King">
-                @context.MappedBrick?.MouldKingName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.MouldKingPartNum))
-                {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.MouldKingPartNum)</span>
-                }
-            </MudTd>
-
-            <MudTd DataLabel="Unknown">
-                @context.MappedBrick?.UnknownName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.UnknownPartNum))
-                {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick.UnknownPartNum)</span>
-                }
-            </MudTd>
-
+            <MudTd DataLabel="Lego">@context.MappedBrick?.LegoName @(string.IsNullOrEmpty(context.MappedBrick?.LegoPartNum) ? "" : $"({context.MappedBrick.LegoPartNum})")</MudTd>
+            <MudTd DataLabel="BlueBrixx">@context.MappedBrick?.BluebrixxName @(string.IsNullOrEmpty(context.MappedBrick?.BluebrixxPartNum) ? "" : $"({context.MappedBrick.BluebrixxPartNum})")</MudTd>
+            <MudTd DataLabel="Cada">@context.MappedBrick?.CadaName @(string.IsNullOrEmpty(context.MappedBrick?.CadaPartNum) ? "" : $"({context.MappedBrick.CadaPartNum})")</MudTd>
+            <MudTd DataLabel="Pantasy">@context.MappedBrick?.PantasyName @(string.IsNullOrEmpty(context.MappedBrick?.PantasyPartNum) ? "" : $"({context.MappedBrick.PantasyPartNum})")</MudTd>
+            <MudTd DataLabel="Mould King">@context.MappedBrick?.MouldKingName @(string.IsNullOrEmpty(context.MappedBrick?.MouldKingPartNum) ? "" : $"({context.MappedBrick.MouldKingPartNum})")</MudTd>
+            <MudTd DataLabel="Unknown">@context.MappedBrick?.UnknownName @(string.IsNullOrEmpty(context.MappedBrick?.UnknownPartNum) ? "" : $"({context.MappedBrick.UnknownPartNum})")</MudTd>
             <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
-
-            <MudTd DataLabel="Do you own?">
+            <MudTd DataLabel="In Inventory?">
                 @{
                     var key = (context.MappedBrickId, context.BrickColorId);
                     if (_ownedByBrand.TryGetValue(key, out var brands) && brands.Count > 0)
@@ -190,12 +155,8 @@ else
                     }
                 }
             </MudTd>
-
             <MudTd>
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Error"
-                           Size="Size.Small"
-                           OnClick="@(() => DeleteItem(context.Id))">
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteItem(context.Id))">
                     Delete
                 </MudButton>
             </MudTd>
@@ -206,7 +167,6 @@ else
         Back
     </MudButton>
 }
-
 @code {
     [Parameter] public int wantedListId { get; set; }
 

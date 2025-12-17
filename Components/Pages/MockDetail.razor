@@ -40,43 +40,54 @@ else if (_mock == null)
 }
 else
 {
-    <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
-        <MudStack Row Spacing="8">
-            <img src="@_mockImageUrl"
-                 style="max-width:180px;max-height:180px;border:1px solid #ccc;background:#fafafa;" />
+   @* --- HEADER BEREICH --- *@
+<MudPaper Class="pa-4 mb-4">
+    <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Start">
+        <div style="flex-shrink:0;">
+            <img src="@_mockImageUrl" alt="@_mock.Name"
+                 style="height:200px; width:auto; object-fit:contain; border-radius:4px; border:1px solid #ccc;" />
+        </div>
 
-           
-            <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
+        <MudStack Spacing="1" Style="flex: 1;">
+            <MudText Typo="Typo.h4" GutterBottom="true">@_mock.Name</MudText>
+            <MudText Typo="Typo.subtitle1">Type: @_mock.MockType</MudText>
         </MudStack>
-    </MudPaper>
+    </MudStack>
+</MudPaper>
 
-    <MudText Typo="Typo.h5">@_mock.Name</MudText>
-    <MudText Typo="Typo.subtitle2" Class="mb-2">Type: @_mock.MockType</MudText>
-
+@* --- PROGRESS & AKTIONEN --- *@
+<MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
+    <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
+    <MudSpacer />
     <MudButton Variant="Variant.Filled"
-               Color="Color.Success"
+               Color="Color.Primary"
                OnClick="OpenAddMockDialog"
-               Size="Size.Large"
-               Class="mt-2">
-        <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
+               StartIcon="@Icons.Material.Filled.Add">
         Add all MOC parts to inventory
     </MudButton>
+</MudStack>
 
-    <!-- FILTER BUTTONS -->
-    <MudStack Row Spacing="2" Class="mt-4 mb-2">
-        <MudButton Variant="@(_showOnlyMissing ? Variant.Outlined : Variant.Filled)"
-                   Color="Color.Primary"
-                   OnClick="ShowAllItems">
-            Show all items
-        </MudButton>
+<br/><br/>
 
-        <MudButton Variant="@(_showOnlyMissing ? Variant.Filled : Variant.Outlined)"
-                   Color="Color.Primary"
-                   OnClick="ShowOnlyMissingItems">
-            Show only missing items
-        </MudButton>
-    </MudStack>
+@* --- FILTER BUTTONS --- *@
+<MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
+    <MudText Typo="Typo.h6" GutterBottom="true">Items in this MOC</MudText>
 
+    <MudButton Variant="@(_showOnlyMissing ? Variant.Outlined : Variant.Filled)"
+               Color="Color.Primary"
+               OnClick="ShowAllItems"
+               StartIcon="@Icons.Material.Filled.List"
+               Class="ml-4">
+        Show all items
+    </MudButton>
+
+    <MudButton Variant="@(_showOnlyMissing ? Variant.Filled : Variant.Outlined)"
+               Color="Color.Primary"
+               startIcon="@Icons.Material.Filled.FilterList"
+               OnClick="ShowOnlyMissingItems">
+        Show only missing items
+    </MudButton>
+</MudStack>
     <style>
         .brick {
             position: relative;

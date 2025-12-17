@@ -58,7 +58,7 @@ else
                          style="height:200px; width:auto; object-fit:contain; border-radius:4px;" />
                 </div>
             }
-
+        
             <MudStack Spacing="1" Style="flex: 1;">
                 <MudText Typo="Typo.h4" GutterBottom="true">@_itemSet.Name</MudText>
 
@@ -66,42 +66,40 @@ else
 
                 <MudText Typo="Typo.subtitle2">Set Nr: @_itemSet.SetNum | Year: @_itemSet.Year</MudText>
 
-                <MudButton StartIcon="@Icons.Material.Filled.Add"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           OnClick="@OpenAddSetDialog"
-                           Size="Size.Large"
-                           Class="mt-2">
-                    Add all items to my inventory
-                </MudButton>
-
-                <MudButton StartIcon="@Icons.Material.Filled.List"
-                           Variant="Variant.Outlined"
-                           Color="Color.Secondary"
-                           OnClick="@OpenAddSetToWantedListDialog"
-                           Size="Size.Large"
-                           Class="mt-2">
-                    Add set to wanted list
-                </MudButton>
+              
             </MudStack>
         </MudStack>
     </MudPaper>
 
- 
-    <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
+<MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
+       <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
+       <MudSpacer />
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" OnClick="@OpenAddSetDialog">
+            Add Set items to Inventory
+        </MudButton>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Outlined" Color="Color.Primary" OnClick="@OpenAddSetToWantedListDialog">
+            Add Set items to Wanted List
+        </MudButton>
+    </MudStack>
+ 
+   <br/><br/>
+ 
+
+   <MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
         <MudText Typo="Typo.h6" GutterBottom="true">Items in this set</MudText>
 
         <MudButton Variant="@(_showOnlyMissing ? Variant.Outlined : Variant.Filled)"
                    Color="Color.Primary"
                    OnClick="@ShowAllItems"
+                   StartIcon="@Icons.Material.Filled.List"
                    Class="ml-4">
             Show all items
         </MudButton>
 
         <MudButton Variant="@(_showOnlyMissing ? Variant.Filled : Variant.Outlined)"
                    Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.FilterList"
                    OnClick="@ShowOnlyMissingItems">
             Show only missing items
         </MudButton>
@@ -146,7 +144,7 @@ else
     <MudTable @key="_tableKey" Items="@_tableItems">
         <HeaderContent>
             <MudTh>Image</MudTh>
-            <MudTh>Standard Name</MudTh>
+            <MudTh>Name</MudTh>
             <MudTh>Color</MudTh>
             <MudTh>Lego</MudTh>
             <MudTh>BlueBrixx</MudTh>
