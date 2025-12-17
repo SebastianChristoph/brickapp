@@ -5,8 +5,7 @@
 @using Data.DTOs
 @using Helpers
 @using System.Xml.Linq
-@using Microsoft.AspNetCore.Components.Forms
-@using IBrowserFile = Microsoft.AspNetCore.Components.Forms.IBrowserFile
+@using brickapp.Components.Shared.PartsListUpload
 
 @inject WantedListService WantedListService
 @inject Services.MappedBrickService MappedBrickService
@@ -107,110 +106,14 @@ else
 
         <MudDivider Class="my-2" />
 
-        <!-- UPLOAD -->
-        <MudText Typo="Typo.body1" GutterBottom="true" Style="font-weight:bold;">Upload wanted list file</MudText>
-        <MudText Typo="Typo.caption" Class="mb-2" Style="color:#666;">
-            Choose the exact format you upload. We validate structure and show unmapped parts / invalid color IDs (those rows are ignored).
-        </MudText>
-
-        <MudSelect T="string"
-                   @bind-Value="_selectedUploadFormat"
-                   Label="Upload format"
-                   Dense="true"
-                   Disabled="@_uploading"
-                   Style="max-width:360px;">
-            <MudSelectItem Value="@UploadFormats.RebrickableCsv">Rebrickable CSV (Part,Color,Quantity)</MudSelectItem>
-            <MudSelectItem Value="@UploadFormats.RebrickableXml">Rebrickable XML</MudSelectItem>
-            <MudSelectItem Value="@UploadFormats.BricklinkXml">BrickLink XML</MudSelectItem>
-        </MudSelect>
-
-        <InputFile OnChange="OnWantedFileSelected"
-                   accept=".csv,.xml"
-                   disabled="@(_uploading || string.IsNullOrWhiteSpace(_selectedUploadFormat))"
-                   class="mt-2" />
-
-        @if (!string.IsNullOrWhiteSpace(_uploadError))
-        {
-            <MudAlert Severity="Severity.Error" Class="mt-2">@_uploadError</MudAlert>
-        }
-
-        @if (_uploadParsedItems.Count > 0)
-        {
-            <MudAlert Severity="Severity.Success" Class="mt-3">
-                Upload parsed: @_uploadParsedItems.Count item(s) ready to add.
-            </MudAlert>
-        }
-
-        @if (_unmappedUploadItems.Count > 0)
-        {
-            <MudAlert Severity="Severity.Warning" Class="mt-3">
-                Unmapped parts: @_unmappedUploadItems.Count (no MappedBrick found by PartNum). These rows are ignored.
-            </MudAlert>
-
-            <MudExpansionPanels>
-                <MudExpansionPanel Text="Show unmapped items" Expanded="false" MaxHeight="450">
-                    <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
-                        <MudList T="string">
-                            @foreach (var item in _unmappedUploadItems)
-                            {
-                                <MudListItem T="string">
-                                    <MudText>Part: <b>@item.PartNum</b>, ColorId: <b>@item.ColorId</b>, Qty: <b>@item.Quantity</b></MudText>
-                                </MudListItem>
-                            }
-                        </MudList>
-                    </MudPaper>
-                </MudExpansionPanel>
-            </MudExpansionPanels>
-        }
-
-        @if (_invalidUploadColorIds.Count > 0)
-        {
-            <MudAlert Severity="Severity.Error" Class="mt-3">
-                Invalid ColorId(s) in upload: <b>@string.Join(", ", _invalidUploadColorIds.OrderBy(x => x))</b>.
-                These rows are ignored. Fix your file or seed missing colors / mappings.
-            </MudAlert>
-        }
-
-        @if (_invalidUploadRows.Count > 0)
-        {
-            <MudExpansionPanels>
-                <MudExpansionPanel Text="Show invalid rows (details)" Expanded="false" MaxHeight="450">
-                    <MudPaper Class="pa-2 mb-2" Style="background:#fff5f5;border:1px solid #ffcdd2;">
-                        <MudList T="string">
-                            @foreach (var r in _invalidUploadRows.Take(500))
-                            {
-                                <MudListItem T="string">
-                                    <MudText>
-                                        Part: <b>@r.PartNum</b>,
-                                        ColorId: <b>@r.ColorId</b>,
-                                        Qty: <b>@r.Qty</b>
-                                        <span style="color:#888">— @r.Reason</span>
-                                    </MudText>
-                                </MudListItem>
-                            }
-                        </MudList>
-                    </MudPaper>
-                </MudExpansionPanel>
-            </MudExpansionPanels>
-        }
-
-        @if (_uploadParsedItems.Count > 0)
-        {
-            <MudStack Row="true" Spacing="2" Class="mt-2 mb-4">
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           OnClick="AddUploadItemsToNewList"
-                           Disabled="@(_saving || _uploadParsedItems.Count == 0)">
-                    Add upload items to list
-                </MudButton>
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Secondary"
-                           OnClick="ClearUpload"
-                           Disabled="@_saving">
-                    Clear upload
-                </MudButton>
-            </MudStack>
-        }
+        <!-- UPLOAD (external component) -->
+        <PartsListUploader TItem="NewWantedListItemModel"
+                           Title="Upload wanted list file"
+                           HelpText="Choose the exact format you upload. We validate structure and show unmapped parts / invalid color IDs (those rows are ignored)."
+                           ParseAsync="ParseWantedUploadAsync"
+                           AddButtonText="Add upload items to list"
+                           ClearButtonText="Clear upload"
+                           OnAdd="AddUploadItemsToNewList_FromComponent" />
 
         <MudDivider Class="my-2" />
 
@@ -399,32 +302,12 @@ else
     private int? selectedColorId = null;
     private int brickQuantity = 1;
 
-    // Upload state
-    private bool _uploading = false;
-    private IBrowserFile? _uploadedWantedFile;
-    private string _uploadError = "";
-
-    private List<NewWantedListItemModel> _uploadParsedItems = new();
-    private List<(string? PartNum, int? ColorId, int Quantity)> _unmappedUploadItems = new();
-
-    private HashSet<int> _invalidUploadColorIds = new();
-    private List<(string? PartNum, int? ColorId, int Qty, string Reason)> _invalidUploadRows = new();
-
     // For fast part lookup
     private Dictionary<string, MappedBrick> _brickByLegoPartNum = new(StringComparer.OrdinalIgnoreCase);
 
     // Color mapping caches
     private Dictionary<int, int> _rebrickableColorIdToBrickColorId = new();
     private Dictionary<string, int> _brickColorNameToBrickColorId = new(StringComparer.OrdinalIgnoreCase);
-
-    private static class UploadFormats
-    {
-        public const string RebrickableCsv = "rebrickable_csv";
-        public const string RebrickableXml = "rebrickable_xml";
-        public const string BricklinkXml = "bricklink_xml";
-    }
-
-    private string _selectedUploadFormat = UploadFormats.RebrickableCsv;
 
     protected override async Task OnInitializedAsync()
     {
@@ -445,7 +328,7 @@ else
                 .GroupBy(c => c.Name!, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
 
-            // einmal laden für schnelles Mapping
+            // Load bricks for fast mapping
             var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
             _brickByLegoPartNum = allBricks
                 .Where(b => !string.IsNullOrWhiteSpace(b.LegoPartNum))
@@ -590,7 +473,7 @@ else
         catch (Exception ex)
         {
             SetError(ex, "HandleCreateWantedList");
-            NotificationService.Error(_error);
+            NotificationService.Error(_error ?? "An error happened.");
         }
         finally
         {
@@ -601,136 +484,61 @@ else
     }
 
     // =========================
-    // ===== UPLOAD LOGIC ======
+    // ===== External Upload ====
     // =========================
 
-    private async Task OnWantedFileSelected(InputFileChangeEventArgs e)
+    private Task<ParseResult<NewWantedListItemModel>> ParseWantedUploadAsync(string content, PartsUploadFormat format)
+{
+    // Parse-Funktionen liefern Tuple zurück -> NICHT über .mapped/.unmapped zugreifen,
+    // sondern deconstructen.
+    List<NewWantedListItemModel> mapped;
+    List<(string? PartNum, int? ColorId, int Quantity)> unmapped;
+    List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows;
+    HashSet<int> invalidColorIds;
+
+    switch (format)
     {
-        if (_uploading) return;
+        case PartsUploadFormat.RebrickableCsv:
+            (mapped, unmapped, invalidRows, invalidColorIds) = ParseRebrickableCsv(content);
+            break;
 
-        _uploadedWantedFile = e.File;
-        _uploadError = "";
-        _uploadParsedItems.Clear();
-        _unmappedUploadItems.Clear();
-        _invalidUploadColorIds.Clear();
-        _invalidUploadRows.Clear();
+        case PartsUploadFormat.RebrickableXml:
+            (mapped, unmapped, invalidRows, invalidColorIds) = ParseRebrickableXml(content);
+            break;
 
-        if (_uploadedWantedFile == null)
-            return;
+        case PartsUploadFormat.BricklinkXml:
+            (mapped, unmapped, invalidRows, invalidColorIds) = ParseBricklinkXml(content);
+            break;
 
-        if (string.IsNullOrWhiteSpace(_selectedUploadFormat))
-        {
-            _uploadError = "Please choose an upload format first.";
-            return;
-        }
-
-        if (_uploadedWantedFile.Size > 10 * 1024 * 1024)
-        {
-            _uploadError = "File too large (max 10MB).";
-            return;
-        }
-
-        _uploading = true;
-        LoadingService.Show("Analyzing file...");
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            using var stream = _uploadedWantedFile.OpenReadStream(10 * 1024 * 1024);
-            using var reader = new StreamReader(stream);
-            var content = (await reader.ReadToEndAsync())?.Trim() ?? "";
-
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                _uploadError = "File is empty.";
-                return;
-            }
-
-            var ext = Path.GetExtension(_uploadedWantedFile.Name).ToLowerInvariant();
-            var looksLikeXml = ext == ".xml" || content.TrimStart().StartsWith("<");
-
-            if ((_selectedUploadFormat == UploadFormats.RebrickableXml || _selectedUploadFormat == UploadFormats.BricklinkXml) && !looksLikeXml)
-            {
-                _uploadError = "Selected XML format, but file does not look like XML.";
-                return;
-            }
-
-            if (_selectedUploadFormat == UploadFormats.RebrickableCsv && looksLikeXml)
-            {
-                _uploadError = "Selected CSV format, but file looks like XML.";
-                return;
-            }
-
-            var parsed = ParseBySelectedFormat(content, _selectedUploadFormat);
-
-            _uploadParsedItems = parsed.mapped;
-            _unmappedUploadItems = parsed.unmapped;
-            _invalidUploadRows = parsed.invalidRows;
-            _invalidUploadColorIds = parsed.invalidColorIds;
-
-            if (_uploadParsedItems.Count == 0)
-            {
-                if (_unmappedUploadItems.Count > 0 || _invalidUploadColorIds.Count > 0 || _invalidUploadRows.Count > 0)
-                    _uploadError = "No usable items after validation (unmapped / invalid colors / invalid rows).";
-                else
-                    _uploadError = "No valid items found in file.";
-            }
-        }
-        catch (Exception ex)
-        {
-            SetError(ex, "OnWantedFileSelected");
-            _uploadError = $"Error processing file: {ex.Message}";
-            NotificationService.Error(_error);
-        }
-        finally
-        {
-            LoadingService.Hide();
-            _uploading = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        default:
+            mapped = new();
+            unmapped = new();
+            invalidRows = new() { (null, null, 0, "Unknown upload format selected.") };
+            invalidColorIds = new();
+            break;
     }
 
-    private void AddUploadItemsToNewList()
+    var result = new ParseResult<NewWantedListItemModel>
     {
-        foreach (var item in _uploadParsedItems)
+        MappedItems = mapped,
+        Unmapped = unmapped.Select(x => new UnmappedRow(x.PartNum, x.ColorId, x.Quantity)).ToList(),
+        InvalidRows = invalidRows.Select(x => new InvalidRow(x.PartNum, x.ColorId, x.Qty, x.Reason)).ToList(),
+        InvalidColorIds = invalidColorIds
+    };
+
+    return Task.FromResult(result);
+}
+
+    private void AddUploadItemsToNewList_FromComponent(List<NewWantedListItemModel> items)
+    {
+        foreach (var item in items)
             AddOrMergeItem(newListModel.Items, item);
 
         NotificationService.Success("Upload items added to list.");
         StateHasChanged();
     }
 
-    private void ClearUpload()
-    {
-        _uploadedWantedFile = null;
-        _uploadError = "";
-        _uploadParsedItems.Clear();
-        _unmappedUploadItems.Clear();
-        _invalidUploadColorIds.Clear();
-        _invalidUploadRows.Clear();
-        StateHasChanged();
-    }
-
-    // ========= PARSER =========
-
-    private (List<NewWantedListItemModel> mapped,
-             List<(string? PartNum, int? ColorId, int Quantity)> unmapped,
-             List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows,
-             HashSet<int> invalidColorIds)
-    ParseBySelectedFormat(string content, string format)
-    {
-        content = content.Trim();
-
-        if (format == UploadFormats.RebrickableCsv)
-            return ParseRebrickableCsv(content);
-
-        if (format == UploadFormats.BricklinkXml)
-            return ParseBricklinkXml(content);
-
-        if (format == UploadFormats.RebrickableXml)
-            return ParseRebrickableXml(content);
-
-        return (new(), new(), new() { (null, null, 0, "Unknown upload format selected.") }, new());
-    }
+    // ========= PARSER (unchanged from working version) =========
 
     private (List<NewWantedListItemModel> mapped,
              List<(string? PartNum, int? ColorId, int Quantity)> unmapped,
@@ -743,6 +551,7 @@ else
         var invalidRows = new List<(string? PartNum, int? ColorId, int Qty, string Reason)>();
         var invalidColorIds = new HashSet<int>();
 
+        csv = (csv ?? "").Trim();
         var lines = csv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
         if (lines.Length < 2)
         {
@@ -784,9 +593,6 @@ else
              HashSet<int> invalidColorIds)
     ParseBricklinkXml(string xml)
     {
-        // BrickLink INVENTORY XML
-        // ITEMID/COLOR/MINQTY (and sometimes QTY/QUANTITY)
-
         var mapped = new List<NewWantedListItemModel>();
         var unmapped = new List<(string? PartNum, int? ColorId, int Quantity)>();
         var invalidRows = new List<(string? PartNum, int? ColorId, int Qty, string Reason)>();
@@ -839,10 +645,6 @@ else
              HashSet<int> invalidColorIds)
     ParseRebrickableXml(string xml)
     {
-        // Rebrickable XML can be:
-        // A) "real" Rebrickable-like (Part/Color/Quantity)
-        // B) INVENTORY/ITEM (BrickLink inventory schema) — seen in Rebrickable exports
-
         var mapped = new List<NewWantedListItemModel>();
         var unmapped = new List<(string? PartNum, int? ColorId, int Quantity)>();
         var invalidRows = new List<(string? PartNum, int? ColorId, int Qty, string Reason)>();
@@ -856,7 +658,7 @@ else
             return (mapped, unmapped, invalidRows, invalidColorIds);
         }
 
-        // -------- CASE A: Part/Color/Quantity --------
+        // CASE A: Part/Color/Quantity
         var candidates = doc.Descendants()
             .Where(n =>
                 n.Elements().Any(e => e.Name.LocalName.Equals("Part", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("PART", StringComparison.OrdinalIgnoreCase)) &&
@@ -887,8 +689,7 @@ else
             return (mapped, unmapped, invalidRows, invalidColorIds);
         }
 
-        // -------- CASE B: INVENTORY/ITEM (BrickLink schema) --------
-        // Treat as BrickLink XML (color mapping via BricklinkColorMap)
+        // CASE B: INVENTORY/ITEM (BrickLink schema inside "Rebrickable XML" exports)
         var items = doc.Descendants().Where(x => x.Name.LocalName.Equals("ITEM", StringComparison.OrdinalIgnoreCase)).ToList();
         if (!items.Any())
         {
@@ -912,7 +713,7 @@ else
                 continue;
             }
 
-            // IMPORTANT: In this schema, the COLOR is a BrickLink ColorId, not a Rebrickable ColorId.
+            // IMPORTANT: COLOR is BrickLink ColorId here
             AddParsedRow_Wanted(mapped, unmapped, invalidRows, invalidColorIds,
                 partNum, blColorId, qty, colorMode: "bricklink");
         }
@@ -949,7 +750,6 @@ else
 
         if (colorMode == "rebrickable")
         {
-            // File colorId is RebrickableColorId -> map to BrickColor.Id
             if (_rebrickableColorIdToBrickColorId.TryGetValue(colorIdFromFile.Value, out var dbColorId))
                 internalBrickColorId = dbColorId;
             else
@@ -961,7 +761,6 @@ else
         }
         else // bricklink
         {
-            // BrickLink 0 = Not Applicable -> ignore row
             if (BricklinkColorMap.IsNotApplicable(colorIdFromFile.Value))
             {
                 invalidColorIds.Add(colorIdFromFile.Value);
@@ -977,7 +776,6 @@ else
                 return;
             }
 
-            // Map by name to internal BrickColor (seeded from Rebrickable)
             if (_brickColorNameToBrickColorId.TryGetValue(blName, out var dbColorId))
                 internalBrickColorId = dbColorId;
             else

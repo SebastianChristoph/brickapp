@@ -1,16 +1,20 @@
 @page "/mymocs"
+
 @using System.Xml.Linq
 @using Microsoft.EntityFrameworkCore
 @using Data.Entities
 @using Microsoft.AspNetCore.Components.Forms
 @using Services
 @using MudBlazor
+@using brickapp.Components.Shared.PartsListUpload
+@using Helpers
 @inject NavigationManager Nav
 @inject IServiceProvider ServiceProvider
 @inject Data.Services.ImageService ImageService
 @inject UserService UserService
 @inject Services.LoadingService LoadingService
 @inject Services.NotificationService NotificationService
+
 @using IBrowserFile = Microsoft.AspNetCore.Components.Forms.IBrowserFile
 
 <MudText Typo="Typo.h4" GutterBottom="true">My MOCs</MudText>
@@ -27,19 +31,8 @@
     </MudAlert>
 }
 
-
 <MudPaper Class="pa-4 mb-4">
     <MudText Typo="Typo.h6">Upload a new MOC</MudText>
-
-    <MudSelect T="string" @bind-Value="selectedFormat"
-               Label="Item List Source"
-               Disabled="_loading"
-               Style="width:260px;">
-        <MudSelectItem Value="@Formats.RebrickableCsv">Rebrickable CSV</MudSelectItem>
-        <MudSelectItem Value="@Formats.RebrickableXml">Rebrickable XML</MudSelectItem>
-        <MudSelectItem Value="@Formats.BricklinkXml">BrickLink XML</MudSelectItem>
-        <MudSelectItem Value="@Formats.CsvAuto">CSV (auto: Rebrickable/BrickLink-style)</MudSelectItem>
-    </MudSelect>
 
     <MudTextField @bind-Value="newMockName"
                   Label="MOC name"
@@ -69,68 +62,23 @@
         </div>
     }
 
-    <br />
-    <MudText Variant="body1">Upload Item List File:</MudText>
+    <MudDivider Class="my-3" />
 
-    <InputFile OnChange="OnFileSelected"
-               accept="@GetAcceptString()"
-               disabled="@_loading" />
+    <!-- Parts list upload via shared component -->
+    <PartsListUploader TItem="MockItem"
+                       Title="Upload Item List File"
+                       HelpText="Supported: Rebrickable CSV (Part,Color,Quantity), Rebrickable XML, BrickLink XML. We validate structure; rows with unmapped parts or invalid colors are ignored."
+                       Disabled="_loading"
+                       Formats="@_mocFormats"
+                       FormatLabelFunc="MocFormatLabel"
+                       ParseAsync="ParseMocUploadAsync"
+                       ShowAddButton="false"
+                       ClearButtonText="Clear upload"
+                       OnParsed="OnMocParsed" />
 
-    <MudText Typo="Typo.caption" Class="mt-2" Style="color:#666;">
-        Supported: Rebrickable CSV (Part,Color,Quantity), BrickLink-style CSV (ITEMTYPE;ITEMID;COLOR;MINQTY;...), BrickLink XML, Rebrickable XML
-    </MudText>
-
-    <br />
-    <br />
-
-    @* Unmapped *@
-    @if (unmappedItems.Count > 0)
+    @if (!string.IsNullOrWhiteSpace(uploadError))
     {
-        <MudAlert Severity="Severity.Warning" Class="mb-4">
-            Some items could not be mapped to existing MappedBricks (by PartNum). These items will be shown below.
-        </MudAlert>
-        <MudExpansionPanels>
-            <MudExpansionPanel Text="Click here to see unmapped items" MaxHeight="450" Expanded="false">
-                <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
-                    <MudText Color="Color.Warning" Typo="Typo.subtitle2">
-                        For the following items no MappedBrick was found:
-                    </MudText>
-                    <MudList T="string">
-                        @foreach (var item in unmappedItems)
-                        {
-                            <MudListItem T="string">
-                                <MudText>Part Number: <b>@item.PartNum</b>, ColorId: <b>@item.ColorId</b>, Qty: <b>@item.Quantity</b></MudText>
-                            </MudListItem>
-                        }
-                    </MudList>
-                </MudPaper>
-            </MudExpansionPanel>
-        </MudExpansionPanels>
-    }
-
-    @* Invalid FK IDs *@
-    @if (invalidColorIds.Any() || invalidMappedBrickIds.Any())
-    {
-        <MudAlert Severity="Severity.Error" Class="mb-4">
-            <b>Upload contains invalid IDs and cannot be saved.</b><br />
-            @if (invalidColorIds.Any())
-            {
-                <div>Invalid BrickColorId(s): <b>@string.Join(", ", invalidColorIds.OrderBy(x => x))</b></div>
-            }
-            @if (invalidMappedBrickIds.Any())
-            {
-                <div>Invalid MappedBrickId(s): <b>@string.Join(", ", invalidMappedBrickIds.OrderBy(x => x))</b></div>
-            }
-            <div style="margin-top:6px;color:#666;">
-                Fix: import/seed missing colors or adjust the file to only use known color IDs.
-            </div>
-        </MudAlert>
-    }
-    else if (unmappedItems.Count == 0 && uploadedItems.Count > 0)
-    {
-        <MudAlert Severity="Severity.Success" Class="mb-4">
-            All items were successfully mapped and validated.
-        </MudAlert>
+        <MudText Color="Color.Error" Class="mt-2">@uploadError</MudText>
     }
 
     <MudButton StartIcon="@Icons.Material.Filled.Add"
@@ -138,28 +86,24 @@
                Color="Color.Primary"
                OnClick="CreateMockFromUpload"
                Disabled="@(!fileReadyForUpload || _loading)"
-               Class="ml-2 mt-2">
+               Class="ml-2 mt-3">
         Create new MOC
     </MudButton>
-
-    <MudText Color="Color.Error">@uploadError</MudText>
 </MudPaper>
 
 <MudPaper Class="pa-4">
     <MudText Typo="Typo.h6">Your MOCs</MudText>
 
     <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Style="margin-bottom: 16px;">
-    <MudButton StartIcon="@Icons.Material.Filled.Delete"
-               Variant="Variant.Outlined"
-               Color="Color.Error"
-               OnClick="DeleteAllMocks"
-               Disabled="_loading"
-               Class="ml-2">
-        Delete all MOCs
-    </MudButton>
-</MudStack>
-
-
+        <MudButton StartIcon="@Icons.Material.Filled.Delete"
+                   Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   OnClick="DeleteAllMocks"
+                   Disabled="_loading"
+                   Class="ml-2">
+            Delete all MOCs
+        </MudButton>
+    </MudStack>
 
     <MudList T="string">
         @if (userMocks == null)
@@ -207,10 +151,11 @@
                             <MudText><b>@mock.Name</b> <span style="color:#888;font-size:0.95em">(@mock.MockType)</span></MudText>
                             <MudText Typo="Typo.caption">Items: @totalParts</MudText>
                             <MudText Typo="Typo.caption">Owned: @ownedParts / @totalParts (@percent%)</MudText>
-                                <OwnershipProgress OwnedCount="@ownedParts" TotalCount="@totalParts" />
 
+                            <OwnershipProgress OwnedCount="@ownedParts" TotalCount="@totalParts" />
 
                             <MudProgressLinear Value="@percent" Color="@(percent == 100 ? Color.Success : Color.Primary)" Style="max-width:120px;height:8px;margin-top:2px;" />
+
                             @if (!string.IsNullOrWhiteSpace(mock.WebSource))
                             {
                                 <MudText Typo="Typo.caption">
@@ -239,25 +184,38 @@
 </MudPaper>
 
 @code {
+    // Keep old constants for MockType storage (DB)
     private static class Formats
     {
         public const string RebrickableCsv = "rebrickable_csv";
         public const string RebrickableXml = "rebrickable_xml";
         public const string BricklinkXml = "bricklink_xml";
-        public const string CsvAuto = "csv_auto";
     }
+
+    private readonly PartsUploadFormat[] _mocFormats = new[]
+    {
+        PartsUploadFormat.RebrickableCsv,
+        PartsUploadFormat.RebrickableXml,
+        PartsUploadFormat.BricklinkXml
+    };
+
+    private string MocFormatLabel(PartsUploadFormat f) => f switch
+    {
+        PartsUploadFormat.RebrickableCsv => "Rebrickable CSV (Part,Color,Quantity)",
+        PartsUploadFormat.RebrickableXml => "Rebrickable XML",
+        PartsUploadFormat.BricklinkXml => "BrickLink XML",
+        _ => f.ToString()
+    };
 
     private List<Mock>? userMocks;
 
     private string uploadError = string.Empty;
-    private string selectedFormat = Formats.RebrickableCsv;
 
     private string newMockName = string.Empty;
     private string newMockComment = string.Empty;
     private string newMockWebSource = string.Empty;
 
     private List<MockItem> uploadedItems = new();
-    private IBrowserFile? uploadedFile = null;
     private bool fileReadyForUpload = false;
 
     private IBrowserFile? uploadedImage = null;
@@ -265,7 +223,7 @@
 
     private bool _loading = false;
 
-    // Diagnose / harte Validierung
+    // Diagnostics
     private List<(string? PartNum, int? ColorId, int Quantity)> unmappedItems = new();
     private HashSet<int> invalidColorIds = new();
     private HashSet<int> invalidMappedBrickIds = new();
@@ -279,12 +237,6 @@
             ? $"An error happened: {ex.Message}"
             : $"An error happened ({context}): {ex.Message}";
         _errorDetails = ex.ToString();
-    }
-
-    private string GetAcceptString()
-    {
-        // wir akzeptieren immer csv/xml; der User kann auch "falsch" wählen -> wir erkennen dann in Code
-        return ".csv,.xml";
     }
 
     private async Task OnImageSelected(InputFileChangeEventArgs e)
@@ -347,7 +299,7 @@
         catch (Exception ex)
         {
             SetError(ex, "DeleteMock");
-            NotificationService.Error(_error);
+            NotificationService.Error(_error ?? "DeleteMock failed.");
         }
     }
 
@@ -379,7 +331,7 @@
         catch (Exception ex)
         {
             SetError(ex, "DeleteAllMocks");
-            NotificationService.Error(_error);
+            NotificationService.Error(_error ?? "DeleteAllMocks failed.");
         }
     }
 
@@ -422,221 +374,365 @@
             .ToList();
     }
 
-    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    // =========================
+    // Upload parsing via shared component
+    // =========================
+
+    private async Task OnMocParsed(ParseResult<MockItem> result)
     {
-        if (_loading) return;
-
-        _error = null;
-        _errorDetails = null;
-
+        // reset state
         uploadError = string.Empty;
-        uploadedFile = e.File;
-
-        fileReadyForUpload = false;
         uploadedItems.Clear();
         unmappedItems.Clear();
         invalidColorIds.Clear();
         invalidMappedBrickIds.Clear();
+        fileReadyForUpload = false;
 
-        if (uploadedFile == null)
-            return;
+        // keep diagnostics
+        if (result.Unmapped?.Any() == true)
+            unmappedItems = result.Unmapped.Select(u => (u.PartNum, u.ColorId, u.Quantity)).ToList();
 
-        _loading = true;
+        if (result.InvalidColorIds?.Any() == true)
+            invalidColorIds = new HashSet<int>(result.InvalidColorIds);
+
+        // mapped items are the ones we can store
+        uploadedItems = result.MappedItems ?? new();
+
+        fileReadyForUpload = uploadedItems.Count > 0;
+
+        if (!string.IsNullOrWhiteSpace(result.FatalError))
+            uploadError = result.FatalError!;
+        else if (!fileReadyForUpload && (unmappedItems.Count > 0 || invalidColorIds.Count > 0 || (result.InvalidRows?.Count ?? 0) > 0))
+            uploadError = "No usable items after validation (unmapped / invalid colors / invalid rows).";
+        else if (!fileReadyForUpload)
+            uploadError = "No valid items found in file.";
+
         await InvokeAsync(StateHasChanged);
-        await Task.Delay(50);
-        LoadingService.Show("Analyzing file...");
-
-        try
-        {
-            using var stream = uploadedFile.OpenReadStream();
-            using var reader = new StreamReader(stream);
-
-            var content = await reader.ReadToEndAsync();
-            if (string.IsNullOrWhiteSpace(content))
-            {
-                uploadError = "File is empty.";
-                return;
-            }
-
-            using var scope = ServiceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-
-            // Caches für Validierung / Mapping
-            var validColorSet = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
-
-            // --- Detect by content/ext ---
-            var ext = Path.GetExtension(uploadedFile.Name).ToLowerInvariant();
-            var looksLikeXml = ext == ".xml" || content.TrimStart().StartsWith("<");
-
-            var items = new List<MockItem>();
-
-            if (looksLikeXml)
-            {
-                // XML: Bricklink oder Rebrickable (ähnlich)
-                items = ParseXmlToMockItems(content, db, validColorSet);
-            }
-            else
-            {
-                // CSV: Auto (Rebrickable comma) oder BrickLink-style semicolon
-                items = ParseCsvToMockItems(content, db, validColorSet);
-            }
-
-            uploadedItems = items;
-            fileReadyForUpload = uploadedItems.Count > 0;
-
-            if (!fileReadyForUpload)
-                uploadError = "No valid items found in file.";
-        }
-        catch (Exception ex)
-        {
-            SetError(ex, "OnFileSelected");
-            uploadError = _error ?? $"Error parsing file: {ex.Message}";
-        }
-        finally
-        {
-            LoadingService.Hide();
-            _loading = false;
-            await InvokeAsync(StateHasChanged);
-        }
     }
 
-    private List<MockItem> ParseCsvToMockItems(string csv, Data.AppDbContext db, HashSet<int> validColorSet)
+    private Task<ParseResult<MockItem>> ParseMocUploadAsync(string content, PartsUploadFormat format)
     {
-        var items = new List<MockItem>();
-
-        // detect delimiter by header line
-        var lines = csv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        if (lines.Length < 2)
-            return items;
-
-        var headerLine = lines[0].Trim();
-
-        var isBricklinkStyle = headerLine.Contains("ITEMTYPE", StringComparison.OrdinalIgnoreCase)
-                               && headerLine.Contains("ITEMID", StringComparison.OrdinalIgnoreCase)
-                               && headerLine.Contains("COLOR", StringComparison.OrdinalIgnoreCase);
-
-        if (isBricklinkStyle)
+        // Parse into (partNum, colorIdFromFile, qty) where colorIdFromFile means:
+        // - Rebrickable: RebrickableColorId
+        // - BrickLink: BrickLink ColorId
+        var (rows, invalidRows, invalidColorIdsFromFile) = format switch
         {
-            // BrickLink-style CSV: ITEMTYPE;ITEMID;COLOR;...;MINQTY;...
-            var header = headerLine.Split(';');
+            PartsUploadFormat.RebrickableCsv => ParseRebrickableCsv_Rows(content),
+            PartsUploadFormat.RebrickableXml => ParseRebrickableXml_Rows(content),
+            PartsUploadFormat.BricklinkXml => ParseBricklinkXml_Rows(content),
+            _ => (new List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)>(),
+                  new List<(string? PartNum, int? ColorId, int Qty, string Reason)> { (null, null, 0, "Unknown upload format selected.") },
+                  new HashSet<int>())
+        };
 
-            int itemIdIdx = Array.FindIndex(header, h => string.Equals(h, "ITEMID", StringComparison.OrdinalIgnoreCase));
-            int colorIdx  = Array.FindIndex(header, h => string.Equals(h, "COLOR", StringComparison.OrdinalIgnoreCase));
-            int qtyIdx    = Array.FindIndex(header, h => string.Equals(h, "MINQTY", StringComparison.OrdinalIgnoreCase));
+        // Map rows to DB IDs (MappedBrickId + BrickColorId) and ignore invalid ones
+        return MapRowsToMockItemsAsync(rows, invalidRows, invalidColorIdsFromFile);
+    }
 
-            if (itemIdIdx < 0 || colorIdx < 0 || qtyIdx < 0)
-                return items;
+    private async Task<ParseResult<MockItem>> MapRowsToMockItemsAsync(
+        List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)> rows,
+        List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows,
+        HashSet<int> invalidColorIdsFromFile)
+    {
+        var result = new ParseResult<MockItem>
+        {
+            InvalidColorIds = new HashSet<int>(invalidColorIdsFromFile),
+            InvalidRows = invalidRows.Select(x => new InvalidRow(x.PartNum, x.ColorId, x.Qty, x.Reason)).ToList()
+        };
 
-            for (int i = 1; i < lines.Length; i++)
+        using var scope = ServiceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+
+        // Build caches for mapping
+        var brickMap = await db.MappedBricks.AsNoTracking()
+            .Where(b => b.LegoPartNum != null)
+            .ToDictionaryAsync(b => b.LegoPartNum!, b => b.Id, StringComparer.OrdinalIgnoreCase);
+
+        var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
+
+        // RebrickableColorId -> BrickColor.Id
+        var rbToDbColor = await db.BrickColors.AsNoTracking()
+            .ToDictionaryAsync(c => c.RebrickableColorId, c => c.Id);
+
+        // Name -> BrickColor.Id (for BrickLink name mapping)
+        var nameToDbColor = await db.BrickColors.AsNoTracking()
+            .Where(c => c.Name != null)
+            .GroupBy(c => c.Name!)
+            .ToDictionaryAsync(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (partNum, colorIdFromFile, qty, colorMode) in rows)
+        {
+            if (!brickMap.TryGetValue(partNum, out var mappedBrickId))
             {
-                var cols = lines[i].Split(';');
-                int maxIdx = Math.Max(itemIdIdx, Math.Max(colorIdx, qtyIdx));
-                if (cols.Length <= maxIdx) continue;
-
-                var partNum = cols[itemIdIdx]?.Trim();
-                var colorId = int.TryParse(cols[colorIdx]?.Trim(), out var cid) ? cid : (int?)null;
-                var qty = int.TryParse(cols[qtyIdx]?.Trim(), out var q) ? q : 1;
-
-                AddParsedRow(items, db, validColorSet, partNum, colorId, qty);
+                result.Unmapped.Add(new UnmappedRow(partNum, colorIdFromFile, qty));
+                continue;
             }
 
-            return items;
+            int? dbColorId = null;
+
+            if (string.Equals(colorMode, "rebrickable", StringComparison.OrdinalIgnoreCase))
+            {
+                if (rbToDbColor.TryGetValue(colorIdFromFile, out var cid))
+                    dbColorId = cid;
+                else
+                {
+                    result.InvalidColorIds.Add(colorIdFromFile);
+                    result.InvalidRows.Add(new InvalidRow(partNum, colorIdFromFile, qty, "Unknown Rebrickable ColorId (not seeded)."));
+                    continue;
+                }
+            }
+            else // bricklink
+            {
+                if (BricklinkColorMap.IsNotApplicable(colorIdFromFile))
+                {
+                    result.InvalidColorIds.Add(colorIdFromFile);
+                    result.InvalidRows.Add(new InvalidRow(partNum, colorIdFromFile, qty, "BrickLink ColorId 0 = Not Applicable."));
+                    continue;
+                }
+
+                var blName = BricklinkColorMap.GetBrickColorName(colorIdFromFile);
+                if (string.IsNullOrWhiteSpace(blName))
+                {
+                    result.InvalidColorIds.Add(colorIdFromFile);
+                    result.InvalidRows.Add(new InvalidRow(partNum, colorIdFromFile, qty, "Unknown BrickLink ColorId."));
+                    continue;
+                }
+
+                if (nameToDbColor.TryGetValue(blName, out var cid))
+                    dbColorId = cid;
+                else
+                {
+                    result.InvalidColorIds.Add(colorIdFromFile);
+                    result.InvalidRows.Add(new InvalidRow(partNum, colorIdFromFile, qty, $"BrickLink color '{blName}' not found in BrickColors (name mismatch / missing)."));
+                    continue;
+                }
+            }
+
+            if (!dbColorId.HasValue || !validColorIds.Contains(dbColorId.Value))
+            {
+                // dbColorId itself invalid (shouldn’t happen if db is consistent)
+                result.InvalidRows.Add(new InvalidRow(partNum, colorIdFromFile, qty, "Mapped BrickColorId not found in DB."));
+                continue;
+            }
+
+            // add item (with correct DB ids)
+            result.MappedItems.Add(new MockItem
+            {
+                ExternalPartNum = partNum,
+                Quantity = qty <= 0 ? 1 : qty,
+                MappedBrickId = mappedBrickId,
+                BrickColorId = dbColorId.Value
+            });
         }
 
-        // Rebrickable CSV: Part,Color,Quantity (comma)
-        var header2 = headerLine.Split(',');
-        int partIdx = Array.FindIndex(header2, h => string.Equals(h.Trim(), "Part", StringComparison.OrdinalIgnoreCase));
-        int color2Idx = Array.FindIndex(header2, h => string.Equals(h.Trim(), "Color", StringComparison.OrdinalIgnoreCase));
-        int qty2Idx = Array.FindIndex(header2, h => string.Equals(h.Trim(), "Quantity", StringComparison.OrdinalIgnoreCase));
+        // Merge duplicates (same MappedBrickId + BrickColorId)
+        result.MappedItems = result.MappedItems
+            .GroupBy(i => new { i.MappedBrickId, i.BrickColorId })
+            .Select(g =>
+            {
+                var first = g.First();
+                first.Quantity = g.Sum(x => x.Quantity);
+                return first;
+            })
+            .ToList();
 
-        if (partIdx < 0 || color2Idx < 0 || qty2Idx < 0)
-            return items;
+        return result;
+    }
+
+    // =========================
+    // Parsers -> normalized rows
+    // =========================
+
+    // Row shape: (PartNum, ColorIdFromFile, Qty, ColorMode["rebrickable"|"bricklink"])
+
+    private (List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)> rows,
+             List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows,
+             HashSet<int> invalidColorIds)
+        ParseRebrickableCsv_Rows(string csv)
+    {
+        var rows = new List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)>();
+        var invalidRows = new List<(string? PartNum, int? ColorId, int Qty, string Reason)>();
+        var invalidColorIds = new HashSet<int>();
+
+        csv = (csv ?? "").Trim();
+        var lines = csv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        if (lines.Length < 2)
+        {
+            invalidRows.Add((null, null, 0, "CSV has no data rows."));
+            return (rows, invalidRows, invalidColorIds);
+        }
+
+        var header = lines[0].Split(',').Select(x => x.Trim()).ToArray();
+        int partIdx = Array.FindIndex(header, h => h.Equals("Part", StringComparison.OrdinalIgnoreCase));
+        int colorIdx = Array.FindIndex(header, h => h.Equals("Color", StringComparison.OrdinalIgnoreCase));
+        int qtyIdx = Array.FindIndex(header, h => h.Equals("Quantity", StringComparison.OrdinalIgnoreCase));
+
+        if (partIdx < 0 || colorIdx < 0 || qtyIdx < 0)
+        {
+            invalidRows.Add((null, null, 0, "Invalid Rebrickable CSV header. Expected: Part,Color,Quantity."));
+            return (rows, invalidRows, invalidColorIds);
+        }
 
         for (int i = 1; i < lines.Length; i++)
         {
             var cols = lines[i].Split(',');
-            int maxIdx = Math.Max(partIdx, Math.Max(color2Idx, qty2Idx));
+            int maxIdx = Math.Max(partIdx, Math.Max(colorIdx, qtyIdx));
             if (cols.Length <= maxIdx) continue;
 
             var partNum = cols[partIdx]?.Trim();
-            var colorId = int.TryParse(cols[color2Idx]?.Trim(), out var cid) ? cid : (int?)null;
-            var qty = int.TryParse(cols[qty2Idx]?.Trim(), out var q) ? q : 1;
+            var rbColorId = int.TryParse(cols[colorIdx]?.Trim(), out var c) ? c : (int?)null;
+            var qty = int.TryParse(cols[qtyIdx]?.Trim(), out var q) ? q : 0;
 
-            AddParsedRow(items, db, validColorSet, partNum, colorId, qty);
+            if (string.IsNullOrWhiteSpace(partNum) || rbColorId is null || qty <= 0)
+            {
+                invalidRows.Add((partNum, rbColorId, qty, "Row missing Part/Color/Quantity (or qty<=0)."));
+                continue;
+            }
+
+            rows.Add((partNum!, rbColorId.Value, qty, "rebrickable"));
         }
 
-        return items;
+        return (rows, invalidRows, invalidColorIds);
     }
 
-    private List<MockItem> ParseXmlToMockItems(string xml, Data.AppDbContext db, HashSet<int> validColorSet)
+    private (List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)> rows,
+             List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows,
+             HashSet<int> invalidColorIds)
+        ParseBricklinkXml_Rows(string xml)
     {
-        var items = new List<MockItem>();
+        var rows = new List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)>();
+        var invalidRows = new List<(string? PartNum, int? ColorId, int Qty, string Reason)>();
+        var invalidColorIds = new HashSet<int>();
 
         XDocument doc;
-        try
-        {
-            doc = XDocument.Parse(xml);
-        }
+        try { doc = XDocument.Parse(xml); }
         catch
         {
-            uploadError = "Invalid XML file.";
-            return items;
+            invalidRows.Add((null, null, 0, "Invalid XML."));
+            return (rows, invalidRows, invalidColorIds);
         }
 
-        // Support: <ITEM> blocks (Bricklink & many Rebrickable exports look similar)
-        var itemNodes = doc.Descendants("ITEM").ToList();
-        if (!itemNodes.Any())
+        var items = doc.Descendants().Where(x => x.Name.LocalName.Equals("ITEM", StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!items.Any())
         {
-            // fallback: try any nodes named "Part" etc (very defensive)
-            // If no known structure -> return empty
-            return items;
+            invalidRows.Add((null, null, 0, "BrickLink XML: no <ITEM> nodes found."));
+            return (rows, invalidRows, invalidColorIds);
         }
 
-        foreach (var x in itemNodes)
+        foreach (var it in items)
         {
-            var partNum = x.Element("ITEMID")?.Value?.Trim();
-            var colorId = int.TryParse(x.Element("COLOR")?.Value, out var cid) ? cid : (int?)null;
+            var partNum = GetChild(it, "ITEMID")?.Trim();
+            var colorStr = GetChild(it, "COLOR")?.Trim();
 
-            // qty keys differ
-            int qty =
-                int.TryParse(x.Element("MINQTY")?.Value, out var q1) ? q1 :
-                int.TryParse(x.Element("QTY")?.Value, out var q2) ? q2 :
-                int.TryParse(x.Element("QUANTITY")?.Value, out var q3) ? q3 :
-                1;
+            var qtyStr = GetChild(it, "MINQTY") ?? GetChild(it, "QTY") ?? GetChild(it, "QUANTITY");
+            var qty = int.TryParse(qtyStr, out var q) ? q : 0;
 
-            AddParsedRow(items, db, validColorSet, partNum, colorId, qty);
+            var blColorId = int.TryParse(colorStr, out var c) ? c : (int?)null;
+
+            if (string.IsNullOrWhiteSpace(partNum) || blColorId is null || qty <= 0)
+            {
+                invalidRows.Add((partNum, blColorId, qty, "Row missing ITEMID/COLOR/MINQTY (or qty<=0)."));
+                continue;
+            }
+
+            rows.Add((partNum!, blColorId.Value, qty, "bricklink"));
         }
 
-        return items;
+        return (rows, invalidRows, invalidColorIds);
+
+        static string? GetChild(XElement parent, string name)
+            => parent.Elements().FirstOrDefault(e => e.Name.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase))?.Value;
     }
 
-    private void AddParsedRow(List<MockItem> items, Data.AppDbContext db, HashSet<int> validColorSet,
-                              string? partNum, int? colorId, int qty)
+    private (List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)> rows,
+             List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows,
+             HashSet<int> invalidColorIds)
+        ParseRebrickableXml_Rows(string xml)
     {
-        int? mappedBrickId = null;
+        var rows = new List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)>();
+        var invalidRows = new List<(string? PartNum, int? ColorId, int Qty, string Reason)>();
+        var invalidColorIds = new HashSet<int>();
 
-        if (!string.IsNullOrWhiteSpace(partNum))
+        XDocument doc;
+        try { doc = XDocument.Parse(xml); }
+        catch
         {
-            var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
-            if (mapped != null)
-                mappedBrickId = mapped.Id;
+            invalidRows.Add((null, null, 0, "Invalid XML."));
+            return (rows, invalidRows, invalidColorIds);
         }
 
-        if (mappedBrickId == null)
-            unmappedItems.Add((partNum, colorId, qty));
+        // CASE A: Part/Color/Quantity
+        var candidates = doc.Descendants()
+            .Where(n =>
+                n.Elements().Any(e => e.Name.LocalName.Equals("Part", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("PART", StringComparison.OrdinalIgnoreCase)) &&
+                n.Elements().Any(e => e.Name.LocalName.Equals("Color", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("COLOR", StringComparison.OrdinalIgnoreCase)) &&
+                n.Elements().Any(e => e.Name.LocalName.Equals("Quantity", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("QTY", StringComparison.OrdinalIgnoreCase)))
+            .ToList();
 
-        if (colorId.HasValue && !validColorSet.Contains(colorId.Value))
-            invalidColorIds.Add(colorId.Value);
-
-        // Wir erstellen trotzdem MockItem-Liste (für Anzeige/Debug); beim Speichern wird hart abgebrochen
-        items.Add(new MockItem
+        if (candidates.Any())
         {
-            ExternalPartNum = partNum,
-            Quantity = qty <= 0 ? 1 : qty,
-            BrickColorId = colorId,
-            MappedBrickId = mappedBrickId
-        });
+            foreach (var n in candidates)
+            {
+                string? partNum =
+                    n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Part", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("PART", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
+
+                string? colorStr =
+                    n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Color", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("COLOR", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
+
+                string? qtyStr =
+                    n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Quantity", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("QTY", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
+
+                var rbColorId = int.TryParse(colorStr, out var c) ? c : (int?)null;
+                var qty = int.TryParse(qtyStr, out var q) ? q : 0;
+
+                if (string.IsNullOrWhiteSpace(partNum) || rbColorId is null || qty <= 0)
+                {
+                    invalidRows.Add((partNum, rbColorId, qty, "Row missing Part/Color/Quantity (or qty<=0)."));
+                    continue;
+                }
+
+                rows.Add((partNum!, rbColorId.Value, qty, "rebrickable"));
+            }
+
+            return (rows, invalidRows, invalidColorIds);
+        }
+
+        // CASE B: <ITEM> blocks (many Rebrickable exports look like BrickLink inventory XML; COLOR is BrickLink id)
+        var items = doc.Descendants().Where(x => x.Name.LocalName.Equals("ITEM", StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!items.Any())
+        {
+            invalidRows.Add((null, null, 0, "Rebrickable XML: neither Part/Color/Quantity nor <ITEM> nodes found."));
+            return (rows, invalidRows, invalidColorIds);
+        }
+
+        foreach (var it in items)
+        {
+            var partNum = GetChild(it, "ITEMID")?.Trim();
+            var colorStr = GetChild(it, "COLOR")?.Trim();
+
+            var qtyStr = GetChild(it, "MINQTY") ?? GetChild(it, "QTY") ?? GetChild(it, "QUANTITY");
+            var qty = int.TryParse(qtyStr, out var q) ? q : 0;
+
+            var blColorId = int.TryParse(colorStr, out var c) ? c : (int?)null;
+
+            if (string.IsNullOrWhiteSpace(partNum) || blColorId is null || qty <= 0)
+            {
+                invalidRows.Add((partNum, blColorId, qty, "INVENTORY row missing ITEMID/COLOR/MINQTY (or qty<=0)."));
+                continue;
+            }
+
+            rows.Add((partNum!, blColorId.Value, qty, "bricklink"));
+        }
+
+        return (rows, invalidRows, invalidColorIds);
+
+        static string? GetChild(XElement parent, string name)
+            => parent.Elements().FirstOrDefault(e => e.Name.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase))?.Value;
     }
+
+    // =========================
+    // Create mock (changed: no uploadedFile, no auto-detect, ignore invalid/unmapped rows)
+    // =========================
 
     private async Task CreateMockFromUpload()
     {
@@ -653,7 +749,7 @@
             return;
         }
 
-        if (uploadedFile == null || uploadedItems == null || uploadedItems.Count == 0)
+        if (uploadedItems == null || uploadedItems.Count == 0)
         {
             uploadError = "Please upload a valid item list file.";
             return;
@@ -676,7 +772,7 @@
                 return;
             }
 
-            // ===== HARD VALIDATION (abort) =====
+            // ===== validate FK ids (should already be valid, but keep safety) =====
             var validBrickIds = await db.MappedBricks.AsNoTracking().Select(b => b.Id).ToHashSetAsync();
             var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
 
@@ -692,14 +788,11 @@
                     invalidColorIds.Add(it.BrickColorId.Value);
             }
 
-            // Wenn es unmapped gibt (MappedBrickId null) -> ebenfalls hart abbrechen? (dein Wunsch war "invalid IDs")
-            // Wir brechen hier hart ab, wenn entweder invalid FK IDs ODER unmapped vorhanden sind.
-            // Wenn du unmapped weiterhin "ignorieren" willst, sag kurz Bescheid.
-            if (invalidColorIds.Any() || invalidMappedBrickIds.Any() || unmappedItems.Any())
+            // UX-friendly: do NOT hard abort on unmapped/invalid — those were already ignored.
+            // But if somehow invalid FK IDs exist -> abort.
+            if (invalidColorIds.Any() || invalidMappedBrickIds.Any())
             {
                 var parts = new List<string>();
-                if (unmappedItems.Any())
-                    parts.Add($"Unmapped parts: {unmappedItems.Count}");
                 if (invalidColorIds.Any())
                     parts.Add($"Invalid BrickColorId(s): {string.Join(", ", invalidColorIds.OrderBy(x => x))}");
                 if (invalidMappedBrickIds.Any())
@@ -710,16 +803,31 @@
                 return;
             }
 
-            // Nur gültige Items speichern
+            // Only valid items are already in uploadedItems
             var validItems = uploadedItems
                 .Where(i => i.MappedBrickId != null && i.BrickColorId != null && i.Quantity > 0)
                 .ToList();
+
+            if (!validItems.Any())
+            {
+                uploadError = "No usable items after validation.";
+                return;
+            }
+
+            // Store the chosen format as string MockType
+            var mockType = _lastParsedFormat switch
+            {
+                PartsUploadFormat.RebrickableCsv => Formats.RebrickableCsv,
+                PartsUploadFormat.RebrickableXml => Formats.RebrickableXml,
+                PartsUploadFormat.BricklinkXml => Formats.BricklinkXml,
+                _ => Formats.RebrickableCsv
+            };
 
             var mock = new Mock
             {
                 Name = newMockName.Trim(),
                 UserUuid = userUuid,
-                MockType = selectedFormat,
+                MockType = mockType,
                 Items = validItems,
                 Comment = string.IsNullOrWhiteSpace(newMockComment) ? null : newMockComment.Trim(),
                 WebSource = string.IsNullOrWhiteSpace(newMockWebSource) ? null : newMockWebSource.Trim(),
@@ -737,7 +845,6 @@
                 }
                 catch (Exception exImg)
                 {
-                    // Bildfehler soll nicht den ganzen Mock killen
                     NotificationService.Error($"Image could not be saved: {exImg.Message}");
                 }
             }
@@ -746,14 +853,17 @@
             newMockName = string.Empty;
             newMockComment = string.Empty;
             newMockWebSource = string.Empty;
-            uploadedFile = null;
+
             uploadedItems.Clear();
             fileReadyForUpload = false;
+
             unmappedItems.Clear();
             invalidColorIds.Clear();
             invalidMappedBrickIds.Clear();
+
             uploadedImage = null;
             imagePreviewUrl = string.Empty;
+            uploadError = string.Empty;
 
             await LoadMocks();
 
@@ -772,4 +882,6 @@
             await InvokeAsync(StateHasChanged);
         }
     }
+
+    private PartsUploadFormat _lastParsedFormat = PartsUploadFormat.RebrickableCsv;
 }

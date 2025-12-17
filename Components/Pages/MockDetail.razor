@@ -291,26 +291,36 @@ else
         StateHasChanged();
     }
 
-    private async Task OpenAddMockDialog()
+   private async Task OpenAddMockDialog()
+{
+    try
     {
-        try
-        {
-            var parameters = new DialogParameters { ["MockId"] = mockId };
-            var dialog = await DialogService.ShowAsync<Components.Dialogs.AddMockToInventoryDialog>("", parameters);
-            var result = await dialog.Result;
+        var parameters = new DialogParameters { ["MockId"] = mockId };
+        
+        // WICHTIG: Den Dialog anzeigen
+        var dialog = await DialogService.ShowAsync<Components.Dialogs.AddMockToInventoryDialog>("Add MOC Items", parameters);
+        
+        // WICHTIG: Hier warten wir, bis der User im Dialog "Add" geklickt hat 
+        // UND der Prozess im Dialog (AddAllAsync) fertig ist.
+        var result = await dialog.Result;
 
-            if (result?.Data is bool ok && ok)
-            {
-                NotificationService.Success("MOC items successfully added.");
-                Nav.NavigateTo("/myinventory");
-            }
-        }
-        catch (Exception ex)
+        if (result != null && !result.Canceled && result.Data is bool ok && ok)
         {
-            SetError(ex, "OpenAddMockDialog");
-            NotificationService.Error(_error);
+            // Erst wenn der Dialog mit Ok(true) geschlossen wurde, kommt das hier:
+            NotificationService.Success("MOC items successfully added.");
+            
+            // Falls du die Daten auf der aktuellen Seite neu laden willst, statt zu navigieren:
+            // await LoadMockAsync(); 
+            
+            Nav.NavigateTo("/myinventory");
         }
     }
+    catch (Exception ex)
+    {
+        SetError(ex, "OpenAddMockDialog");
+        NotificationService.Error(_error);
+    }
+}
 
     private void GoBack() => Nav.NavigateTo("/mymocks");
 }

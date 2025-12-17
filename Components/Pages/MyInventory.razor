@@ -146,22 +146,21 @@ else
                             }
                         </MudTd>
 
-                        <MudTd DataLabel="Brick">
-                            @if (_wantedListNamesByItem.TryGetValue((context.MappedBrickId, context.BrickColorId), out var wantedLists) && wantedLists.Any())
-                            {
-                                <MudAlert Severity="Severity.Info">
-                                    @context.MappedBrick?.Name <br />is in the following wanted lists:
-                                    @foreach (var wlName in wantedLists)
-                                    {
-                                        <MudChip T="string" Color="Color.Info" Variant="Variant.Filled" Class="mt-1" Size="Size.Small">@wlName</MudChip>
-                                    }
-                                </MudAlert>
-                            }
-                            else
-                            {
-                                @context.MappedBrick?.Name
-                            }
-                        </MudTd>
+                       <MudTd DataLabel="Brick">
+    <div class="d-flex align-center">
+        @context.MappedBrick?.Name
+        
+        @if (_wantedListNamesByItem.TryGetValue((context.MappedBrickId, context.BrickColorId), out var wantedLists) && wantedLists.Any())
+        {
+            <MudTooltip Text="@($"In Wanted Lists: {string.Join(", ", wantedLists)}")">
+                <MudIcon Icon="@Icons.Material.Filled.Bookmark" 
+                         Color="Color.Info" 
+                         Size="Size.Small" 
+                         Class="ml-2" />
+            </MudTooltip>
+        }
+    </div>
+</MudTd>
 
                         <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
                         <MudTd DataLabel="Brand">@context.Brand</MudTd>

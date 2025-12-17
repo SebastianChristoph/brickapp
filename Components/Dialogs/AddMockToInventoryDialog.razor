@@ -36,34 +36,52 @@
 
 @code {
     [Parameter] public int MockId { get; set; }
-    [CascadingParameter]
-    private IMudDialogInstance? MudDialog { get; set; }
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+    
     private bool _loading = false;
     private string? _error;
-
     private string? _mockType;
 
     protected override async Task OnInitializedAsync()
     {
-        // Hole den Mock-Typ für die Anzeige direkt über Inject
         var mock = await Db.Mocks.AsNoTracking().FirstOrDefaultAsync(m => m.Id == MockId);
         _mockType = mock?.MockType?.ToLower();
     }
 
-    private async Task AddAllAsync()
+   private async Task AddAllAsync()
+{
+    _loading = true;
+    _error = null;
+    StateHasChanged(); // UI updaten für den Button-Disabled-Status
+
+    // Globalen Spinner zeigen
+    LoadingService.Show(message: "Adding MOC items to inventory...");
+    
+    try
     {
-        _loading = true;
-        _error = null;
+        // Kleiner Delay, damit der Spinner im UI erscheint
+        await Task.Delay(100); 
+
         var result = await InventoryService.AddMockItemsToInventoryAsync(MockId);
+        
         if (result)
         {
+            // Erst Spinner weg, dann Dialog zu
             LoadingService.Hide();
             MudDialog?.Close(DialogResult.Ok(true));
         }
         else
         {
+            LoadingService.Hide();
             _error = "Error adding mock items to inventory.";
+            _loading = false;
         }
+    }
+    catch (Exception ex)
+    {
+        LoadingService.Hide();
+        _error = "Exception: " + ex.Message;
         _loading = false;
     }
+}
 }
