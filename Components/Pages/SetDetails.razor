@@ -87,28 +87,8 @@ else
         </MudStack>
     </MudPaper>
 
-    <MudPaper Class="pa-2 mb-2" Style="background:#f8f8f8;">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudText Typo="Typo.subtitle1">Can you build this set?</MudText>
-
-            <MudProgressLinear Color="Color.Primary"
-                               Striped="true"
-                               Size="Size.Large"
-                               Value="@Percent"
-                               Style="min-width:200px;max-width:300px;width:30vw;" />
-
-            <MudText Typo="Typo.body1" Class="ml-4">
-                @if (HasAll)
-                {
-                    <b>You own all items, you can build this set!</b>
-                }
-                else
-                {
-                    <span>You have <strong>@TotalOwned</strong> of <strong>@TotalNeeded</strong> items (@Percent%)</span>
-                }
-            </MudText>
-        </MudStack>
-    </MudPaper>
+ 
+    <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
         <MudText Typo="Typo.h6" GutterBottom="true">Items in this set</MudText>

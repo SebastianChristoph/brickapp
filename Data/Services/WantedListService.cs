@@ -121,53 +121,93 @@ namespace Data.Services
             return true;
         }
 
-        public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
+     public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
+{
+    var user = await _userService.GetCurrentUserAsync();
+    if (user == null)
+        return 0;
+
+    await using var db = await _factory.CreateDbContextAsync();
+
+    // Validierungs-Caches (damit nicht pro Item ein Query feuert)
+    var validBrickIds = await db.MappedBricks.AsNoTracking().Select(b => b.Id).ToHashSetAsync();
+    var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
+
+    // Items deduplizieren (gleicher Brick+Color => Mengen addieren)
+    var grouped = (model.Items ?? new List<NewWantedListItemModel>())
+        .Where(i => i.MappedBrickId > 0 && i.ColorId > 0 && i.Quantity > 0)
+        .GroupBy(i => (i.MappedBrickId, i.ColorId))
+        .Select(g => new NewWantedListItemModel
         {
-            var user = await _userService.GetCurrentUserAsync();
-            if (user == null)
-                return 0;
+            MappedBrickId = g.Key.MappedBrickId,
+            ColorId = g.Key.ColorId,
+            Quantity = g.Sum(x => x.Quantity)
+        })
+        .ToList();
 
-            await using var db = await _factory.CreateDbContextAsync();
+    // Ungültige FK-Werte rausfiltern
+    var invalid = grouped
+        .Where(i => !validBrickIds.Contains(i.MappedBrickId) || !validColorIds.Contains(i.ColorId))
+        .ToList();
 
-            var wantedList = new WantedList
-            {
-                Name = model.Name,
-                AppUserId = user.Id.ToString(),
-                Items = new List<WantedListItem>()
-            };
+    var valid = grouped
+        .Where(i => validBrickIds.Contains(i.MappedBrickId) && validColorIds.Contains(i.ColorId))
+        .ToList();
 
-            foreach (var item in model.Items)
-            {
-                wantedList.Items.Add(new WantedListItem
-                {
-                    MappedBrickId = item.MappedBrickId,
-                    BrickColorId = item.ColorId,
-                    Quantity = item.Quantity
-                });
-            }
+    // Wenn du lieber "hart" fehlschlagen willst, statt skippen:
+    // if (invalid.Any())
+    //     throw new InvalidOperationException($"Upload contains invalid BrickColorId / MappedBrickId. Invalid items: {invalid.Count}");
 
-            db.WantedLists.Add(wantedList);
-            await db.SaveChangesAsync();
-            return wantedList.Id;
-        }
+    var wantedList = new WantedList
+    {
+        Name = model.Name,
+        AppUserId = user.Id.ToString(),
+        Items = new List<WantedListItem>()
+    };
 
-              public async Task<bool> DeleteWantedListItemAsync(int wantedListItemId)
+    foreach (var item in valid)
+    {
+        wantedList.Items.Add(new WantedListItem
         {
-            var user = await _userService.GetCurrentUserAsync();
-            if (user == null)
-                return false;
+            MappedBrickId = item.MappedBrickId,
+            BrickColorId = item.ColorId,
+            Quantity = item.Quantity
+        });
+    }
 
-            await using var db = await _factory.CreateDbContextAsync();
-            var item = await db.WantedListItems
-                .Include(i => i.WantedList)
-                .FirstOrDefaultAsync(i => i.Id == wantedListItemId && i.WantedList != null && i.WantedList.AppUserId == user.Id.ToString());
-            if (item == null)
-                return false;
+    db.WantedLists.Add(wantedList);
+    await db.SaveChangesAsync();
 
-            db.WantedListItems.Remove(item);
-            await db.SaveChangesAsync();
-            return true;
-        }
+    // Optional: falls du im UI anzeigen willst "X items skipped", könntest du das loggen:
+    // if (invalid.Any()) { ... }
+
+    return wantedList.Id;
+}
+
+public async Task<bool> DeleteWantedListItemAsync(int wantedListItemId)
+{
+    var user = await _userService.GetCurrentUserAsync();
+    if (user == null)
+        return false;
+
+    await using var db = await _factory.CreateDbContextAsync();
+
+    // nur löschen, wenn Item zu einer Liste des aktuellen Users gehört
+    var item = await db.WantedListItems
+        .Include(i => i.WantedList)
+        .FirstOrDefaultAsync(i =>
+            i.Id == wantedListItemId &&
+            i.WantedList != null &&
+            i.WantedList.AppUserId == user.Id.ToString());
+
+    if (item == null)
+        return false;
+
+    db.WantedListItems.Remove(item);
+    await db.SaveChangesAsync();
+    return true;
+}
+
 
         public async Task<WantedList?> GetWantedListByIdAsync(int wantedListId)
         {

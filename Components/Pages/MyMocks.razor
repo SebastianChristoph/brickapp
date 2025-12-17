@@ -4,6 +4,7 @@
 @using Data.Entities
 @using Microsoft.AspNetCore.Components.Forms
 @using Services
+@using MudBlazor
 @inject NavigationManager Nav
 @inject IServiceProvider ServiceProvider
 @inject Data.Services.ImageService ImageService
@@ -26,33 +27,24 @@
     </MudAlert>
 }
 
-<MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Style="margin-bottom: 16px;">
-    <MudButton StartIcon="@Icons.Material.Filled.Delete"
-               Variant="Variant.Outlined"
-               Color="Color.Error"
-               OnClick="DeleteAllMocks"
-               Disabled="_loading"
-               Class="ml-2">
-        Delete all MOCs
-    </MudButton>
-</MudStack>
 
 <MudPaper Class="pa-4 mb-4">
     <MudText Typo="Typo.h6">Upload a new MOC</MudText>
 
-    <MudSelect @bind-Value="selectedFormat"
+    <MudSelect T="string" @bind-Value="selectedFormat"
                Label="Item List Source"
                Disabled="_loading"
-               Style="width:240px;">
-        <MudSelectItem Value="@FormatRebrickableCsv">rebrickable csv</MudSelectItem>
-        <MudSelectItem Value="@FormatRebrickableXml">rebrickable xml</MudSelectItem>
-        <MudSelectItem Value="@FormatBricklinkXml">bricklink xml</MudSelectItem>
+               Style="width:260px;">
+        <MudSelectItem Value="@Formats.RebrickableCsv">Rebrickable CSV</MudSelectItem>
+        <MudSelectItem Value="@Formats.RebrickableXml">Rebrickable XML</MudSelectItem>
+        <MudSelectItem Value="@Formats.BricklinkXml">BrickLink XML</MudSelectItem>
+        <MudSelectItem Value="@Formats.CsvAuto">CSV (auto: Rebrickable/BrickLink-style)</MudSelectItem>
     </MudSelect>
 
     <MudTextField @bind-Value="newMockName"
                   Label="MOC name"
                   Disabled="_loading"
-                  Style="width:240px;margin-top:8px;" />
+                  Style="width:260px;margin-top:8px;" />
 
     <MudTextField @bind-Value="newMockComment"
                   Label="Comment"
@@ -72,26 +64,31 @@
     @if (!string.IsNullOrEmpty(imagePreviewUrl))
     {
         <div style="margin-top:8px;">
-            <img src="@imagePreviewUrl" alt="Mock Bild Vorschau" style="max-width:200px;max-height:200px;border:1px solid #ccc;padding:2px;" />
+            <img src="@imagePreviewUrl" alt="Mock Bild Vorschau"
+                 style="max-width:200px;max-height:200px;border:1px solid #ccc;padding:2px;" />
         </div>
     }
 
     <br />
-    <MudText variant="body1">Upload Item List File:</MudText>
+    <MudText Variant="body1">Upload Item List File:</MudText>
 
     <InputFile OnChange="OnFileSelected"
-               accept="@GetAcceptForSelectedFormat()"
+               accept="@GetAcceptString()"
                disabled="@_loading" />
 
+    <MudText Typo="Typo.caption" Class="mt-2" Style="color:#666;">
+        Supported: Rebrickable CSV (Part,Color,Quantity), BrickLink-style CSV (ITEMTYPE;ITEMID;COLOR;MINQTY;...), BrickLink XML, Rebrickable XML
+    </MudText>
+
     <br />
     <br />
 
+    @* Unmapped *@
     @if (unmappedItems.Count > 0)
     {
         <MudAlert Severity="Severity.Warning" Class="mb-4">
-            Some items could not be mapped to existing MappedBricks. Please review the list below and consider adding mappings for these items first. Missing mapped items will be ignored when creating the MOC.
+            Some items could not be mapped to existing MappedBricks (by PartNum). These items will be shown below.
         </MudAlert>
-
         <MudExpansionPanels>
             <MudExpansionPanel Text="Click here to see unmapped items" MaxHeight="450" Expanded="false">
                 <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
@@ -102,7 +99,7 @@
                         @foreach (var item in unmappedItems)
                         {
                             <MudListItem T="string">
-                                <MudText>Part Number: <b>@item.PartNum</b>, Color: <b>@item.ColorId</b>, Quantity: <b>@item.Quantity</b></MudText>
+                                <MudText>Part Number: <b>@item.PartNum</b>, ColorId: <b>@item.ColorId</b>, Qty: <b>@item.Quantity</b></MudText>
                             </MudListItem>
                         }
                     </MudList>
@@ -110,10 +107,29 @@
             </MudExpansionPanel>
         </MudExpansionPanels>
     }
+
+    @* Invalid FK IDs *@
+    @if (invalidColorIds.Any() || invalidMappedBrickIds.Any())
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">
+            <b>Upload contains invalid IDs and cannot be saved.</b><br />
+            @if (invalidColorIds.Any())
+            {
+                <div>Invalid BrickColorId(s): <b>@string.Join(", ", invalidColorIds.OrderBy(x => x))</b></div>
+            }
+            @if (invalidMappedBrickIds.Any())
+            {
+                <div>Invalid MappedBrickId(s): <b>@string.Join(", ", invalidMappedBrickIds.OrderBy(x => x))</b></div>
+            }
+            <div style="margin-top:6px;color:#666;">
+                Fix: import/seed missing colors or adjust the file to only use known color IDs.
+            </div>
+        </MudAlert>
+    }
     else if (unmappedItems.Count == 0 && uploadedItems.Count > 0)
     {
         <MudAlert Severity="Severity.Success" Class="mb-4">
-            All items were successfully mapped to existing MappedBricks.
+            All items were successfully mapped and validated.
         </MudAlert>
     }
 
@@ -123,7 +139,7 @@
                OnClick="CreateMockFromUpload"
                Disabled="@(!fileReadyForUpload || _loading)"
                Class="ml-2 mt-2">
-        @(unmappedItems.Count > 0 ? "Create new MOC anyway" : "Create new MOC")
+        Create new MOC
     </MudButton>
 
     <MudText Color="Color.Error">@uploadError</MudText>
@@ -131,6 +147,20 @@
 
 <MudPaper Class="pa-4">
     <MudText Typo="Typo.h6">Your MOCs</MudText>
+
+    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Style="margin-bottom: 16px;">
+    <MudButton StartIcon="@Icons.Material.Filled.Delete"
+               Variant="Variant.Outlined"
+               Color="Color.Error"
+               OnClick="DeleteAllMocks"
+               Disabled="_loading"
+               Class="ml-2">
+        Delete all MOCs
+    </MudButton>
+</MudStack>
+
+
+
     <MudList T="string">
         @if (userMocks == null)
         {
@@ -150,8 +180,8 @@
             @foreach (var mock in userMocks)
             {
                 var totalParts = mock.Items?.Sum(i => i.Quantity) ?? 0;
-
                 int ownedParts = 0;
+
                 if (mock.Items != null)
                 {
                     foreach (var item in mock.Items)
@@ -171,11 +201,15 @@
 
                 <MudListItem T="string" Style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
                     <div style="display:flex;align-items:center;flex:1;gap:12px;">
-                        <img src="@ImageService.GetMockImagePath(mock)" alt="Mock Bild" style="width:56px;height:56px;object-fit:contain;border:1px solid #ccc;background:#fff;padding:2px;border-radius:6px;" />
+                        <img src="@ImageService.GetMockImagePath(mock)" alt="Mock Bild"
+                             style="width:56px;height:56px;object-fit:contain;border:1px solid #ccc;background:#fff;padding:2px;border-radius:6px;" />
                         <span style="flex:1" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
                             <MudText><b>@mock.Name</b> <span style="color:#888;font-size:0.95em">(@mock.MockType)</span></MudText>
                             <MudText Typo="Typo.caption">Items: @totalParts</MudText>
                             <MudText Typo="Typo.caption">Owned: @ownedParts / @totalParts (@percent%)</MudText>
+                                <OwnershipProgress OwnedCount="@ownedParts" TotalCount="@totalParts" />
+
+
                             <MudProgressLinear Value="@percent" Color="@(percent == 100 ? Color.Success : Color.Primary)" Style="max-width:120px;height:8px;margin-top:2px;" />
                             @if (!string.IsNullOrWhiteSpace(mock.WebSource))
                             {
@@ -205,40 +239,53 @@
 </MudPaper>
 
 @code {
-    // ====== Format Values (persisted as MockType) ======
-    private const string FormatRebrickableCsv = "rebrickable_csv";
-    private const string FormatRebrickableXml = "rebrickable_xml";
-    private const string FormatBricklinkXml   = "bricklink"; // beibehalten (Bestandsdaten)
+    private static class Formats
+    {
+        public const string RebrickableCsv = "rebrickable_csv";
+        public const string RebrickableXml = "rebrickable_xml";
+        public const string BricklinkXml = "bricklink_xml";
+        public const string CsvAuto = "csv_auto";
+    }
 
     private List<Mock>? userMocks;
-    private string uploadError = string.Empty;
-    private List<(string? PartNum, int? ColorId, int Quantity)> unmappedItems = new();
 
-    private string selectedFormat = FormatRebrickableCsv;
+    private string uploadError = string.Empty;
+    private string selectedFormat = Formats.RebrickableCsv;
+
     private string newMockName = string.Empty;
     private string newMockComment = string.Empty;
     private string newMockWebSource = string.Empty;
+
     private List<MockItem> uploadedItems = new();
     private IBrowserFile? uploadedFile = null;
     private bool fileReadyForUpload = false;
+
     private IBrowserFile? uploadedImage = null;
     private string imagePreviewUrl = string.Empty;
+
     private bool _loading = false;
 
-    private string GetAcceptForSelectedFormat()
-        => selectedFormat is FormatRebrickableXml or FormatBricklinkXml ? ".xml" : ".csv";
+    // Diagnose / harte Validierung
+    private List<(string? PartNum, int? ColorId, int Quantity)> unmappedItems = new();
+    private HashSet<int> invalidColorIds = new();
+    private HashSet<int> invalidMappedBrickIds = new();
 
-        private string? _error;
-private string? _errorDetails;
+    // Page error like SetDetails
+    private string? _error;
+    private string? _errorDetails;
+    private void SetError(Exception ex, string context = "")
+    {
+        _error = string.IsNullOrWhiteSpace(context)
+            ? $"An error happened: {ex.Message}"
+            : $"An error happened ({context}): {ex.Message}";
+        _errorDetails = ex.ToString();
+    }
 
-private void SetError(Exception ex, string? context = null)
-{
-    _error = context == null
-        ? $"An error happened: {ex.Message}"
-        : $"An error happened ({context}): {ex.Message}";
-
-    _errorDetails = ex.ToString(); // Testphase
-}
+    private string GetAcceptString()
+    {
+        // wir akzeptieren immer csv/xml; der User kann auch "falsch" wählen -> wir erkennen dann in Code
+        return ".csv,.xml";
+    }
 
     private async Task OnImageSelected(InputFileChangeEventArgs e)
     {
@@ -251,7 +298,7 @@ private void SetError(Exception ex, string? context = null)
 
         if (file.Size > 3 * 1024 * 1024)
         {
-            uploadError = "Das Bild darf maximal 3MB groß sein.";
+            uploadError = "The image can be max 3MB.";
             return;
         }
 
@@ -262,93 +309,102 @@ private void SetError(Exception ex, string? context = null)
             using var stream = file.OpenReadStream(3 * 1024 * 1024);
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
-
             var bytes = ms.ToArray();
             var base64 = Convert.ToBase64String(bytes);
 
-            var mime = file.ContentType;
-            if (string.IsNullOrEmpty(mime))
-            {
-                var ext = Path.GetExtension(file.Name)?.ToLowerInvariant().TrimStart('.') ?? "png";
-                mime = ext is "jpg" or "jpeg" ? "image/jpeg" : ext == "png" ? "image/png" : "image/*";
-            }
-
+            var mime = string.IsNullOrWhiteSpace(file.ContentType) ? "image/*" : file.ContentType;
             imagePreviewUrl = $"data:{mime};base64,{base64}";
         }
         catch (Exception ex)
         {
-            uploadError = $"Fehler beim Laden des Bildes: {ex.Message}";
+            uploadError = $"Error reading image: {ex.Message}";
         }
     }
 
-   private async Task DeleteMock(int mockId)
-{
-    if (_loading) return;
-
-    try
+    private async Task DeleteMock(int mockId)
     {
-        var userUuid = await UserService.GetTokenAsync();
-        if (string.IsNullOrEmpty(userUuid))
-            return;
+        if (_loading) return;
 
-        using var scope = ServiceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-
-        var mock = db.Mocks.FirstOrDefault(m => m.Id == mockId && m.UserUuid == userUuid);
-        if (mock != null)
+        try
         {
-            ImageService.DeleteMockImage(mock);
-            db.Mocks.Remove(mock);
-            db.SaveChanges();
+            var userUuid = await UserService.GetTokenAsync();
+            if (string.IsNullOrEmpty(userUuid))
+                return;
+
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+
+            var mock = db.Mocks.FirstOrDefault(m => m.Id == mockId && m.UserUuid == userUuid);
+            if (mock != null)
+            {
+                ImageService.DeleteMockImage(mock);
+                db.Mocks.Remove(mock);
+                db.SaveChanges();
+            }
+
+            await LoadMocks();
         }
-
-        await LoadMocks();
+        catch (Exception ex)
+        {
+            SetError(ex, "DeleteMock");
+            NotificationService.Error(_error);
+        }
     }
-    catch (Exception ex)
-    {
-        SetError(ex, "DeleteMock");
-        NotificationService.Error(_error);
-    }
-}
-
 
     private async Task DeleteAllMocks()
     {
         if (_loading) return;
 
-        var userUuid = await UserService.GetTokenAsync();
-        if (string.IsNullOrEmpty(userUuid)) return;
-
-        using var scope = ServiceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-
-        var mocks = db.Mocks.Where(m => m.UserUuid == userUuid).ToList();
-        if (mocks.Any())
+        try
         {
-            foreach (var mock in mocks)
-                ImageService.DeleteMockImage(mock);
+            var userUuid = await UserService.GetTokenAsync();
+            if (string.IsNullOrEmpty(userUuid))
+                return;
 
-            db.Mocks.RemoveRange(mocks);
-            db.SaveChanges();
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+
+            var mocks = db.Mocks.Where(m => m.UserUuid == userUuid).ToList();
+            if (mocks.Any())
+            {
+                foreach (var mock in mocks)
+                    ImageService.DeleteMockImage(mock);
+
+                db.Mocks.RemoveRange(mocks);
+                db.SaveChanges();
+            }
+
+            await LoadMocks();
         }
-
-        await LoadMocks();
+        catch (Exception ex)
+        {
+            SetError(ex, "DeleteAllMocks");
+            NotificationService.Error(_error);
+        }
     }
 
     private bool _loaded = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_loaded)
+        if (!firstRender || _loaded) return;
+
+        _loaded = true;
+
+        try
         {
-            _loaded = true;
             await LoadMocks();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex, "LoadMocks");
+        }
+        finally
+        {
             StateHasChanged();
         }
     }
 
-   private async Task LoadMocks()
-{
-    try
+    private async Task LoadMocks()
     {
         using var scope = ServiceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
@@ -365,88 +421,25 @@ private void SetError(Exception ex, string? context = null)
             .Include(m => m.Items)
             .ToList();
     }
-    catch (Exception ex)
-    {
-        SetError(ex, "LoadMocks");
-        userMocks = new(); // Seite bleibt stabil
-        NotificationService.Error(_error);
-    }
-}
-
-
-    // ===== CSV Helpers =====
-    private static string[] SplitDelimitedLine(string line, char delimiter)
-    {
-        // minimaler Parser für Delimiter + Quotes
-        var result = new List<string>();
-        var current = new System.Text.StringBuilder();
-        bool inQuotes = false;
-
-        for (int i = 0; i < line.Length; i++)
-        {
-            var c = line[i];
-
-            if (c == '"')
-            {
-                // "" -> escaped quote
-                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
-                {
-                    current.Append('"');
-                    i++;
-                }
-                else
-                {
-                    inQuotes = !inQuotes;
-                }
-                continue;
-            }
-
-            if (c == delimiter && !inQuotes)
-            {
-                result.Add(current.ToString().Trim());
-                current.Clear();
-                continue;
-            }
-
-            current.Append(c);
-        }
-
-        result.Add(current.ToString().Trim());
-        return result.ToArray();
-    }
-
-    private static char DetectDelimiter(string headerLine)
-    {
-        // wenn Semikolon dominiert -> ';', sonst ','
-        var semis = headerLine.Count(c => c == ';');
-        var commas = headerLine.Count(c => c == ',');
-        return semis > commas ? ';' : ',';
-    }
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
         if (_loading) return;
 
+        _error = null;
+        _errorDetails = null;
+
         uploadError = string.Empty;
         uploadedFile = e.File;
+
         fileReadyForUpload = false;
         uploadedItems.Clear();
         unmappedItems.Clear();
+        invalidColorIds.Clear();
+        invalidMappedBrickIds.Clear();
 
-        if (uploadedFile == null) return;
-
-        // Endung prüfen passend zur Auswahl
-        var isXml = selectedFormat is FormatRebrickableXml or FormatBricklinkXml;
-        if (isXml && !uploadedFile.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
-        {
-            uploadError = "Please select an XML file for this format.";
+        if (uploadedFile == null)
             return;
-        }
-        if (!isXml && !uploadedFile.Name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
-        {
-            uploadError = "Please select a CSV file for this format.";
-            return;
-        }
 
         _loading = true;
         await InvokeAsync(StateHasChanged);
@@ -456,140 +449,49 @@ private void SetError(Exception ex, string? context = null)
         try
         {
             using var stream = uploadedFile.OpenReadStream();
+            using var reader = new StreamReader(stream);
+
+            var content = await reader.ReadToEndAsync();
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                uploadError = "File is empty.";
+                return;
+            }
+
             using var scope = ServiceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
 
+            // Caches für Validierung / Mapping
+            var validColorSet = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
+
+            // --- Detect by content/ext ---
+            var ext = Path.GetExtension(uploadedFile.Name).ToLowerInvariant();
+            var looksLikeXml = ext == ".xml" || content.TrimStart().StartsWith("<");
+
             var items = new List<MockItem>();
 
-            if (isXml)
+            if (looksLikeXml)
             {
-                // Rebrickable XML hat in deinem Beispiel das INVENTORY/ITEM Format mit ITEMID/COLOR/MINQTY :contentReference[oaicite:1]{index=1}
-                XDocument doc;
-                try
-                {
-                    doc = XDocument.Load(stream);
-                }
-                catch
-                {
-                    uploadError = "The XML file is invalid.";
-                    return;
-                }
-
-                var itemNodes = doc.Descendants("ITEM").ToList();
-                if (!itemNodes.Any())
-                {
-                    uploadError = "The XML file contains no ITEM nodes.";
-                    return;
-                }
-
-                foreach (var x in itemNodes)
-                {
-                    var partNum = x.Element("ITEMID")?.Value?.Trim();
-                    var colorId = int.TryParse(x.Element("COLOR")?.Value, out var cid) ? cid : (int?)null;
-                    var qty     = int.TryParse(x.Element("MINQTY")?.Value, out var q) ? q : 1;
-
-                    int? mappedBrickId = null;
-                    if (!string.IsNullOrEmpty(partNum))
-                    {
-                        var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
-                        if (mapped != null)
-                            mappedBrickId = mapped.Id;
-                    }
-
-                    if (mappedBrickId == null)
-                        unmappedItems.Add((partNum, colorId, qty));
-
-                    items.Add(new MockItem
-                    {
-                        ExternalPartNum = partNum,
-                        Quantity = qty,
-                        BrickColorId = colorId,
-                        MappedBrickId = mappedBrickId
-                    });
-                }
+                // XML: Bricklink oder Rebrickable (ähnlich)
+                items = ParseXmlToMockItems(content, db, validColorSet);
             }
             else
             {
-                using var reader = new StreamReader(stream);
-                var csv = await reader.ReadToEndAsync();
-                var lines = csv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-                if (lines.Length < 2)
-                {
-                    uploadError = "The CSV file contains no data.";
-                    return;
-                }
-
-                var delimiter = DetectDelimiter(lines[0]);
-                var header = SplitDelimitedLine(lines[0], delimiter)
-                    .Select(h => h.Trim().Trim('"'))
-                    .ToArray();
-
-                // Variante A: Rebrickable CSV: Part, Color, Quantity
-                int partIdx = Array.FindIndex(header, h => h.Equals("Part", StringComparison.OrdinalIgnoreCase));
-                int colorIdx = Array.FindIndex(header, h => h.Equals("Color", StringComparison.OrdinalIgnoreCase));
-                int qtyIdx = Array.FindIndex(header, h => h.Equals("Quantity", StringComparison.OrdinalIgnoreCase));
-
-                // Variante B: "ITEMTYPE;ITEMID;COLOR;...;MINQTY;..." (dein anderes CSV-Format)
-                if (partIdx < 0 || colorIdx < 0 || qtyIdx < 0)
-                {
-                    partIdx = Array.FindIndex(header, h => h.Equals("ITEMID", StringComparison.OrdinalIgnoreCase));
-                    colorIdx = Array.FindIndex(header, h => h.Equals("COLOR", StringComparison.OrdinalIgnoreCase));
-                    qtyIdx = Array.FindIndex(header, h => h.Equals("MINQTY", StringComparison.OrdinalIgnoreCase));
-                }
-
-                if (partIdx < 0 || colorIdx < 0 || qtyIdx < 0)
-                {
-                    uploadError = "CSV header not recognized. Expected either (Part, Color, Quantity) or (ITEMID, COLOR, MINQTY).";
-                    return;
-                }
-
-                for (int i = 1; i < lines.Length; i++)
-                {
-                    var cols = SplitDelimitedLine(lines[i], delimiter);
-                    var maxIdx = Math.Max(partIdx, Math.Max(colorIdx, qtyIdx));
-
-                    if (cols.Length <= maxIdx)
-                    {
-                        uploadError = $"Line {i + 1} does not contain enough columns.";
-                        return;
-                    }
-
-                    var partNum = cols[partIdx]?.Trim().Trim('"');
-                    var colorId = int.TryParse(cols[colorIdx]?.Trim().Trim('"'), out var cid) ? cid : (int?)null;
-                    var qty     = int.TryParse(cols[qtyIdx]?.Trim().Trim('"'), out var q) ? q : 1;
-
-                    int? mappedBrickId = null;
-                    if (!string.IsNullOrEmpty(partNum))
-                    {
-                        var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
-                        if (mapped != null)
-                            mappedBrickId = mapped.Id;
-                    }
-
-                    if (mappedBrickId == null)
-                        unmappedItems.Add((partNum, colorId, qty));
-
-                    items.Add(new MockItem
-                    {
-                        ExternalPartNum = partNum,
-                        Quantity = qty,
-                        BrickColorId = colorId,
-                        MappedBrickId = mappedBrickId
-                    });
-                }
+                // CSV: Auto (Rebrickable comma) oder BrickLink-style semicolon
+                items = ParseCsvToMockItems(content, db, validColorSet);
             }
 
             uploadedItems = items;
-            fileReadyForUpload = true;
+            fileReadyForUpload = uploadedItems.Count > 0;
+
+            if (!fileReadyForUpload)
+                uploadError = "No valid items found in file.";
         }
-      catch (Exception ex)
-{
-    SetError(ex, "OnFileSelected");
-    uploadError = $"Error processing file: {ex.Message}";
-    fileReadyForUpload = false;
-    NotificationService.Error(_error);
-}
+        catch (Exception ex)
+        {
+            SetError(ex, "OnFileSelected");
+            uploadError = _error ?? $"Error parsing file: {ex.Message}";
+        }
         finally
         {
             LoadingService.Hide();
@@ -598,21 +500,162 @@ private void SetError(Exception ex, string? context = null)
         }
     }
 
+    private List<MockItem> ParseCsvToMockItems(string csv, Data.AppDbContext db, HashSet<int> validColorSet)
+    {
+        var items = new List<MockItem>();
+
+        // detect delimiter by header line
+        var lines = csv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        if (lines.Length < 2)
+            return items;
+
+        var headerLine = lines[0].Trim();
+
+        var isBricklinkStyle = headerLine.Contains("ITEMTYPE", StringComparison.OrdinalIgnoreCase)
+                               && headerLine.Contains("ITEMID", StringComparison.OrdinalIgnoreCase)
+                               && headerLine.Contains("COLOR", StringComparison.OrdinalIgnoreCase);
+
+        if (isBricklinkStyle)
+        {
+            // BrickLink-style CSV: ITEMTYPE;ITEMID;COLOR;...;MINQTY;...
+            var header = headerLine.Split(';');
+
+            int itemIdIdx = Array.FindIndex(header, h => string.Equals(h, "ITEMID", StringComparison.OrdinalIgnoreCase));
+            int colorIdx  = Array.FindIndex(header, h => string.Equals(h, "COLOR", StringComparison.OrdinalIgnoreCase));
+            int qtyIdx    = Array.FindIndex(header, h => string.Equals(h, "MINQTY", StringComparison.OrdinalIgnoreCase));
+
+            if (itemIdIdx < 0 || colorIdx < 0 || qtyIdx < 0)
+                return items;
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var cols = lines[i].Split(';');
+                int maxIdx = Math.Max(itemIdIdx, Math.Max(colorIdx, qtyIdx));
+                if (cols.Length <= maxIdx) continue;
+
+                var partNum = cols[itemIdIdx]?.Trim();
+                var colorId = int.TryParse(cols[colorIdx]?.Trim(), out var cid) ? cid : (int?)null;
+                var qty = int.TryParse(cols[qtyIdx]?.Trim(), out var q) ? q : 1;
+
+                AddParsedRow(items, db, validColorSet, partNum, colorId, qty);
+            }
+
+            return items;
+        }
+
+        // Rebrickable CSV: Part,Color,Quantity (comma)
+        var header2 = headerLine.Split(',');
+        int partIdx = Array.FindIndex(header2, h => string.Equals(h.Trim(), "Part", StringComparison.OrdinalIgnoreCase));
+        int color2Idx = Array.FindIndex(header2, h => string.Equals(h.Trim(), "Color", StringComparison.OrdinalIgnoreCase));
+        int qty2Idx = Array.FindIndex(header2, h => string.Equals(h.Trim(), "Quantity", StringComparison.OrdinalIgnoreCase));
+
+        if (partIdx < 0 || color2Idx < 0 || qty2Idx < 0)
+            return items;
+
+        for (int i = 1; i < lines.Length; i++)
+        {
+            var cols = lines[i].Split(',');
+            int maxIdx = Math.Max(partIdx, Math.Max(color2Idx, qty2Idx));
+            if (cols.Length <= maxIdx) continue;
+
+            var partNum = cols[partIdx]?.Trim();
+            var colorId = int.TryParse(cols[color2Idx]?.Trim(), out var cid) ? cid : (int?)null;
+            var qty = int.TryParse(cols[qty2Idx]?.Trim(), out var q) ? q : 1;
+
+            AddParsedRow(items, db, validColorSet, partNum, colorId, qty);
+        }
+
+        return items;
+    }
+
+    private List<MockItem> ParseXmlToMockItems(string xml, Data.AppDbContext db, HashSet<int> validColorSet)
+    {
+        var items = new List<MockItem>();
+
+        XDocument doc;
+        try
+        {
+            doc = XDocument.Parse(xml);
+        }
+        catch
+        {
+            uploadError = "Invalid XML file.";
+            return items;
+        }
+
+        // Support: <ITEM> blocks (Bricklink & many Rebrickable exports look similar)
+        var itemNodes = doc.Descendants("ITEM").ToList();
+        if (!itemNodes.Any())
+        {
+            // fallback: try any nodes named "Part" etc (very defensive)
+            // If no known structure -> return empty
+            return items;
+        }
+
+        foreach (var x in itemNodes)
+        {
+            var partNum = x.Element("ITEMID")?.Value?.Trim();
+            var colorId = int.TryParse(x.Element("COLOR")?.Value, out var cid) ? cid : (int?)null;
+
+            // qty keys differ
+            int qty =
+                int.TryParse(x.Element("MINQTY")?.Value, out var q1) ? q1 :
+                int.TryParse(x.Element("QTY")?.Value, out var q2) ? q2 :
+                int.TryParse(x.Element("QUANTITY")?.Value, out var q3) ? q3 :
+                1;
+
+            AddParsedRow(items, db, validColorSet, partNum, colorId, qty);
+        }
+
+        return items;
+    }
+
+    private void AddParsedRow(List<MockItem> items, Data.AppDbContext db, HashSet<int> validColorSet,
+                              string? partNum, int? colorId, int qty)
+    {
+        int? mappedBrickId = null;
+
+        if (!string.IsNullOrWhiteSpace(partNum))
+        {
+            var mapped = db.MappedBricks.FirstOrDefault(b => b.LegoPartNum == partNum);
+            if (mapped != null)
+                mappedBrickId = mapped.Id;
+        }
+
+        if (mappedBrickId == null)
+            unmappedItems.Add((partNum, colorId, qty));
+
+        if (colorId.HasValue && !validColorSet.Contains(colorId.Value))
+            invalidColorIds.Add(colorId.Value);
+
+        // Wir erstellen trotzdem MockItem-Liste (für Anzeige/Debug); beim Speichern wird hart abgebrochen
+        items.Add(new MockItem
+        {
+            ExternalPartNum = partNum,
+            Quantity = qty <= 0 ? 1 : qty,
+            BrickColorId = colorId,
+            MappedBrickId = mappedBrickId
+        });
+    }
+
     private async Task CreateMockFromUpload()
     {
         if (_loading) return;
+
+        _error = null;
+        _errorDetails = null;
 
         uploadError = string.Empty;
 
         if (string.IsNullOrWhiteSpace(newMockName))
         {
-            uploadError = "Please provide a name for the mock.";
+            uploadError = "Please provide a name for the MOC.";
             return;
         }
 
         if (uploadedFile == null || uploadedItems == null || uploadedItems.Count == 0)
         {
-            uploadError = "Please upload a valid mock list.";
+            uploadError = "Please upload a valid item list file.";
             return;
         }
 
@@ -626,7 +669,6 @@ private void SetError(Exception ex, string? context = null)
             using var scope = ServiceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
 
-            var name = newMockName.Trim();
             var userUuid = await UserService.GetTokenAsync();
             if (string.IsNullOrEmpty(userUuid))
             {
@@ -634,21 +676,48 @@ private void SetError(Exception ex, string? context = null)
                 return;
             }
 
-            var validItems = new List<MockItem>();
-            foreach (var i in uploadedItems)
-            {
-                if (i.MappedBrickId == null || i.BrickColorId == null)
-                    continue;
+            // ===== HARD VALIDATION (abort) =====
+            var validBrickIds = await db.MappedBricks.AsNoTracking().Select(b => b.Id).ToHashSetAsync();
+            var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
 
-                var mappedExists = db.MappedBricks.Any(b => b.Id == i.MappedBrickId);
-                var colorExists = db.BrickColors.Any(c => c.Id == i.BrickColorId);
-                if (mappedExists && colorExists)
-                    validItems.Add(i);
+            invalidMappedBrickIds.Clear();
+            invalidColorIds.Clear();
+
+            foreach (var it in uploadedItems)
+            {
+                if (it.MappedBrickId.HasValue && it.MappedBrickId.Value > 0 && !validBrickIds.Contains(it.MappedBrickId.Value))
+                    invalidMappedBrickIds.Add(it.MappedBrickId.Value);
+
+                if (it.BrickColorId.HasValue && it.BrickColorId.Value > 0 && !validColorIds.Contains(it.BrickColorId.Value))
+                    invalidColorIds.Add(it.BrickColorId.Value);
             }
+
+            // Wenn es unmapped gibt (MappedBrickId null) -> ebenfalls hart abbrechen? (dein Wunsch war "invalid IDs")
+            // Wir brechen hier hart ab, wenn entweder invalid FK IDs ODER unmapped vorhanden sind.
+            // Wenn du unmapped weiterhin "ignorieren" willst, sag kurz Bescheid.
+            if (invalidColorIds.Any() || invalidMappedBrickIds.Any() || unmappedItems.Any())
+            {
+                var parts = new List<string>();
+                if (unmappedItems.Any())
+                    parts.Add($"Unmapped parts: {unmappedItems.Count}");
+                if (invalidColorIds.Any())
+                    parts.Add($"Invalid BrickColorId(s): {string.Join(", ", invalidColorIds.OrderBy(x => x))}");
+                if (invalidMappedBrickIds.Any())
+                    parts.Add($"Invalid MappedBrickId(s): {string.Join(", ", invalidMappedBrickIds.OrderBy(x => x))}");
+
+                uploadError = "Cannot create MOC. Fix these issues first:\n" + string.Join("\n", parts);
+                NotificationService.Error("Creating MOC failed (invalid IDs).");
+                return;
+            }
+
+            // Nur gültige Items speichern
+            var validItems = uploadedItems
+                .Where(i => i.MappedBrickId != null && i.BrickColorId != null && i.Quantity > 0)
+                .ToList();
 
             var mock = new Mock
             {
-                Name = name,
+                Name = newMockName.Trim(),
                 UserUuid = userUuid,
                 MockType = selectedFormat,
                 Items = validItems,
@@ -663,16 +732,17 @@ private void SetError(Exception ex, string? context = null)
             {
                 try
                 {
-                    var imagePath = await ImageService.SaveMockImageAsync(uploadedImage, userUuid, mock.Id);
-                    if (!string.IsNullOrEmpty(imagePath))
-                        db.SaveChanges();
+                    await ImageService.SaveMockImageAsync(uploadedImage, userUuid, mock.Id);
+                    db.SaveChanges();
                 }
-                catch (Exception ex)
+                catch (Exception exImg)
                 {
-                    uploadError = $"Image could not be saved: {ex.Message}";
+                    // Bildfehler soll nicht den ganzen Mock killen
+                    NotificationService.Error($"Image could not be saved: {exImg.Message}");
                 }
             }
 
+            // Reset UI
             newMockName = string.Empty;
             newMockComment = string.Empty;
             newMockWebSource = string.Empty;
@@ -680,18 +750,21 @@ private void SetError(Exception ex, string? context = null)
             uploadedItems.Clear();
             fileReadyForUpload = false;
             unmappedItems.Clear();
+            invalidColorIds.Clear();
+            invalidMappedBrickIds.Clear();
             uploadedImage = null;
             imagePreviewUrl = string.Empty;
 
             await LoadMocks();
+
             NotificationService.Success("MOC successfully created.");
         }
-       catch (Exception ex)
-{
-    SetError(ex, "CreateMockFromUpload");
-    uploadError = $"Error saving: {ex.Message}";
-    NotificationService.Error(_error);
-}
+        catch (Exception ex)
+        {
+            SetError(ex, "CreateMockFromUpload");
+            uploadError = _error ?? $"Error while saving: {ex.Message}";
+            NotificationService.Error("Creating MOC failed.");
+        }
         finally
         {
             LoadingService.Hide();

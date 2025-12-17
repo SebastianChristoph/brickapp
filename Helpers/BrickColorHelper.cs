@@ -1,5 +1,3 @@
-    // Häufig genutzte Farben für Schnell-Auswahl
-  
 using System;
 using System.Collections.Generic;
 
@@ -7,70 +5,204 @@ namespace Helpers
 {
     public static class BrickColorHelper
     {
-          public static readonly List<string> CommonColors = new() { "Blue", "Red", "Green" };
-        // Mapping bricklink-Farbnamen zu Hex/RGB (Auszug, erweiterbar)
+        // Häufig genutzte Farben für Schnell-Auswahl
+        public static readonly List<string> CommonColors = new() { "Black", "White", "Blue", "Red", "Green" };
+
+        // Mapping bricklink-Farbnamen zu Hex (erweitert aus colors.csv)
         private static readonly Dictionary<string, string> BrickColorToHex = new(StringComparer.OrdinalIgnoreCase)
         {
-            { "Aqua", "#B3D7D1" }, // rgb(179,215,209)
-            { "Black", "#000000ff" }, // rgb(33,33,33)
-            { "Blue", "#214291" }, // rgb(33,66,145<w)
-            { "Blue-Violet", "#5B3573" }, // rgb(91,53,115)
-            { "Bright Green", "#4B974A" }, // rgb(75,151,74)
-            { "Bright Light Blue", "#9FC3E9" }, // rgb(159,195,233)
-            { "Bright Light Orange", "#F8BB3D" }, // rgb(248,187,61)
-            { "Bright Light Yellow", "#FFF03A" }, // rgb(255,240,58)
-            { "Bright Pink", "#FECCCF" }, // rgb(254,204,207)
-            { "Brown", "#582A12" }, // rgb(88,42,18)
-            { "Coral", "#FF698F" }, // rgb(255,105,143)
-            {"Chrome Gold", "#D4AF37" },
-            { "Dark Azure", "#469BC6" }, // rgb(70,155,198)
-            { "Dark Blue", "#0A3463" }, // rgb(10,52,99)
-            { "Dark Bluish Gray", "#6D6E5C" }, // rgb(109,110,92)
-            { "Dark Brown", "#352100" }, // rgb(53,33,0)
-            { "Dark Gray", "#635F52" }, // rgb(99,95,82)
-            { "Dark Green", "#184632" }, // rgb(24,70,50)
-            { "Dark Orange", "#A95500" }, // rgb(169,85,0)
-            { "Dark Pink", "#C870A0" }, // rgb(200,112,160)
-            { "Dark Purple", "#3F3691" }, // rgb(63,54,145)
-            { "Dark Red", "#720E0F" }, // rgb(114,14,15)
-            { "Dark Tan", "#958A73" }, // rgb(149,138,115)
-            {"Dark Turquoise", "#007FA3" }, // rgb(0,127,163)
-            {"Flat Silver", "#A5A5A5" }, // rgb(165,165,165)
-            { "Green", "#237841" }, // rgb(35,120,65)
-            {"Olive Green", "#6E6D4B" }, // rgb(110,109,75)
-            {"Light Aqua", "#C2E7E2" }, // rgb(194,231,226)
-            { "Light Bluish Gray", "#A0A5A9" }, // rgb(160,165,169)
-            { "Light Blue", "#b0d1ecff" }, // rgb(160,165,169)
-            { "Light Gray", "#E5E4DE" }, // rgb(229,228,222)
-            { "Light Pink", "#FECCCF" }, // rgb(254,204,207)
-            { "Light Orange", "#FFD580" }, // rgb(255,213,128)
-            {"Light Nougat", "#E2B97D" }, // rgb(226,185,125)
-            { "Light Brown", "#C69C6D" }, // rgb(198,156,109),
-            {"Light Salmon", "#FF9E80" }, // rgb(255,158,128)
-            { "Lime", "#C7D23C" }, // rgb(199,210,60)
-            { "Magenta", "#923978" }, // rgb(146,57,120)
-            { "Medium Azure", "#68C3E2" }, // rgb(104,195,226)
-            { "Medium Blue", "#5A93DB" }, // rgb(90,147,219)
-            { "Medium Lavender", "#AC78BA" }, // rgb(172,120,186)
-            { "Medium Nougat", "#AA7D55" }, // rgb(170,125,85)
-            {"Nougat", "#C28E5B" }, // rgb(194,142,91)
-            { "Orange", "#FE8A18" }, // rgb(254,138,24)
-            {"Pearl Gold", "#E6C290" }, // rgb(230,194,144)
-            { "Pink", "#FC97AC" }, // rgb(252,151,172)
-            { "Pearl Light Gray", "#D7D2CB" }, // rgb(215,210,203)
-            { "Purple", "#A06EBB" }, // rgb(160,110,187)
-            { "Red", "#C91A09" }, // rgb(201,26,9)
-            { "Reddish Brown", "#582A12" }, // rgb(88,42,18)
-            { "Sand Blue", "#6074A1" }, // rgb(96,116,161)
-            { "Sand Green", "#A4BD95" }, // rgb(164,189,149)
-            { "Tan", "#E4CD9E" }, // rgb(228,205,158)
-            { "Trans-Clear", "#FCFCFC" }, // rgb(252,252,252)
-            {"Trans-Yellow", "#FFF03A" }, // rgb(255,240,58),
-            {"Trans-Orange", "#FFD580" }, // rgb(255,213,128)
-            { "Trans-Red", "#C91A09" }, // rgb(201,26,9)
-            { "White", "#FFFFFF" }, // rgb(255,255,255)
-            { "Yellow", "#F2CD37" }, // rgb(242,205,55)
-            // ... weitere Farben nach Bedarf
+            { "[Unknown]", "#0033B2" },
+            { "Aqua", "#B3D7D1" },
+            { "Azure", "#0697CD" },
+            { "Bionicle Blue", "#005389" },
+            { "Bionicle Copper", "#755D45" },
+            { "Bionicle Gold", "#B48455" },
+            { "Bionicle Silver", "#828282" },
+            { "Black", "#05131D" },
+            { "Blue", "#0055BF" },
+            { "Blue-Violet", "#342B75" },
+            { "Bright Green", "#4B9F4A" },
+            { "Bright Light Blue", "#9FC3E9" },
+            { "Bright Light Orange", "#F8BB3D" },
+            { "Bright Light Yellow", "#FFF03A" },
+            { "Bright Pink", "#E4ADC8" },
+            { "Brown", "#583927" },
+            { "Chrome Blue", "#6A99A2" },
+            { "Chrome Gold", "#BBA53D" },
+            { "Chrome Green", "#3CB371" },
+            { "Chrome Pink", "#AA4D8E" },
+            { "Chrome Silver", "#E0E0E0" },
+            { "Clickits Red", "#D51D1D" },
+            { "Copper", "#AE7A59" },
+            { "Coral", "#FF698F" },
+            { "Dark Azure", "#078BC9" },
+            { "Dark Blue", "#0A3463" },
+            { "Dark Blue-Violet", "#202062" },
+            { "Dark Bluish Gray", "#6D6E5C" },
+            { "Dark Brown", "#352100" },
+            { "Dark Gray", "#6D6E5C" },
+            { "Dark Green", "#184632" },
+            { "Dark Nougat", "#AD6140" },
+            { "Dark Orange", "#A95500" },
+            { "Dark Pink", "#C870A0" },
+            { "Dark Purple", "#3F3691" },
+            { "Dark Red", "#720E0F" },
+            { "Dark Tan", "#958A73" },
+            { "Dark Turquoise", "#008F9B" },
+            { "Dark Yellow", "#D0951E" },
+            { "Earth Orange", "#543324" },
+            { "Fabuland Brown", "#B36944" },
+            { "Fabuland Orange", "#EF9121" },
+            { "Flat Silver", "#898788" },
+            { "Glitter Trans-Clear", "#FFFFFF" },
+            { "Glitter Trans-Dark Pink", "#DF6695" },
+            { "Glitter Trans-Light Blue", "#68BCC5" },
+            { "Glitter Trans-Neon Green", "#C0D15B" },
+            { "Glitter Trans-Purple", "#835C8E" },
+            { "Glow In Dark Opaque", "#D9E4A7" },
+            { "Glow In Dark Trans", "#BDC6AD" },
+            { "Glow in Dark White", "#D9D9D9" },
+            { "Gold", "#DBAC34" },
+            { "Green", "#237841" },
+            { "HO Earth Orange", "#BB771B" },
+            { "HO Gold", "#B4A774" },
+            { "HO Light Aqua", "#A3D1C0" },
+            { "HO Light Brown", "#965336" },
+            { "HO Light Gold", "#CDC298" },
+            { "HO Light Tan", "#F9F1C7" },
+            { "HO Light Yellow", "#F5FAB7" },
+            { "HO Medium Blue", "#7396C8" },
+            { "HO Medium Red", "#C01111" },
+            { "HO Metallic Blue", "#0D4763" },
+            { "HO Metallic Dark Gray", "#5E5E5E" },
+            { "HO Metallic Green", "#8A9F4E" },
+            { "HO Metallic Silver", "#A0A0A0" },
+            { "HO Reddish Orange", "#F37F18" },
+            { "HO Tan", "#D4BE84" },
+            { "HO Yellow", "#FFD700" },
+            { "Lavender", "#B18CBF" },
+            { "Light Aqua", "#ADC3C0" },
+            { "Light Blue", "#B4D2E3" },
+            { "Light Bluish Gray", "#A0A5A9" },
+            { "Light Brown", "#7C503A" },
+            { "Light Gray", "#9BA19D" },
+            { "Light Green", "#C2DAB8" },
+            { "Light Lime", "#D0E070" },
+            { "Light Nougat", "#F6D7B3" },
+            { "Light Orange", "#F9BA61" },
+            { "Light Pink", "#FECCCF" },
+            { "Light Purple", "#EB9DE0" },
+            { "Light Salmon", "#FEBABD" },
+            { "Light Turquoise", "#55ADC4" },
+            { "Light Violet", "#C9B2D1" },
+            { "Light Yellow", "#FFE371" },
+            { "Lime", "#BBE90B" },
+            { "Maersk Blue", "#3592C3" },
+            { "Magenta", "#923978" },
+            { "Medium Azure", "#36AEBF" },
+            { "Medium Blue", "#5A93DB" },
+            { "Medium Brown", "#755945" },
+            { "Medium Dark Flesh", "#CC704A" },
+            { "Medium Dark Gray", "#7B7C7B" },
+            { "Medium Green", "#73825D" },
+            { "Medium Lavender", "#AC78BA" },
+            { "Medium Lime", "#B7D35E" },
+            { "Medium Nougat", "#AA7D55" },
+            { "Medium Orange", "#FFA70B" },
+            { "Medium Violet", "#9391E4" },
+            { "Metallic Gold", "#DBAC34" },
+            { "Metallic Green", "#899B5F" },
+            { "Metallic Silver", "#A5A9B4" },
+            { "Milky White", "#FFFFFF" },
+            { "Modulex Aqua Green", "#84B083" },
+            { "Modulex Black", "#141414" },
+            { "Modulex Brown", "#4D3628" },
+            { "Modulex Buff", "#D8AA64" },
+            { "Modulex Charcoal Gray", "#444444" },
+            { "Modulex Clear", "#FFFFFF" },
+            { "Modulex Coral Pink", "#E29082" },
+            { "Modulex Deep Orange", "#803511" },
+            { "Modulex Deep Red", "#601414" },
+            { "Modulex Foil Gold", "#817452" },
+            { "Modulex Foil Silver", "#7A7A7A" },
+            { "Modulex Lemon Yellow", "#D0AF1B" },
+            { "Modulex Light Bluish Gray", "#A5A5A5" },
+            { "Modulex Light Gray", "#949494" },
+            { "Modulex Light Orange", "#F59D1E" },
+            { "Modulex Light Yellow", "#F0C814" },
+            { "Modulex Magenta", "#8B125C" },
+            { "Modulex Medium Blue", "#4276A8" },
+            { "Modulex Olive Green", "#636F41" },
+            { "Modulex Orange", "#A14D11" },
+            { "Modulex Pastel Blue", "#7897B0" },
+            { "Modulex Pastel Green", "#8EB08E" },
+            { "Modulex Pink", "#E487A4" },
+            { "Modulex Red", "#911414" },
+            { "Modulex Reddish Orange", "#AD3B11" },
+            { "Modulex Tan", "#9D7B54" },
+            { "Modulex Teal Blue", "#296674" },
+            { "Modulex Tile Gray", "#696969" },
+            { "Modulex Violet", "#4F2B6E" },
+            { "Modulex White", "#FFFFFF" },
+            { "Neon Green", "#C8FF00" },
+            { "Neon Orange", "#FF5500" },
+            { "Neon Yellow", "#D0FF00" },
+            { "Nougat", "#D09168" },
+            { "Olive Green", "#6E6E44" },
+            { "Orange", "#FE8A18" },
+            { "Pale Green", "#F0F0B0" },
+            { "Pearl Dark Gray", "#575857" },
+            { "Pearl Gold", "#AA7F2E" },
+            { "Pearl Light Gray", "#9CA3A8" },
+            { "Pearl Very Light Gray", "#ABADAC" },
+            { "Pearl White", "#F2F3F2" },
+            { "Pink", "#FC97AC" },
+            { "Purple", "#81007B" },
+            { "Red", "#C91A09" },
+            { "Reddish Brown", "#582A12" },
+            { "Rust", "#B31004" },
+            { "Salmon", "#F2705E" },
+            { "Sand Blue", "#6074A1" },
+            { "Sand Green", "#A0BCAC" },
+            { "Sand Purple", "#845E84" },
+            { "Sand Red", "#D67572" },
+            { "Satin Trans-Bright Green", "#66B066" },
+            { "Satin Trans-Dark Blue", "#0020A0" },
+            { "Satin Trans-Light Blue", "#7CC0D0" },
+            { "Satin Trans-Orange", "#FF800D" },
+            { "Sky Blue", "#7DBFDD" },
+            { "Speckle Black-Copper", "#05131D" },
+            { "Speckle Black-Gold", "#05131D" },
+            { "Speckle Black-Silver", "#05131D" },
+            { "Speckle DBGray-Silver", "#6D6E5C" },
+            { "Tan", "#E4CD9E" },
+            { "Trans-Black", "#635F52" },
+            { "Trans-Blue", "#0020A0" },
+            { "Trans-Bright Green", "#D9E4A7" },
+            { "Trans-Clear", "#FCFCFC" },
+            { "Trans-Dark Blue", "#0020A0" },
+            { "Trans-Dark Pink", "#DF6695" },
+            { "Trans-Green", "#84B68D" },
+            { "Trans-Light Blue", "#AEEFEC" },
+            { "Trans-Light Green", "#94E5AB" },
+            { "Trans-Light Orange", "#F9BA61" },
+            { "Trans-Medium Blue", "#CFE2F7" },
+            { "Trans-Neon Green", "#D8E510" },
+            { "Trans-Neon Orange", "#FF800D" },
+            { "Trans-Neon Yellow", "#DAB000" },
+            { "Trans-Orange", "#F9BA61" },
+            { "Trans-Pink", "#E4ADC8" },
+            { "Trans-Purple", "#A5A5CB" },
+            { "Trans-Red", "#C91A09" },
+            { "Trans-Very Lt Blue", "#C1DFF0" },
+            { "Trans-Yellow", "#F5CD2F" },
+            { "Very Light Bluish Gray", "#E6E3DA" },
+            { "Very Light Gray", "#E6E3DA" },
+            { "Very Light Orange", "#F3CF9B" },
+            { "Violet", "#4354A3" },
+            { "White", "#FFFFFF" },
+            { "Yellow", "#F2CD37" },
+            { "Yellowish Green", "#DFE000" }
         };
 
         public static string? GetHexForColor(string? colorName)

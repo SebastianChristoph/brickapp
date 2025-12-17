@@ -45,25 +45,8 @@ else
             <img src="@_mockImageUrl"
                  style="max-width:180px;max-height:180px;border:1px solid #ccc;background:#fafafa;" />
 
-            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="mt-16">
-                <MudProgressLinear Value="@Percent"
-                                   Striped
-                                   Size="Size.Large"
-                                   Style="min-width:200px;max-width:300px;width:30vw;" />
-                <MudText>
-                    @if (HasAll)
-                    {
-                        <b>You own all the bricks, you can build it!</b>
-                    }
-                    else
-                    {
-                        <span>
-                            @TotalOwned of @TotalNeeded bricks (@Percent%)<br />
-                            Missing: @TotalMissing
-                        </span>
-                    }
-                </MudText>
-            </MudStack>
+           
+            <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
         </MudStack>
     </MudPaper>
 
