@@ -1,21 +1,21 @@
 @using Helpers
 @page "/sets/{itemSetId:int}"
 
-@using Services
-@using Data.Entities
+@using brickapp.Data.Services
+@using brickapp.Data.Entities
 @using MudBlazor
 @using MudBlazor.Services
 @using Components.Pages
 @using Components.Dialogs
 
-@inject ItemSetService ItemSetService
-@inject UserService UserService
+@inject brickapp.Data.Services.ItemSetService ItemSetService
+@inject brickapp.Data.Services.UserService UserService
 @inject NavigationManager Nav
-@inject InventoryService InventoryService
+@inject brickapp.Data.Services.InventoryService InventoryService
 @inject IDialogService DialogService
-@inject Services.NotificationService NotificationService
-@inject Data.Services.ImageService ImageService
-@inject Services.LoadingService LoadingService
+@inject brickapp.Data.Services.NotificationService NotificationService
+@inject brickapp.Data.Services.ImageService ImageService
+@inject brickapp.Data.Services.LoadingService LoadingService
 
 <PageTitle>Set Details</PageTitle>
 

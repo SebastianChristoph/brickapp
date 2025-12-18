@@ -1,14 +1,14 @@
 @page "/mywantedlistdetails/{wantedListId:int}"
-@using Data.Entities
-@using Data.Services
-@using Helpers
+@using brickapp.Data.Entities
+@using brickapp.Data.Services
+@using brickapp.Helpers
 @using MudBlazor
 
-@inject WantedListService WantedListService
-@inject Services.InventoryService InventoryService
+@inject brickapp.Data.Services.WantedListService WantedListService
+@inject brickapp.Data.Services.InventoryService InventoryService
 @inject NavigationManager Nav
-@inject Data.Services.ImageService ImageService
-@inject Services.NotificationService NotificationService
+@inject brickapp.Data.Services.ImageService ImageService
+@inject brickapp.Data.Services.NotificationService NotificationService
 
 <PageTitle>Wanted List Details</PageTitle>
 
@@ -157,63 +157,6 @@ else
     </MudTable>
 
 
-
-    @if (MissingItems.Any())
-    {
-        <MudAlert Severity="Severity.Warning" Class="mt-8 mb-2" Variant="Variant.Filled">
-            <b>@MissingItems.Count Teil(e)</b> konnten beim Import nicht automatisch zugeordnet werden.
-        </MudAlert>
-        <MudExpansionPanels>
-            <MudExpansionPanel Text="Nicht zugeordnete Teile (Details)" Expanded="true">
-                <MudTable Items="MissingItems" Dense="true" Hover="true" Elevation="0">
-                    <HeaderContent>
-                        <MudTh>Bild</MudTh>
-                        <MudTh>Teilenummer</MudTh>
-                        <MudTh>Farbe (Ext.)</MudTh>
-                        <MudTh>Menge</MudTh>
-                    </HeaderContent>
-                  <RowTemplate>
-    <MudTd DataLabel="Bild">
-        @* Hier rufen wir deine neue Helper-Funktion auf *@
-        @{
-            var missingOverlay = GetMissingColorHex(context.ExternalColorId);
-        }
-        <div class="brick brick-sm" style="--brick-color: @missingOverlay">
-            <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#f5f5f5; border: 1px solid #ccc; border-radius:4px;">
-                <MudIcon Icon="@Icons.Material.Filled.QuestionMark" Size="Size.Small" Color="Color.Default" />
-            </div>
-        </div>
-    </MudTd>
-    <MudTd DataLabel="Teilenummer">
-        <MudText Typo="Typo.body2" Style="font-family:monospace; font-weight:bold;">@context.ExternalPartNum</MudText>
-    </MudTd>
-    <MudTd DataLabel="Farbe (Ext. ID)">
-        @{
-            var colorId = context.ExternalColorId ?? 0;
-            var colorName = Helpers.BricklinkColorMap.GetBrickColorName(colorId);
-        }
-        <MudStack Spacing="0">
-            <MudText Typo="Typo.body2">@(colorName ?? "Unbekannt")</MudText>
-            <MudText Typo="Typo.caption" Color="Color.Secondary">ID: @colorId</MudText>
-        </MudStack>
-    </MudTd>
-    <MudTd DataLabel="Menge">
-        <MudBadge Content="@context.Quantity" Color="Color.Warning" Overlap="false">
-            <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" />
-        </MudBadge>
-    </MudTd>
-</RowTemplate>
-                </MudTable>
-            </MudExpansionPanel>
-        </MudExpansionPanels>
-    }
-    else
-    {
-        <MudAlert Severity="Severity.Success" Class="mt-6" Variant="Variant.Outlined">
-            Alle Teile aus dem Upload wurden erfolgreich zugeordnet.
-        </MudAlert>
-    }
-
     <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-8" Variant="Variant.Outlined" OnClick="GoBack">Back
     </MudButton>
 }
@@ -225,9 +168,6 @@ else
     private bool _deletingList = false;
     private Dictionary<(int, int), Dictionary<string, int>> _ownedByBrand = new();
 
-    // Diese Property gibt die MissingItems zurück oder eine leere Liste, falls keine da sind
-    private List<WantedListMissingItem> MissingItems =>
-    _wantedList?.MissingItems?.ToList() ?? new List<WantedListMissingItem>();
 
     protected override async Task OnInitializedAsync()
     {

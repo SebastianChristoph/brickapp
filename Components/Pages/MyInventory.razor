@@ -1,18 +1,18 @@
 @page "/myinventory"
 
-@using Services
-@using Data.Entities
-@using Components.Dialogs
-@using Helpers
+@using brickapp.Data.Services
+@using brickapp.Data.Entities
+@using brickapp.Components.Dialogs
+@using brickapp.Helpers
 @using MudBlazor
 
-@inject UserService UserService
-@inject InventoryService InventoryService
+@inject brickapp.Data.Services.UserService UserService
+@inject brickapp.Data.Services.InventoryService InventoryService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
-@inject Data.Services.ImageService ImageService
-@inject Services.NotificationService NotificationService
-@inject Data.Services.WantedListService WantedListService
+@inject brickapp.Data.Services.ImageService ImageService
+@inject brickapp.Data.Services.NotificationService NotificationService
+@inject brickapp.Data.Services.WantedListService WantedListService
 
 <PageTitle>My Inventory</PageTitle>
 <MudText Typo="Typo.h4" GutterBottom="true">My Inventory</MudText>

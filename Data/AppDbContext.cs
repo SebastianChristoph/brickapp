@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Data.Entities;
+using brickapp.Data.Entities;
 
-namespace Data;
+namespace brickapp.Data;
 
 public class AppDbContext : DbContext
 {

@@ -1,6 +1,7 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-namespace Services.Storage;
+
+namespace brickapp.Data.Services.Storage;
 
 public class AzureBlobImageStorage : IImageStorage
 {
@@ -28,4 +29,9 @@ public class AzureBlobImageStorage : IImageStorage
         var blobClient = _blobServiceClient.GetBlobContainerClient(_containerName).GetBlobClient(relativePath);
         return blobClient.Exists().Value;
     }
+    public async Task<bool> DeleteAsync(string relativePath)
+{
+    var blobClient = _blobServiceClient.GetBlobContainerClient(_containerName).GetBlobClient(relativePath);
+    return await blobClient.DeleteIfExistsAsync();
+}
 }

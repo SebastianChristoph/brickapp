@@ -1,17 +1,17 @@
 @page "/mockdetail/{mockId:int}"
 
-@using Data.Entities
-@using Helpers
+@using brickapp.Data.Entities
+@using brickapp.Helpers
 @using Microsoft.EntityFrameworkCore
 @using MudBlazor
 
 @inject IServiceProvider ServiceProvider
 @inject NavigationManager Nav
-@inject Services.InventoryService InventoryService
+@inject brickapp.Data.Services.InventoryService InventoryService
 @inject IDialogService DialogService
-@inject Services.NotificationService NotificationService
-@inject Services.LoadingService LoadingService
-@inject Data.Services.ImageService ImageService
+@inject brickapp.Data.Services.NotificationService NotificationService
+@inject brickapp.Data.Services.LoadingService LoadingService
+@inject brickapp.Data.Services.ImageService ImageService
 
 <MudText Typo="Typo.h4" GutterBottom="true">MOC Detail</MudText>
 

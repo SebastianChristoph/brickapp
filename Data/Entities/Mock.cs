@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Data.Entities
+namespace brickapp.Data.Entities
 {
     public class Mock
     {
@@ -19,6 +19,5 @@ namespace Data.Entities
         [ForeignKey("UserUuid")]
         public AppUser User { get; set; } = default!;
         public List<MockItem> Items { get; set; } = new();
-        public List<MissingItem> MissingItems { get; set; } = new();
     }
 }

@@ -1,9 +1,10 @@
-using Data;
-using Data.Entities;
+using brickapp.Data;
+using brickapp.Data.Entities;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.EntityFrameworkCore;
 
-namespace Data.Services
+namespace brickapp.Data.Services
+
 {
     public class RequestService
     {

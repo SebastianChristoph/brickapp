@@ -9,7 +9,7 @@ namespace brickapp.Components.Shared.PartsListUpload
 
     public record UnmappedRow(string? PartNum, int? ColorId, int Quantity);
 
-    public record InvalidRow(string? PartNum, int? ColorId, int Qty, string Reason);
+    public record InvalidRow(string? PartNum, int? ColorId, int Quantity, string Error);
 
     public class ParseResult<TItem>
     {

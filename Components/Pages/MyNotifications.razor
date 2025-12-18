@@ -1,9 +1,8 @@
 @page "/my-notifications"
-@using Data.Entities
-@using Data.Services
-@using Services
-@inject UserService UserService
-@inject UserNotificationService NotificationService
+@using brickapp.Data.Entities
+@using brickapp.Data.Services
+@inject brickapp.Data.Services.UserService UserService
+@inject brickapp.Data.Services.UserNotificationService NotificationService
 @inject NavigationManager NavigationManager
 
 <PageTitle>My Notifications</PageTitle>

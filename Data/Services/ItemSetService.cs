@@ -1,8 +1,9 @@
-using Data;
-using Data.Entities;
+using brickapp.Data;
+using brickapp.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Services;
+namespace brickapp.Data.Services
+{
 
 public class ItemSetService
 {
@@ -79,4 +80,5 @@ public class ItemSetService
                 .ThenInclude(sb => sb.BrickColor)
             .FirstOrDefaultAsync(s => s.Id == itemSetId);
     }
+}
 }

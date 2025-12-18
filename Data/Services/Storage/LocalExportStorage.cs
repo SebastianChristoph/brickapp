@@ -1,5 +1,4 @@
-namespace Services.Storage;
-
+namespace brickapp.Data.Services.Storage;
 public class LocalExportStorage : IExportStorage
 {
     private readonly string _baseDir;

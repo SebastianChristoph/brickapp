@@ -2,18 +2,18 @@
 
 @using System.Xml.Linq
 @using Microsoft.EntityFrameworkCore
-@using Data.Entities
+@using brickapp.Data.Entities
 @using Microsoft.AspNetCore.Components.Forms
-@using Services
+@using brickapp.Data.Services
 @using MudBlazor
 @using brickapp.Components.Shared.PartsListUpload
-@using Helpers
+@using brickapp.Helpers
 @inject NavigationManager Nav
 @inject IServiceProvider ServiceProvider
-@inject Data.Services.ImageService ImageService
-@inject UserService UserService
-@inject Services.LoadingService LoadingService
-@inject Services.NotificationService NotificationService
+@inject brickapp.Data.Services.ImageService ImageService
+@inject brickapp.Data.Services.UserService UserService
+@inject brickapp.Data.Services.LoadingService LoadingService
+@inject brickapp.Data.Services.NotificationService NotificationService
 
 @using IBrowserFile = Microsoft.AspNetCore.Components.Forms.IBrowserFile
 
@@ -63,18 +63,14 @@
     }
 
     <MudDivider Class="my-3" />
-
-    <PartsListUploader TItem="MockItem"
-                       Title="Upload Item List File"
-                       HelpText="Supported: Rebrickable CSV, Rebrickable XML, BrickLink XML."
-                       Disabled="_loading"
-                       Formats="@_mocFormats"
-                       FormatLabelFunc="MocFormatLabel"
-                       ParseAsync="ParseMocUploadAsync"
-                       ShowAddButton="false"
-                       ClearButtonText="Clear upload"
-                       OnParsed="OnMocParsed" />
-
+<PartsListUploader Title="Upload Item List File"
+                   HelpText="Supported: Rebrickable CSV, Rebrickable XML, BrickLink XML."
+                   Disabled="_loading"
+                   Formats="@_mocFormats"
+                   FormatLabelFunc="MocFormatLabel"
+                   ShowAddButton="false"
+                   ClearButtonText="Clear upload"
+                   OnParsed="OnMocParsed" />
     @if (!string.IsNullOrWhiteSpace(uploadError))
     {
         <MudText Color="Color.Error" Class="mt-2">@uploadError</MudText>
@@ -183,19 +179,25 @@
         userMocks = await db.Mocks.Where(m => m.UserUuid == userUuid).Include(m => m.Items).ToListAsync();
     }
 
-    private async Task OnMocParsed(ParseResult<MockItem> result)
-    {
-        uploadError = string.Empty;
-        uploadedItems = result.MappedItems ?? new();
-        fileReadyForUpload = uploadedItems.Count > 0;
+private Task OnMocParsed(ParseResult<ParsedPart> result)
+{
+    // Hier baust du aus ParsedPart deine MockItems
+    uploadedItems = result.MappedItems
+        .Select(p => new MockItem
+        {
+            MappedBrickId = p.MappedBrickId,
+            BrickColorId = p.BrickColorId,
+            Quantity = p.Quantity,
+            ExternalPartNum = p.ExternalPartNum
+        })
+        .ToList();
 
-        if (!string.IsNullOrWhiteSpace(result.FatalError))
-            uploadError = result.FatalError!;
-        else if (!fileReadyForUpload)
-            uploadError = "No valid items found in file (Mapping failed).";
+    // Wenn du vorher Unmapped/Invalid etc. in der Page angezeigt hast:
+    //_lastParseResult = result; // optional für UI
 
-        await InvokeAsync(StateHasChanged);
-    }
+    return Task.CompletedTask;
+}
+
 
     private async Task<ParseResult<MockItem>> ParseMocUploadAsync(string content, PartsUploadFormat format)
     {

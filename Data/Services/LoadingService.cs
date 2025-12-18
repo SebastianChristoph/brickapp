@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Services
+namespace brickapp.Data.Services
 {
     public class LoadingService
     {

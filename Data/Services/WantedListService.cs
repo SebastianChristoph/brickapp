@@ -1,12 +1,11 @@
        
-    using Data.DTOs;
-       
-using Data;
-using Data.Entities;
+using brickapp.Data.DTOs;
+using brickapp.Data;
+using brickapp.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using Services;
+using brickapp.Data.Services;
 
-namespace Data.Services
+namespace brickapp.Data.Services
 {
     public class WantedListService
     {
@@ -157,7 +156,7 @@ namespace Data.Services
                 Name = model.Name,
                 AppUserId = user.Id.ToString(),
                 Items = new List<WantedListItem>(),
-                MissingItems = new List<WantedListMissingItem>() // Initialisierung der Liste für ungemappte Teile
+             
             };
 
             // 5. Validierte Mapped Items hinzufügen
@@ -171,21 +170,7 @@ namespace Data.Services
                 });
             }
 
-            // 6. FIX: Missing Items (Unmapped) hinzufügen
-            // Diese kommen aus dem Upload-Prozess und haben keine interne BrickId
-            if (model.MissingItems != null && model.MissingItems.Any())
-            {
-                foreach (var missing in model.MissingItems)
-                {
-                    wantedList.MissingItems.Add(new WantedListMissingItem
-                    {
-                        ExternalPartNum = missing.ExternalPartNum,
-                        ExternalColorId = missing.ExternalColorId,
-                        Quantity = missing.Quantity
-                    });
-                }
-            }
-
+        
             // 7. In Datenbank speichern
             db.WantedLists.Add(wantedList);
             await db.SaveChangesAsync();
@@ -222,7 +207,6 @@ public async Task<WantedList?> GetWantedListByIdAsync(int wantedListId)
     await using var db = await _factory.CreateDbContextAsync();
 
     return await db.WantedLists
-        .Include(w => w.MissingItems) // WICHTIG: Die MissingItems der LISTE laden
         .Include(w => w.Items)
             .ThenInclude(i => i.MappedBrick)
         .Include(w => w.Items)

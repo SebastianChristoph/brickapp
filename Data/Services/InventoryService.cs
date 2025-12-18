@@ -1,9 +1,9 @@
-using Data;
-using Data.Entities;
+using brickapp.Data;
+using brickapp.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Services;
-
+namespace brickapp.Data.Services
+{
 public class InventoryService
 {
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
@@ -195,4 +195,5 @@ public class InventoryService
 
         return true;
     }
+}
 }

@@ -1,6 +1,6 @@
 @page "/admin-requests"
 @using Microsoft.AspNetCore.Components
-@using Services
+@using brickapp.Data.Services
 
 <PageTitle>Admin Requests</PageTitle>
 
@@ -153,15 +153,15 @@
 
 @code {
     [Inject] private Data.Services.RequestService RequestService { get; set; } = default!;
-    [Inject] private Data.Services.ImageService ImageService { get; set; } = default!;
+    [Inject] private brickapp.Data.Services.ImageService ImageService { get; set; } = default!;
 
-    [Inject] private Services.NotificationService NotificationService { get; set; } = default!;
+    [Inject] private brickapp.Data.Services.NotificationService NotificationService { get; set; } = default!;
     [Inject]
     private Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider
     {
         get; set;
     } = default!;
-    [Inject] private Services.UserService UserService { get; set; } = default!;
+    [Inject] private brickapp.Data.Services.UserService UserService { get; set; } = default!;
 
     private List<Data.Entities.MappingRequest>? openMappingRequests;
     private List<Data.Entities.NewItemRequest>? openItemRequests;

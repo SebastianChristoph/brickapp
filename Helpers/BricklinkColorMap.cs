@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Helpers
+namespace brickapp.Helpers
 {
     // BrickLink ColorId -> BrickLink Color Name (as in BrickLink Color Guide)
     public static class BricklinkColorMap

@@ -1,4 +1,4 @@
-namespace Data.Entities;
+namespace brickapp.Data.Entities;
 
 public class ItemSetBrick
 {
