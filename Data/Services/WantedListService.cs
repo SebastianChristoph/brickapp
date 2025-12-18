@@ -121,68 +121,77 @@ namespace Data.Services
             return true;
         }
 
-     public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
-{
-    var user = await _userService.GetCurrentUserAsync();
-    if (user == null)
-        return 0;
 
-    await using var db = await _factory.CreateDbContextAsync();
-
-    // Validierungs-Caches (damit nicht pro Item ein Query feuert)
-    var validBrickIds = await db.MappedBricks.AsNoTracking().Select(b => b.Id).ToHashSetAsync();
-    var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
-
-    // Items deduplizieren (gleicher Brick+Color => Mengen addieren)
-    var grouped = (model.Items ?? new List<NewWantedListItemModel>())
-        .Where(i => i.MappedBrickId > 0 && i.ColorId > 0 && i.Quantity > 0)
-        .GroupBy(i => (i.MappedBrickId, i.ColorId))
-        .Select(g => new NewWantedListItemModel
+        public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
         {
-            MappedBrickId = g.Key.MappedBrickId,
-            ColorId = g.Key.ColorId,
-            Quantity = g.Sum(x => x.Quantity)
-        })
-        .ToList();
+            var user = await _userService.GetCurrentUserAsync();
+            if (user == null)
+                return 0;
 
-    // Ungültige FK-Werte rausfiltern
-    var invalid = grouped
-        .Where(i => !validBrickIds.Contains(i.MappedBrickId) || !validColorIds.Contains(i.ColorId))
-        .ToList();
+            await using var db = await _factory.CreateDbContextAsync();
 
-    var valid = grouped
-        .Where(i => validBrickIds.Contains(i.MappedBrickId) && validColorIds.Contains(i.ColorId))
-        .ToList();
+            // 1. Validierungs-Caches
+            var validBrickIds = await db.MappedBricks.AsNoTracking().Select(b => b.Id).ToHashSetAsync();
+            var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
 
-    // Wenn du lieber "hart" fehlschlagen willst, statt skippen:
-    // if (invalid.Any())
-    //     throw new InvalidOperationException($"Upload contains invalid BrickColorId / MappedBrickId. Invalid items: {invalid.Count}");
+            // 2. Mapped Items deduplizieren
+            var grouped = (model.Items ?? new List<NewWantedListItemModel>())
+                .Where(i => i.MappedBrickId > 0 && i.ColorId > 0 && i.Quantity > 0)
+                .GroupBy(i => (i.MappedBrickId, i.ColorId))
+                .Select(g => new NewWantedListItemModel
+                {
+                    MappedBrickId = g.Key.MappedBrickId,
+                    ColorId = g.Key.ColorId,
+                    Quantity = g.Sum(x => x.Quantity)
+                })
+                .ToList();
 
-    var wantedList = new WantedList
-    {
-        Name = model.Name,
-        AppUserId = user.Id.ToString(),
-        Items = new List<WantedListItem>()
-    };
+            // 3. Gültige von ungültigen Items trennen
+            var valid = grouped
+                .Where(i => validBrickIds.Contains(i.MappedBrickId) && validColorIds.Contains(i.ColorId))
+                .ToList();
 
-    foreach (var item in valid)
-    {
-        wantedList.Items.Add(new WantedListItem
-        {
-            MappedBrickId = item.MappedBrickId,
-            BrickColorId = item.ColorId,
-            Quantity = item.Quantity
-        });
-    }
+            // 4. WantedList Objekt erstellen
+            var wantedList = new WantedList
+            {
+                Name = model.Name,
+                AppUserId = user.Id.ToString(),
+                Items = new List<WantedListItem>(),
+                MissingItems = new List<WantedListMissingItem>() // Initialisierung der Liste für ungemappte Teile
+            };
 
-    db.WantedLists.Add(wantedList);
-    await db.SaveChangesAsync();
+            // 5. Validierte Mapped Items hinzufügen
+            foreach (var item in valid)
+            {
+                wantedList.Items.Add(new WantedListItem
+                {
+                    MappedBrickId = item.MappedBrickId,
+                    BrickColorId = item.ColorId,
+                    Quantity = item.Quantity
+                });
+            }
 
-    // Optional: falls du im UI anzeigen willst "X items skipped", könntest du das loggen:
-    // if (invalid.Any()) { ... }
+            // 6. FIX: Missing Items (Unmapped) hinzufügen
+            // Diese kommen aus dem Upload-Prozess und haben keine interne BrickId
+            if (model.MissingItems != null && model.MissingItems.Any())
+            {
+                foreach (var missing in model.MissingItems)
+                {
+                    wantedList.MissingItems.Add(new WantedListMissingItem
+                    {
+                        ExternalPartNum = missing.ExternalPartNum,
+                        ExternalColorId = missing.ExternalColorId,
+                        Quantity = missing.Quantity
+                    });
+                }
+            }
 
-    return wantedList.Id;
-}
+            // 7. In Datenbank speichern
+            db.WantedLists.Add(wantedList);
+            await db.SaveChangesAsync();
+
+            return wantedList.Id;
+        }
 
 public async Task<bool> DeleteWantedListItemAsync(int wantedListItemId)
 {
@@ -208,18 +217,18 @@ public async Task<bool> DeleteWantedListItemAsync(int wantedListItemId)
     return true;
 }
 
+public async Task<WantedList?> GetWantedListByIdAsync(int wantedListId)
+{
+    await using var db = await _factory.CreateDbContextAsync();
 
-        public async Task<WantedList?> GetWantedListByIdAsync(int wantedListId)
-        {
-            await using var db = await _factory.CreateDbContextAsync();
-
-            return await db.WantedLists
-                .Include(w => w.Items)
-                    .ThenInclude(i => i.MappedBrick)
-                .Include(w => w.Items)
-                    .ThenInclude(i => i.BrickColor)
-                .FirstOrDefaultAsync(w => w.Id == wantedListId);
-        }
+    return await db.WantedLists
+        .Include(w => w.MissingItems) // WICHTIG: Die MissingItems der LISTE laden
+        .Include(w => w.Items)
+            .ThenInclude(i => i.MappedBrick)
+        .Include(w => w.Items)
+            .ThenInclude(i => i.BrickColor)
+        .FirstOrDefaultAsync(w => w.Id == wantedListId);
+}
 
                     public async Task<bool> DeleteWantedListAsync(int wantedListId)
             {

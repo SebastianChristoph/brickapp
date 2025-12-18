@@ -106,7 +106,6 @@ else
 
         <MudDivider Class="my-2" />
 
-        <!-- UPLOAD (external component) -->
         <PartsListUploader TItem="NewWantedListItemModel"
                            Title="Upload wanted list file"
                            HelpText="Choose the exact format you upload. We validate structure and show unmapped parts / invalid color IDs (those rows are ignored)."
@@ -117,7 +116,6 @@ else
 
         <MudDivider Class="my-2" />
 
-        <!-- MANUAL ADD -->
         <MudText Typo="Typo.body1" GutterBottom="true" Style="font-weight:bold;">Add items manually</MudText>
 
         <MudTextField T="string"
@@ -267,7 +265,7 @@ else
         <MudButton Variant="Variant.Filled"
                    Color="Color.Success"
                    ButtonType="ButtonType.Submit"
-                   Disabled="@_saving"
+                   Disabled="@(_saving || !newListModel.Items.Any())"
                    Class="mt-3">
             @(_saving ? "Saving..." : "Save wanted list")
         </MudButton>
@@ -301,6 +299,9 @@ else
     private List<BrickColor> brickColors = new();
     private int? selectedColorId = null;
     private int brickQuantity = 1;
+
+    // For internal mapping after upload
+    private ParseResult<NewWantedListItemModel>? _lastParseResult;
 
     // For fast part lookup
     private Dictionary<string, MappedBrick> _brickByLegoPartNum = new(StringComparer.OrdinalIgnoreCase);
@@ -488,57 +489,71 @@ else
     // =========================
 
     private Task<ParseResult<NewWantedListItemModel>> ParseWantedUploadAsync(string content, PartsUploadFormat format)
-{
-    // Parse-Funktionen liefern Tuple zurück -> NICHT über .mapped/.unmapped zugreifen,
-    // sondern deconstructen.
-    List<NewWantedListItemModel> mapped;
-    List<(string? PartNum, int? ColorId, int Quantity)> unmapped;
-    List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows;
-    HashSet<int> invalidColorIds;
-
-    switch (format)
     {
-        case PartsUploadFormat.RebrickableCsv:
-            (mapped, unmapped, invalidRows, invalidColorIds) = ParseRebrickableCsv(content);
-            break;
+        List<NewWantedListItemModel> mapped;
+        List<(string? PartNum, int? ColorId, int Quantity)> unmapped;
+        List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows;
+        HashSet<int> invalidColorIds;
 
-        case PartsUploadFormat.RebrickableXml:
-            (mapped, unmapped, invalidRows, invalidColorIds) = ParseRebrickableXml(content);
-            break;
+        switch (format)
+        {
+            case PartsUploadFormat.RebrickableCsv:
+                (mapped, unmapped, invalidRows, invalidColorIds) = ParseRebrickableCsv(content);
+                break;
 
-        case PartsUploadFormat.BricklinkXml:
-            (mapped, unmapped, invalidRows, invalidColorIds) = ParseBricklinkXml(content);
-            break;
+            case PartsUploadFormat.RebrickableXml:
+                (mapped, unmapped, invalidRows, invalidColorIds) = ParseRebrickableXml(content);
+                break;
 
-        default:
-            mapped = new();
-            unmapped = new();
-            invalidRows = new() { (null, null, 0, "Unknown upload format selected.") };
-            invalidColorIds = new();
-            break;
+            case PartsUploadFormat.BricklinkXml:
+                (mapped, unmapped, invalidRows, invalidColorIds) = ParseBricklinkXml(content);
+                break;
+
+            default:
+                mapped = new();
+                unmapped = new();
+                invalidRows = new() { (null, null, 0, "Unknown upload format selected.") };
+                invalidColorIds = new();
+                break;
+        }
+
+        var result = new ParseResult<NewWantedListItemModel>
+        {
+            MappedItems = mapped,
+            Unmapped = unmapped.Select(x => new UnmappedRow(x.PartNum, x.ColorId, x.Quantity)).ToList(),
+            InvalidRows = invalidRows.Select(x => new InvalidRow(x.PartNum, x.ColorId, x.Qty, x.Reason)).ToList(),
+            InvalidColorIds = invalidColorIds
+        };
+
+        _lastParseResult = result;
+        return Task.FromResult(result);
     }
-
-    var result = new ParseResult<NewWantedListItemModel>
-    {
-        MappedItems = mapped,
-        Unmapped = unmapped.Select(x => new UnmappedRow(x.PartNum, x.ColorId, x.Quantity)).ToList(),
-        InvalidRows = invalidRows.Select(x => new InvalidRow(x.PartNum, x.ColorId, x.Qty, x.Reason)).ToList(),
-        InvalidColorIds = invalidColorIds
-    };
-
-    return Task.FromResult(result);
-}
 
     private void AddUploadItemsToNewList_FromComponent(List<NewWantedListItemModel> items)
     {
         foreach (var item in items)
             AddOrMergeItem(newListModel.Items, item);
 
+        // Add unmapped items to the MissingItems list of the model
+        if (_lastParseResult?.Unmapped != null)
+        {
+            foreach (var u in _lastParseResult.Unmapped)
+            {
+                newListModel.MissingItems.Add(new MissingItemDTO 
+                { 
+                    ExternalPartNum = u.PartNum, 
+                    ExternalColorId = u.ColorId, 
+                    Quantity = u.Quantity 
+                });
+            }
+        }
+
+        _lastParseResult = null;
         NotificationService.Success("Upload items added to list.");
         StateHasChanged();
     }
 
-    // ========= PARSER (unchanged from working version) =========
+    // ========= PARSER =========
 
     private (List<NewWantedListItemModel> mapped,
              List<(string? PartNum, int? ColorId, int Quantity)> unmapped,
@@ -620,14 +635,7 @@ else
 
             var qtyStr = GetChild(it, "MINQTY") ?? GetChild(it, "QTY") ?? GetChild(it, "QUANTITY");
             var qty = int.TryParse(qtyStr, out var q) ? q : 0;
-
             var blColorId = int.TryParse(colorStr, out var c) ? c : (int?)null;
-
-            if (string.IsNullOrWhiteSpace(partNum) || blColorId is null || qty <= 0)
-            {
-                invalidRows.Add((partNum, blColorId, qty, "Row missing ITEMID/COLOR/MINQTY (or qty<=0)."));
-                continue;
-            }
 
             AddParsedRow_Wanted(mapped, unmapped, invalidRows, invalidColorIds,
                 partNum, blColorId, qty, colorMode: "bricklink");
@@ -661,8 +669,8 @@ else
         // CASE A: Part/Color/Quantity
         var candidates = doc.Descendants()
             .Where(n =>
-                n.Elements().Any(e => e.Name.LocalName.Equals("Part", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("PART", StringComparison.OrdinalIgnoreCase)) &&
-                n.Elements().Any(e => e.Name.LocalName.Equals("Color", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("COLOR", StringComparison.OrdinalIgnoreCase)) &&
+                n.Elements().Any(e => e.Name.LocalName.Equals("Part", StringComparison.OrdinalIgnoreCase)) &&
+                n.Elements().Any(e => e.Name.LocalName.Equals("Color", StringComparison.OrdinalIgnoreCase)) &&
                 n.Elements().Any(e => e.Name.LocalName.Equals("Quantity", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("QTY", StringComparison.OrdinalIgnoreCase)))
             .ToList();
 
@@ -670,14 +678,9 @@ else
         {
             foreach (var n in candidates)
             {
-                string? partNum =
-                    n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Part", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("PART", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
-
-                string? colorStr =
-                    n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Color", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("COLOR", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
-
-                string? qtyStr =
-                    n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Quantity", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("QTY", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
+                string? partNum = n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Part", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
+                string? colorStr = n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Color", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
+                string? qtyStr = n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Quantity", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("QTY", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
 
                 var rbColorId = int.TryParse(colorStr, out var c) ? c : (int?)null;
                 var qty = int.TryParse(qtyStr, out var q) ? q : 1;
@@ -685,35 +688,19 @@ else
                 AddParsedRow_Wanted(mapped, unmapped, invalidRows, invalidColorIds,
                     partNum, rbColorId, qty, colorMode: "rebrickable");
             }
-
             return (mapped, unmapped, invalidRows, invalidColorIds);
         }
 
-        // CASE B: INVENTORY/ITEM (BrickLink schema inside "Rebrickable XML" exports)
+        // CASE B: INVENTORY/ITEM (BrickLink schema)
         var items = doc.Descendants().Where(x => x.Name.LocalName.Equals("ITEM", StringComparison.OrdinalIgnoreCase)).ToList();
-        if (!items.Any())
-        {
-            invalidRows.Add((null, null, 0, "Rebrickable XML: neither Part/Color/Quantity nor <ITEM> nodes found."));
-            return (mapped, unmapped, invalidRows, invalidColorIds);
-        }
-
         foreach (var it in items)
         {
             var partNum = GetChild(it, "ITEMID")?.Trim();
             var colorStr = GetChild(it, "COLOR")?.Trim();
-
             var qtyStr = GetChild(it, "MINQTY") ?? GetChild(it, "QTY") ?? GetChild(it, "QUANTITY");
             var qty = int.TryParse(qtyStr, out var q) ? q : 0;
-
             var blColorId = int.TryParse(colorStr, out var c) ? c : (int?)null;
 
-            if (string.IsNullOrWhiteSpace(partNum) || blColorId is null || qty <= 0)
-            {
-                invalidRows.Add((partNum, blColorId, qty, "INVENTORY row missing ITEMID/COLOR/MINQTY (or qty<=0)."));
-                continue;
-            }
-
-            // IMPORTANT: COLOR is BrickLink ColorId here
             AddParsedRow_Wanted(mapped, unmapped, invalidRows, invalidColorIds,
                 partNum, blColorId, qty, colorMode: "bricklink");
         }
@@ -736,7 +723,10 @@ else
     )
     {
         if (string.IsNullOrWhiteSpace(partNum) || !colorIdFromFile.HasValue || qty <= 0)
-            return;
+        {
+             invalidRows.Add((partNum, colorIdFromFile, qty, "Row missing essential data (ID/Color/Qty)."));
+             return;
+        }
 
         var partTrim = partNum.Trim();
 
@@ -781,7 +771,7 @@ else
             else
             {
                 invalidColorIds.Add(colorIdFromFile.Value);
-                invalidRows.Add((partTrim, colorIdFromFile, qty, $"BrickLink color '{blName}' not found in BrickColors (name mismatch / missing)."));
+                invalidRows.Add((partTrim, colorIdFromFile, qty, $"BrickLink color '{blName}' not found in database."));
                 return;
             }
         }

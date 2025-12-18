@@ -38,29 +38,34 @@ else
 {
     <MudAlert Severity="Severity.Error" Class="mt-2">@_error</MudAlert>
 }
-
+@* --- NUR EIN BLOCK FÜR DAS RESULTAT --- *@
 @if (_result is not null)
 {
-    @if (_result.MappedItems.Count > 0)
+    @* 1. Erfolgsmeldung für erkannte Teile *@
+    @if ((_result.MappedItems?.Count ?? 0) > 0)
     {
         <MudAlert Severity="Severity.Success" Class="mt-3">
-            Upload parsed: @_result.MappedItems.Count item(s) ready.
+            <b>@_result.MappedItems.Count Teil(e)</b> wurden erfolgreich erkannt und sind bereit zum Hinzufügen.
         </MudAlert>
     }
 
-    @if (_result.Unmapped.Count > 0)
+    @* 2. Meldung für ungemappte Teile (Missing Items) *@
+    @if ((_result.Unmapped?.Count ?? 0) > 0)
     {
         <MudAlert Severity="Severity.Warning" Class="mt-3">
-            Unmapped parts: @_result.Unmapped.Count (ignored).
+            <b>@_result.Unmapped.Count Teil(e)</b> konnten nicht automatisch zugeordnet werden. 
+            Sie werden als "fehlende Mappings" in der Liste gespeichert, damit du sie später in den Details sehen kannst.
         </MudAlert>
 
         <MudExpansionPanels>
-            <MudExpansionPanel Text="Show unmapped items" Expanded="false" MaxHeight="450">
+            <MudExpansionPanel Text="Nicht zugeordnete Teile anzeigen" Expanded="false" MaxHeight="450">
                 <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
                     <MudList T="string">
-                        @foreach (var u in _result.Unmapped)
+                        @foreach (var u in _result.Unmapped!)
                         {
-                            <MudChip>@u.PartNum ColorId: @u.ColorId, Qty: @u.Quantity</MudChip>
+                            <MudChip T="string" Color="Color.Warning" Variant="Variant.Outlined" Size="Size.Small" Class="ma-1">
+                                Part: @u.PartNum, Color: @u.ColorId, Menge: @u.Quantity
+                            </MudChip>
                         }
                     </MudList>
                 </MudPaper>
@@ -68,22 +73,27 @@ else
         </MudExpansionPanels>
     }
 
-    @if (_result.InvalidColorIds.Count > 0)
+    @* 3. Hinweis auf ungültige Farb-IDs *@
+    @if ((_result.InvalidColorIds?.Count ?? 0) > 0)
     {
-        <MudAlert Severity="Severity.Error" Class="mt-3">
-            Invalid ColorId(s): <b>@string.Join(", ", _result.InvalidColorIds.OrderBy(x => x))</b> (ignored).
+        <MudAlert Severity="Severity.Info" Class="mt-3" Variant="Variant.Outlined">
+            Hinweis: Einige Farb-IDs (@string.Join(", ", _result.InvalidColorIds.OrderBy(x => x))) sind im System unbekannt und werden übersprungen.
         </MudAlert>
     }
 
-    @if (_result.InvalidRows.Count > 0)
+    @* 4. Details zu fehlerhaften Zeilen (Formatfehler) *@
+    @if ((_result.InvalidRows?.Count ?? 0) > 0)
     {
         <MudExpansionPanels>
-            <MudExpansionPanel Text="Show invalid rows (details)" Expanded="false" MaxHeight="450">
+            <MudExpansionPanel Text="Details zu fehlerhaften Zeilen (Formatfehler)" Expanded="false" MaxHeight="450">
                 <MudPaper Class="pa-2 mb-2" Style="background:#fff5f5;border:1px solid #ffcdd2;">
+                    <MudText Typo="Typo.caption" Class="pa-2">Diese Zeilen konnten aufgrund von Formatfehlern nicht gelesen werden:</MudText>
                     <MudList T="string">
                         @foreach (var r in _result.InvalidRows.Take(MaxInvalidRowsShown))
                         {
-                            <MudChip>@r.PartNum ColorId: @r.ColorId, Qty: @r.Qty, @r.Reason</MudChip>
+                            <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="ma-1">
+                                @r.PartNum (Farbe: @r.ColorId) - @r.Reason
+                            </MudChip>
                         }
                     </MudList>
                 </MudPaper>
@@ -91,34 +101,27 @@ else
         </MudExpansionPanels>
     }
 
-    @if (ShowAddButton && _result.MappedItems.Count > 0)
-    {
-        <MudStack Row="true" Spacing="2" Class="mt-2 mb-2">
+    @* 5. Aktions-Buttons *@
+    <MudStack Row="true" Spacing="2" Class="mt-4 mb-2">
+        @* Der Button ist aktiv, wenn entweder gemappte ODER ungemappte Teile vorhanden sind *@
+        @if (ShowAddButton && ((_result.MappedItems?.Count ?? 0) > 0 || (_result.Unmapped?.Count ?? 0) > 0))
+        {
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        Disabled="@(_uploading || Disabled)"
-                       OnClick="AddItems">
+                       OnClick="AddItems"
+                       StartIcon="@Icons.Material.Filled.Add">
                 @AddButtonText
             </MudButton>
+        }
 
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Secondary"
-                       Disabled="@(_uploading || Disabled)"
-                       OnClick="Clear">
-                @ClearButtonText
-            </MudButton>
-        </MudStack>
-    }
-    else
-    {
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Secondary"
                    Disabled="@(_uploading || Disabled)"
-                   Class="mt-2"
                    OnClick="Clear">
             @ClearButtonText
         </MudButton>
-    }
+    </MudStack>
 }
 
 @code {

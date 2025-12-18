@@ -3,6 +3,7 @@ using System;
 using Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace brickapp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251218105148_AddmissingItems")]
+    partial class AddmissingItems
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -613,33 +616,6 @@ namespace brickapp.Migrations
                     b.ToTable("wantedlistitems", (string)null);
                 });
 
-            modelBuilder.Entity("Data.Entities.WantedListMissingItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("ExternalColorId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ExternalPartNum")
-                        .HasColumnType("text");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("WantedListId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WantedListId");
-
-                    b.ToTable("WantedListMissingItem");
-                });
-
             modelBuilder.Entity("ItemSet", b =>
                 {
                     b.Property<int>("Id")
@@ -891,15 +867,6 @@ namespace brickapp.Migrations
                     b.Navigation("WantedList");
                 });
 
-            modelBuilder.Entity("Data.Entities.WantedListMissingItem", b =>
-                {
-                    b.HasOne("Data.Entities.WantedList", null)
-                        .WithMany("MissingItems")
-                        .HasForeignKey("WantedListId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Data.Entities.AppUser", b =>
                 {
                     b.Navigation("InventoryItems");
@@ -949,8 +916,6 @@ namespace brickapp.Migrations
             modelBuilder.Entity("Data.Entities.WantedList", b =>
                 {
                     b.Navigation("Items");
-
-                    b.Navigation("MissingItems");
                 });
 
             modelBuilder.Entity("Data.Entities.WantedListItem", b =>

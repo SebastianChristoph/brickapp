@@ -95,6 +95,17 @@ public class UserService
         return isAuth ? _currentUser : null;
     }
 
+    public async Task<string?> GetUserUuidAsync()
+{
+    // Falls wir den User schon im Cache haben, direkt die Uuid geben
+    if (_currentUser != null)
+        return _currentUser.Uuid;
+
+    // Ansonsten prüfen, ob ein Token im LocalStorage/Cookie ist
+    var isAuth = await IsAuthenticatedAsync();
+    return isAuth ? _currentUser?.Uuid : null;
+}
+
     public async Task<string?> GetUsernameAsync()
     {
         if (_currentUser != null)
