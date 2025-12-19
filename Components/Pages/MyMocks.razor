@@ -32,27 +32,27 @@
 }
 
 <MudPaper Class="pa-4 mb-4">
-    <MudText Typo="Typo.h6">Upload a new MOC</MudText>
+    <MudText Typo="Typo.h5">Upload a new MOC</MudText>
 
     <MudTextField @bind-Value="newMockName"
-                  Label="MOC name"
-                  Disabled="_loading"
-                  Style="width:260px;margin-top:8px;" />
+                  Label="MOC name *"
+                  Disabled="_loading"/>
 
     <MudTextField @bind-Value="newMockComment"
                   Label="Comment"
+                  HelperText="optional description or notes about the MOC"
                   Disabled="_loading"
                   Lines="3"
                   TextFieldStyle="MudBlazor.TextFieldStyle.Multiline" />
 
     <MudTextField @bind-Value="newMockWebSource"
+                    HelperText="optional URL to the MOC source (e.g. Rebrickable)"
                   Label="Web Source"
                   Disabled="_loading" />
 
-    <div style="margin-top:8px;">
-        <label>Upload MOC image (max 3MB)</label>
-        <InputFile OnChange="OnImageSelected" accept="image/*" disabled="@_loading" />
-    </div>
+    <MudText Typo="Typo.h6" Class="my-4">Upload MOC image (max 3MB)</MudText>
+    <InputFile OnChange="OnImageSelected" accept="image/*" disabled="@_loading" />
+    
 
     @if (!string.IsNullOrEmpty(imagePreviewUrl))
     {
@@ -64,7 +64,6 @@
 
     <MudDivider Class="my-3" />
 <PartsListUploader Title="Upload Item List File"
-                   HelpText="Supported: Rebrickable CSV, Rebrickable XML, BrickLink XML."
                    Disabled="_loading"
                    Formats="@_mocFormats"
                    FormatLabelFunc="MocFormatLabel"
@@ -87,7 +86,7 @@
 </MudPaper>
 
 <MudPaper Class="pa-4">
-    <MudText Typo="Typo.h6">Your MOCs</MudText>
+    <MudText Typo="Typo.h5">Your MOCs</MudText>
 
     <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Style="margin-bottom: 16px;">
         <MudButton StartIcon="@Icons.Material.Filled.Delete"
@@ -111,21 +110,43 @@
         }
         else
         {
-            @foreach (var mock in userMocks)
-            {
+           <MudTable Items="@userMocks" Hover="true" Breakpoint="Breakpoint.Sm" Context="mock">
+    <HeaderContent>
+        <MudTh>Image</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Source / Typ</MudTh>
+        <MudTh>Items</MudTh>
+        <MudTh Style="text-align:right">Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Bild">
+            <img src="@ImageService.GetMockImagePath(mock)" alt="Mock Bild"
+                 style="width:48px;height:48px;object-fit:contain;border:1px solid #ccc;background:#fff;padding:2px;border-radius:6px;" />
+        </MudTd>
+        <MudTd DataLabel="Name">
+            <div style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
+                <MudText>@mock.Name</MudText>
+            </div>
+        </MudTd>
+        <MudTd DataLabel="Source">
+            <MudText>@mock.MockType</MudText>
+        </MudTd>
+        <MudTd DataLabel="Items">
+            @{
                 var totalParts = mock.Items?.Sum(i => i.Quantity) ?? 0;
-                <MudListItem T="string" Style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
-                    <div style="display:flex;align-items:center;flex:1;gap:12px;">
-                        <img src="@ImageService.GetMockImagePath(mock)" alt="Mock Bild"
-                             style="width:56px;height:56px;object-fit:contain;border:1px solid #ccc;background:#fff;padding:2px;border-radius:6px;" />
-                        <span style="flex:1" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
-                            <MudText><b>@mock.Name</b> <span style="color:#888;font-size:0.95em">(@mock.MockType)</span></MudText>
-                            <MudText Typo="Typo.caption">Items: @totalParts</MudText>
-                        </span>
-                    </div>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteMock(mock.Id))">Delete</MudButton>
-                </MudListItem>
             }
+            <MudText Typo="Typo.body2">@totalParts Parts</MudText>
+        </MudTd>
+        <MudTd DataLabel="Actions" Style="text-align:right">
+            <MudButton Variant="Variant.Outlined" 
+                       Color="Color.Error" 
+                       Size="Size.Small" 
+                       OnClick="@(() => DeleteMock(mock.Id))">
+                Delete
+            </MudButton>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
         }
     </MudList>
 </MudPaper>

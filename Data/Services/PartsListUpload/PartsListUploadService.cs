@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging; // Wichtig für ILogger
 using brickapp.Components.Shared.PartsListUpload;
 using brickapp.Data;
 
@@ -12,24 +13,40 @@ public sealed class PartsListUploadService : IPartsListUploadService
 {
     private readonly IDbContextFactory<AppDbContext> _factory;
     private readonly Dictionary<PartsUploadFormat, IPartsListFormatParser> _parsers;
+    private readonly ILogger<PartsListUploadService> _logger;
 
     public PartsListUploadService(
         IDbContextFactory<AppDbContext> factory,
-        IEnumerable<IPartsListFormatParser> parsers)
+        IEnumerable<IPartsListFormatParser> parsers,
+        ILogger<PartsListUploadService> logger)
     {
         _factory = factory;
-
-        // genau EIN Parser pro Format erzwingen
+        _logger = logger;
+        
+        // Erzeugt ein Dictionary: Pro Format genau ein Parser
         _parsers = parsers.ToDictionary(p => p.Format);
     }
 
     public async Task<ParseResult<ParsedPart>> ParseAsync(string content, PartsUploadFormat format)
     {
         var result = new ParseResult<ParsedPart>();
+        _logger.LogInformation("🟡 Start Upload Parsing for Format: {UserFormat}", format);
 
-        if (!_parsers.TryGetValue(format, out var parser))
+        // INTERNE UMLEITUNG:
+        // RebrickableXml nutzt die gleiche Struktur wie BricklinkXml
+        var effectiveFormat = format == PartsUploadFormat.RebrickableXml 
+            ? PartsUploadFormat.BricklinkXml 
+            : format;
+            
+        if (effectiveFormat != format)
         {
-            result.FatalError = $"No parser registered for format '{format}'.";
+            _logger.LogInformation("🟡 Internal redirect: Using {EffectiveFormat} parser for {UserFormat} request.", 
+                effectiveFormat, format);
+        }
+
+        if (!_parsers.TryGetValue(effectiveFormat, out var parser))
+        {
+            result.FatalError = $"No parser registered for format '{effectiveFormat}'.";
             return result;
         }
 

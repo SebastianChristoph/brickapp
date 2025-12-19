@@ -19,6 +19,15 @@
 
 <MudText Typo="Typo.h4" GutterBottom="true">All Bricks</MudText>
 
+@if (!string.IsNullOrWhiteSpace(_pageError))
+{
+    <MudAlert Severity="Severity.Error" ShowCloseIcon="true"
+              CloseIconClicked="(() => _pageError = null)">
+        <b>Oops – es ist ein Fehler aufgetreten.</b><br />
+        @_pageError
+    </MudAlert>
+}
+
 
 
 <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Style="margin-bottom: 16px;">
@@ -108,8 +117,7 @@
                     MappingRequestStatus.Pending);
                     if (legoRequest != null)
                     {
-                        <MudChip T="string" Color="Color.Warning">Mapping request by @legoRequest.RequestedByUserId pending
-                        </MudChip>
+                        <MudChip T="string" Color="Color.Warning">Mapping pending</MudChip>
                     }
                     else
                     {
@@ -246,7 +254,7 @@
 }
 else if (_showMappedOnly)
 {
-    <MudTable Items="bricks.Where(b => b.HasAtLeastOneMapping).Skip(_currentPage * _pageSize).Take(_pageSize).ToList()"
+    <MudTable Items="bricks"
         Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize" OnPageChanged="OnPageChanged"
         OnRowsPerPageChanged="OnRowsPerPageChanged">
         <HeaderContent>
@@ -380,7 +388,7 @@ else if (_showMappedOnly)
                     @context.MouldKingName
                     @if (!string.IsNullOrWhiteSpace(context.MouldKingPartNum))
                     {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.UnknownPartNum]</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"> [@context.MouldKingPartNum]</MudText>
                     }
                 }
                 @if (string.IsNullOrWhiteSpace(context.MouldKingName))
@@ -430,19 +438,39 @@ else if (_showMappedOnly)
 }
 @code {
     private bool _showMappedOnly = false;
-    private async void ShowMappedItems()
+private async Task ShowMappedItems()
+{
+    ClearError();
+
+    try
     {
         _showMappedOnly = true;
         _searchText = string.Empty;
         _currentPage = 0;
-        // Lade alle Bricks ohne Paginierung und ohne Suchtext, damit wirklich alle angezeigt werden
-        var result = await BrickService.GetPaginatedMappedBricksAsync(1, 10000, "");
+
+        var result = await BrickService.GetPaginatedMappedBricksAsync(
+            pageNumber: 1,
+            pageSize: 10000,
+            searchText: null,
+            onlyMapped: true);
+
         bricks = result.Items;
         totalCount = result.TotalCount;
-        StateHasChanged();
     }
+    catch (Exception ex)
+    {
+        SetError(ex, "Konnte gemappte Items nicht laden");
+    }
+    finally
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+}
+
+
 
     private string? _username;
+    private string? _pageError;
     private List<MappedBrick> bricks = new();
     private int totalCount = 0;
     private bool _searchingBricks = false;
@@ -478,16 +506,31 @@ else if (_showMappedOnly)
         }
     }
 
-    private async Task OpenAddItemDialog()
-    {
+    private void SetError(Exception ex, string context)
+{
+    // Für User: kurze Message. (Details lieber in Logs)
+    _pageError = $"{context}: {ex.Message}";
+    Console.Error.WriteLine(ex); // optional: Logger nutzen
+}
 
+private void ClearError() => _pageError = null;
+
+    private async Task OpenAddItemDialog()
+{
+    ClearError();
+    try
+    {
         var dialog = await DialogService.ShowAsync<AddItemDialog>("Add New Item", dialogOptions);
         var result = await dialog.Result;
+
         if (result is not null && !result.Canceled)
-        {
             await RefreshBricks();
-        }
     }
+    catch (Exception ex)
+    {
+        SetError(ex, "Dialog 'Add Item' fehlgeschlagen");
+    }
+}
 
     private async Task OnSearchTextChanged(string value)
     {
@@ -511,57 +554,97 @@ else if (_showMappedOnly)
 
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            _username = await UserService.GetUsernameAsync();
-            await LoadBricksAsync();
-            StateHasChanged();
-        }
-    }
+{
+    if (!firstRender) return;
 
-    private async void OnPageChanged(int page)
+    ClearError();
+
+    try
+    {
+        _username = await UserService.GetUsernameAsync();
+        await LoadBricksAsync();
+    }
+    catch (Exception ex)
+    {
+        SetError(ex, "Initiales Laden fehlgeschlagen");
+    }
+    finally
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+}
+
+
+    private async Task OnPageChanged(int page)
+{
+    ClearError();
+    try
     {
         _currentPage = page;
         await LoadBricksAsync();
     }
+    catch (Exception ex)
+    {
+        SetError(ex, "Paging fehlgeschlagen");
+    }
+}
 
-    private async void OnRowsPerPageChanged(int size)
+private async Task OnRowsPerPageChanged(int size)
+{
+    ClearError();
+    try
     {
         _pageSize = size;
         _currentPage = 0;
         await LoadBricksAsync();
     }
-    private async Task LoadBricksAsync()
+    catch (Exception ex)
     {
-        var reqId = ++_loadRequestId;
+        SetError(ex, "Rows-per-page Änderung fehlgeschlagen");
+    }
+}
 
-        _searchingBricks = true;
-        await InvokeAsync(StateHasChanged);
+   private async Task LoadBricksAsync()
+{
+    var reqId = ++_loadRequestId;
 
-        try
+    _searchingBricks = true;
+    await InvokeAsync(StateHasChanged);
+
+    try
+    {
+        await Task.Delay(150);
+        if (reqId != _loadRequestId) return;
+
+        ClearError();
+
+        var result = await BrickService.GetPaginatedMappedBricksAsync(
+            _currentPage + 1,
+            _pageSize,
+            _searchText,
+            onlyMapped: _showMappedOnly // <-- wichtig: Modus berücksichtigen
+        );
+
+        if (reqId != _loadRequestId) return;
+
+        bricks = result.Items;
+        totalCount = result.TotalCount;
+    }
+    catch (Exception ex)
+    {
+        if (reqId == _loadRequestId)
+            SetError(ex, "Konnte Bricks nicht laden");
+    }
+    finally
+    {
+        if (reqId == _loadRequestId)
         {
-            // optional kleine Debounce für "Immediate=true"
-            await Task.Delay(150);
-
-            if (reqId != _loadRequestId) return;
-
-            var result = await BrickService.GetPaginatedMappedBricksAsync(_currentPage + 1, _pageSize, _searchText);
-
-            if (reqId != _loadRequestId) return;
-
-            bricks = result.Items;
-            totalCount = result.TotalCount;
-        }
-        finally
-        {
-            if (reqId == _loadRequestId)
-            {
-                _searchingBricks = false;
-                await InvokeAsync(StateHasChanged);
-            }
+            _searchingBricks = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
+}
+
 
     private async Task OpenHelpMappingDialog(MappedBrick brick, string brand)
     {
@@ -578,13 +661,23 @@ else if (_showMappedOnly)
     }
 
     private async Task UpdateMappingAsync(MappedBrick brick, string brand, string mappingName, string mappingItemId)
+{
+    ClearError();
+    try
     {
         var userId = await UserService.GetTokenAsync();
         if (userId is null)
-            return;
+            throw new InvalidOperationException("User ist nicht eingeloggt (kein Token).");
+
         await RequestService.CreateMappingRequestAsync(brick.Id, brand, mappingName, mappingItemId, userId);
         await RefreshBricks();
     }
+    catch (Exception ex)
+    {
+        SetError(ex, "Mapping Request konnte nicht erstellt werden");
+    }
+}
+
 
     private async Task RefreshBricks()
     {

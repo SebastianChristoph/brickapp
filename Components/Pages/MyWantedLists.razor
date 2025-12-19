@@ -65,156 +65,113 @@
     }
 </style>
 
-@if (_loading)
-{
-    <MudProgressCircular Indeterminate="true" />
-}
-else if (_wantedLists == null || !_wantedLists.Any())
-{
-    <MudAlert Severity="Severity.Info">You do not have any wanted lists yet.</MudAlert>
-}
-else
-{
-    <MudTable Items="_wantedLists" Hover="true" Striped="true">
-        <HeaderContent>
-            <MudTh>Name</MudTh>
-            <MudTh>Items</MudTh>
-            <MudTh>Action</MudTh>
-        </HeaderContent>
-        <RowTemplate Context="wl">
-            <MudTd>
-                <span style="cursor:pointer; color: #1976d2; text-decoration: underline;" @onclick="() => GoToDetails(wl.Id)">
-                    @wl.Name
-                </span>
-                 Added from: @wl.Source
-            </MudTd>
-            <MudTd>@wl.Items.Count</MudTd>
-            <MudTd>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveWantedList(wl.Id))">
-                    Remove
-                </MudButton>
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-}
+
 
 <MudPaper Class="pa-4 mt-6">
-    <MudText Typo="Typo.h6" GutterBottom="true">Create new wanted list</MudText>
+    <MudText Typo="Typo.h5" GutterBottom="true">Create new wanted list</MudText>
 
     <EditForm Model="newListModel" OnValidSubmit="HandleCreateWantedList">
         <MudTextField @bind-Value="newListModel.Name" Label="List name" Required="true" Class="mb-2" />
 
-        <MudDivider Class="my-2" />
 
-        @* ✅ Neuer zentraler Uploader: keine ParseAsync/Parsing-Logik mehr in der Page *@
-        <PartsListUploader Title="Upload wanted list file"
-                           HelpText="Choose the exact format you upload. We validate structure and show unmapped parts / invalid color IDs (those rows are ignored)."
-                           AddButtonText="Add upload items to list"
-                           ClearButtonText="Clear upload"
-                           OnParsed="OnUploadParsed"
-                           OnAdd="AddUploadItemsToNewList_FromComponent"
-                           OnCleared="OnUploadCleared" />
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Class="my-8">
+            <MudTabPanel Text="Upload a item list">
+                @* ✅ Neuer zentraler Uploader: keine ParseAsync/Parsing-Logik mehr in der Page *@
+                <PartsListUploader Title="Upload wanted list file" AddButtonText="Add uploaded items to your list"
+                    ClearButtonText="Clear upload" OnParsed="OnUploadParsed"
+                    OnAdd="AddUploadItemsToNewList_FromComponent" OnCleared="OnUploadCleared" />
+            </MudTabPanel>
+            <MudTabPanel Text="Add items manually">
+                <MudText Typo="Typo.h6" GutterBottom="true">Add items manually</MudText>
 
-        <MudDivider Class="my-2" />
+                <MudTextField T="string" Value="@brickSearchText" ValueChanged="OnBrickSearchChanged" Immediate="true"
+                    Label="Search brick" Class="mb-2" />
 
-        <MudText Typo="Typo.body1" GutterBottom="true" Style="font-weight:bold;">Add items manually</MudText>
-
-        <MudTextField T="string"
-                      Value="@brickSearchText"
-                      ValueChanged="OnBrickSearchChanged"
-                      Immediate="true"
-                      Label="Search brick"
-                      Class="mb-2" />
-
-        @if (_searching)
-        {
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                <MudProgressCircular Indeterminate="true" Size="Size.Small" />
-                <MudText Typo="Typo.body2">Searching…</MudText>
-            </MudStack>
-        }
-
-        @if (brickSearchResults.Any())
-        {
-            <MudList T="MappedBrick">
-                @foreach (var brick in brickSearchResults)
+                @if (_searching)
                 {
-                    <MudListItem T="MappedBrick"
-                                 Style="cursor:pointer;display:flex;align-items:center;"
-                                 OnClick="@(() => SelectBrick(brick))">
-                        <img src="@ImageService.GetMappedBrickImagePath(brick)" alt=""
-                             style="width:32px;height:32px;object-fit:contain;margin-right:8px;vertical-align:middle;border-radius:4px;border:1px solid #ccc;" />
-                        @brick.Name (@brick.LegoPartNum)
-                    </MudListItem>
-                }
-            </MudList>
-        }
-
-        @if (selectedBrick != null)
-        {
-            <div style="margin-bottom:8px;display:flex;align-items:center;">
-                @{
-                    var selectedColorName = selectedColorId.HasValue
-                        ? brickColors.FirstOrDefault(c => c.Id == selectedColorId.Value)?.Name
-                        : null;
-
-                    var overlay = BrickColorHelper.GetHexForColor(selectedColorName);
-                    var overlayCss = overlay ?? "transparent";
-
-                    var url = ImageService.GetMappedBrickImagePath(selectedBrick);
-                    var hasImage = !string.IsNullOrWhiteSpace(url) && url != "/placeholder-image.png";
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                        <MudText Typo="Typo.body2">Searching…</MudText>
+                    </MudStack>
                 }
 
-                <div class="brick" style="--brick-color:@overlayCss; width:48px; height:48px; min-width:48px; min-height:48px; margin-right:8px;">
-                    <img src="@(hasImage ? url : "/placeholder-image.png")"
-                         alt=""
-                         class="brick-img"
-                         style="border-width:1px;@(hasImage ? "" : "opacity:0.5;")"
-                         onerror="if(this.src!=='/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
-                </div>
-
-                <span style="font-weight:500;">
-                    @selectedBrick.Name
-                    @if (!string.IsNullOrWhiteSpace(selectedBrick.LegoPartNum))
-                    {
-                        <span style="color:#888;">(@selectedBrick.LegoPartNum)</span>
-                    }
-                </span>
-            </div>
-
-            <MudSelect T="int?"
-                       @bind-Value="selectedColorId"
-                       Label="Color"
-                       Placeholder="Please select a color"
-                       Variant="Variant.Text"
-                       Dense="true"
-                       Class="mb-2"
-                       Style="max-width:300px;">
-                @foreach (var color in brickColors)
+                @if (brickSearchResults.Any())
                 {
-                    <MudSelectItem T="int?" Value="@color.Id">@color.Name</MudSelectItem>
+                    <MudList T="MappedBrick">
+                        @foreach (var brick in brickSearchResults)
+                        {
+                            <MudListItem T="MappedBrick" Style="cursor:pointer;display:flex;align-items:center;"
+                                OnClick="@(() => SelectBrick(brick))">
+                                <img src="@ImageService.GetMappedBrickImagePath(brick)" alt=""
+                                    style="width:32px;height:32px;object-fit:contain;margin-right:8px;vertical-align:middle;border-radius:4px;border:1px solid #ccc;" />
+                                @brick.Name (@brick.LegoPartNum)
+                            </MudListItem>
+                        }
+                    </MudList>
                 }
-            </MudSelect>
 
-            <MudNumericField T="int"
-                             @bind-Value="brickQuantity"
-                             Label="Quantity"
-                             Min="1"
-                             Max="999"
-                             Variant="Variant.Text"
-                             Dense="true"
-                             Class="mb-2"
-                             Style="max-width:300px;" />
+              
 
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       OnClick="AddBrickToList"
-                       Disabled="@(selectedColorId is null)"
-                       Class="mb-2">
-                Add item
-            </MudButton>
-            <br />
-        }
+                @if (selectedBrick != null)
+                {
+                    <div style="margin-bottom:8px;display:flex;align-items:center;">
+                        @{
+                            var selectedColorName = selectedColorId.HasValue
+                            ? brickColors.FirstOrDefault(c => c.Id == selectedColorId.Value)?.Name
+                            : null;
+
+                            var overlay = BrickColorHelper.GetHexForColor(selectedColorName);
+                            var overlayCss = overlay ?? "transparent";
+
+                            var url = ImageService.GetMappedBrickImagePath(selectedBrick);
+                            var hasImage = !string.IsNullOrWhiteSpace(url) && url != "/placeholder-image.png";
+                        }
+
+                        <div class="brick"
+                            style="--brick-color:@overlayCss; width:48px; height:48px; min-width:48px; min-height:48px; margin-right:8px;">
+                            <img src="@(hasImage? url : "/placeholder-image.png")" alt="" class="brick-img"
+                                style="border-width:1px;@(hasImage ? "" : "opacity:0.5;")"
+                                onerror="if(this.src!=='/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                        </div>
+
+                        <span style="font-weight:500;">
+                            @selectedBrick.Name
+                            @if (!string.IsNullOrWhiteSpace(selectedBrick.LegoPartNum))
+                            {
+                                <span style="color:#888;">(@selectedBrick.LegoPartNum)</span>
+                            }
+                        </span>
+                    </div>
+
+                    <MudSelect T="int?" @bind-Value="selectedColorId" Label="Color" Placeholder="Please select a color"
+                        Variant="Variant.Text" Dense="true" Class="mb-2" Style="max-width:300px;">
+                        @foreach (var color in brickColors)
+                        {
+                            <MudSelectItem T="int?" Value="@color.Id">@color.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudNumericField T="int" @bind-Value="brickQuantity" Label="Quantity" Min="1" Max="999"
+                        Variant="Variant.Text" Dense="true" Class="mb-2" Style="max-width:300px;" />
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddBrickToList"
+                        Disabled="@(selectedColorId is null)" Class="mb-2">
+                        Add item
+                    </MudButton>
+                    <br />
+                }
+            </MudTabPanel>
+        </MudTabs>
+
+
+  <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="Color.Success"
+                    Size="Size.Large" ButtonType="ButtonType.Submit" Disabled="@(_saving || !newListModel.Items.Any())"
+                    >
+                    @(_saving ? "Saving..." : "Save this wanted list")
+                </MudButton>
+
+
+    <MudDivider Class="my-12" />
 
         @if (newListModel.Items.Any())
         {
@@ -240,12 +197,11 @@ else
                             var hasImage = !string.IsNullOrWhiteSpace(url) && url != "/placeholder-image.png";
                         }
 
-                        <div class="brick" style="--brick-color:@overlayCss; width:32px; height:32px; min-width:32px; min-height:32px;">
-                            <img src="@(hasImage ? url : "/placeholder-image.png")"
-                                 alt=""
-                                 class="brick-img"
-                                 style="border-width:1px;@(hasImage ? "" : "opacity:0.5;")"
-                                 onerror="if(this.src!=='/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                        <div class="brick"
+                            style="--brick-color:@overlayCss; width:32px; height:32px; min-width:32px; min-height:32px;">
+                            <img src="@(hasImage? url : "/placeholder-image.png")" alt="" class="brick-img"
+                                style="border-width:1px;@(hasImage ? "" : "opacity:0.5;")"
+                                onerror="if(this.src!=='/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
                         </div>
                     </MudTd>
 
@@ -254,8 +210,7 @@ else
                     <MudTd DataLabel="Quantity">@item.Quantity</MudTd>
                     <MudTd>
                         <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
-                                   OnClick="@(() => RemoveItem(item))"
-                                   Class="ml-2">
+                            OnClick="@(() => RemoveItem(item))" Class="ml-2">
                             Remove
                         </MudButton>
                     </MudTd>
@@ -263,16 +218,45 @@ else
             </MudTable>
         }
 
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Success"
-                   ButtonType="ButtonType.Submit"
-                   Disabled="@(_saving || !newListModel.Items.Any())"
-                   Class="mt-3">
-            @(_saving ? "Saving..." : "Save wanted list")
-        </MudButton>
+
     </EditForm>
 </MudPaper>
-
+@if (_loading)
+{
+    <MudDivider Class="my-12" />
+    <MudProgressCircular Indeterminate="true" />
+    <MudText Typo="Typo.body2">Loading wanted lists…</MudText>
+}
+else if (_wantedLists == null || !_wantedLists.Any())
+{
+    <MudAlert Severity="Severity.Info">You do not have any wanted lists yet.</MudAlert>
+}
+else
+{
+    <MudTable Items="_wantedLists" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Items</MudTh>
+            <MudTh>Action</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="wl">
+            <MudTd>
+                <span style="cursor:pointer; color: #1976d2; text-decoration: underline;"
+                    @onclick="() => GoToDetails(wl.Id)">
+                    @wl.Name
+                </span>
+                Added from: @wl.Source
+            </MudTd>
+            <MudTd>@wl.Items.Count</MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                    OnClick="@(() => RemoveWantedList(wl.Id))">
+                    Remove
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
 @code {
     private List<WantedList>? _wantedLists;
     private bool _loading = true;
@@ -282,8 +266,8 @@ else
     private void SetError(Exception ex, string? context = null)
     {
         _error = context == null
-            ? $"An error happened: {ex.Message}"
-            : $"An error happened ({context}): {ex.Message}";
+        ? $"An error happened: {ex.Message}"
+        : $"An error happened ({context}): {ex.Message}";
         _errorDetails = ex.ToString();
     }
 
@@ -331,7 +315,7 @@ else
     }
 
     private void GoToDetails(int wantedListId)
-        => Nav.NavigateTo($"/mywantedlistdetails/{wantedListId}");
+    => Nav.NavigateTo($"/mywantedlistdetails/{wantedListId}");
 
     private async Task RemoveWantedList(int wantedListId)
     {
@@ -372,12 +356,12 @@ else
             if (reqId != _searchRequestId) return;
 
             brickSearchResults = _allBricks
-                .Where(b =>
-                    (b.LegoPartNum?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (b.LegoName?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (b.Name?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false))
-                .Take(10)
-                .ToList();
+            .Where(b =>
+            (b.LegoPartNum?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.LegoName?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (b.Name?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false))
+            .Take(10)
+            .ToList();
         }
         catch (Exception ex)
         {
@@ -479,7 +463,7 @@ else
         newListModel.Source = result.AppliedFormat.ToString();
 
         return Task.CompletedTask;
-    }   
+    }
 
     private void AddUploadItemsToNewList_FromComponent(List<ParsedPart> parts)
     {
@@ -504,7 +488,7 @@ else
     private Task OnUploadCleared()
     {
         // Wenn Upload gelöscht wird, auch MissingItems zurücksetzen
-   //     newListModel.MissingItems = new List<NewWantedListMissingItemModel>();
+        // newListModel.MissingItems = new List<NewWantedListMissingItemModel>();
         return Task.CompletedTask;
     }
 

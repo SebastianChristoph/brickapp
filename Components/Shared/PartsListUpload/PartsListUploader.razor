@@ -4,7 +4,9 @@
 @using brickapp.Data.Services.PartsListUpload
 @inject IPartsListUploadService UploadService
 
-<MudText Typo="Typo.body1" GutterBottom="true" Style="font-weight:bold;">@Title</MudText>
+
+
+<MudText Typo="Typo.h6" GutterBottom="true" >@Title</MudText>
 
 @if (!string.IsNullOrWhiteSpace(HelpText))
 {
@@ -13,15 +15,18 @@
 
 @if (Formats is not null && Formats.Count > 1)
 {
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-2">
+        Multiple upload formats are supported. Please select the format of your file below.
+    </MudAlert>
     <MudSelect T="PartsUploadFormat"
                @bind-Value="_selectedFormat"
                Label="Upload format"
                Dense="true"
                Disabled="@(Disabled || _uploading)"
-               Class="mb-2">
+               Class="my-4">
         @foreach (var f in Formats)
         {
-            <MudSelectItem Value="@f">@FormatLabel(f)</MudSelectItem>
+            <MudSelectItem  Value="@f">@FormatLabel(f)</MudSelectItem>
         }
     </MudSelect>
 }
@@ -32,25 +37,13 @@ else
     </MudText>
 }
 
-<MudPaper Class="pa-3" Elevation="0" Style="border:1px solid #e0e0e0; border-radius:8px;">
+
     <div class="d-flex align-center" style="gap:12px; flex-wrap:wrap;">
         <InputFile OnChange="OnFileSelected" accept="@EffectiveAccept" disabled="@(Disabled || _uploading)" />
 
-        <MudButton Variant="Variant.Outlined"
-                   Disabled="@(_uploading || Disabled || (_result is null && string.IsNullOrWhiteSpace(_error)))"
-                   OnClick="Clear">
-            @ClearButtonText
-        </MudButton>
+      
 
-        @if (ShowAddButton)
-        {
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       Disabled="@(_uploading || Disabled || _result is null || (_result.MappedItems?.Count ?? 0) == 0)"
-                       OnClick="Add">
-                @AddButtonText
-            </MudButton>
-        }
+       
 
         @if (_uploading)
         {
@@ -71,27 +64,27 @@ else
         @* 1) Erfolg *@
         @if ((_result.MappedItems?.Count ?? 0) > 0)
         {
-            <MudAlert Severity="Severity.Success" Class="mt-3">
-                <b>@_result.MappedItems.Count Teil(e)</b> wurden erfolgreich erkannt und sind bereit zum Hinzufügen.
+            <MudAlert Variant="Variant.Filled" Severity="Severity.Success" Class="mt-3">
+                <b>@(_result.MappedItems?.Count ?? 0) Item(s)</b> successfully recognized by our database and ready to be added.
             </MudAlert>
         }
 
         @* 2) Unmapped *@
         @if ((_result.Unmapped?.Count ?? 0) > 0)
         {
-            <MudAlert Severity="Severity.Warning" Class="mt-3">
-                <b>@_result.Unmapped.Count Teil(e)</b> konnten nicht automatisch zugeordnet werden.
-                Sie werden als "fehlende Mappings" in der Liste gespeichert, damit du sie später in den Details sehen kannst.
+           <MudAlert Variant="Variant.Filled" Severity="Severity.Warning" Class="mt-3">
+                <b>@(_result.Unmapped?.Count ?? 0) item(s)</b> could not be matched automatically because they are missing in our database. <br />
+                They will be saved as "missing mappings" in your item list, so you can review them later in the details.
             </MudAlert>
 
             <MudExpansionPanels Class="mt-2">
-                <MudExpansionPanel Text="Nicht zugeordnete Teile anzeigen" Expanded="false" MaxHeight="450">
-                    <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
+                <MudExpansionPanel Text="Show Unmapped Items" Expanded="false" MaxHeight="450">
+                    <MudPaper Class="pa-2 mb-2">
                         <MudList T="string">
                             @foreach (var u in _result.Unmapped!)
                             {
                                 <MudChip T="string"
-                                         Color="Color.Warning"
+                                         Color="Color.Default"
                                          Variant="Variant.Outlined"
                                          Size="Size.Small"
                                          Class="ma-1">
@@ -169,8 +162,30 @@ else
                 </MudExpansionPanel>
             </MudExpansionPanels>
         }
+
+         @if (ShowAddButton)
+        {
+            <MudButton Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Color="Color.Primary"
+                       Disabled="@(_uploading || Disabled || _result is null || (_result.MappedItems?.Count ?? 0) == 0)"
+                       OnClick="Add"
+                       Class="mt-3">
+                @AddButtonText
+            </MudButton>
+        }
+
+          <MudButton Variant="Variant.Outlined"
+                     StartIcon="@Icons.Material.Filled.Clear"
+                   Disabled="@(_uploading || Disabled || (_result is null && string.IsNullOrWhiteSpace(_error)))"
+                   Class="mt-3 ml-4"
+                   OnClick="Clear">
+            @ClearButtonText
+        </MudButton>
     }
-</MudPaper>
+
+
+
 
 @code {
     [Parameter] public string Title { get; set; } = "Upload parts list";

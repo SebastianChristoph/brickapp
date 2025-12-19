@@ -58,43 +58,51 @@ namespace brickapp.Data.Services
                 .ToListAsync();
         }
 
-        public async Task<(List<MappedBrick> Items, int TotalCount)> GetPaginatedMappedBricksAsync(int pageNumber, int pageSize = 25, string? searchText = null)
-        {
-            await using var db = await _dbFactory.CreateDbContextAsync();
+       public async Task<(List<MappedBrick> Items, int TotalCount)> GetPaginatedMappedBricksAsync(
+    int pageNumber,
+    int pageSize = 25,
+    string? searchText = null,
+    bool onlyMapped = false)
+{
+    await using var db = await _dbFactory.CreateDbContextAsync();
 
-            var query = db.MappedBricks
-                .Include(b => b.MappingRequests)
-                .AsNoTracking();
+    var query = db.MappedBricks
+        .Include(b => b.MappingRequests)
+        .AsNoTracking();
 
-            if (!string.IsNullOrWhiteSpace(searchText) && searchText.Length >= 3)
-            {
-                var normalized = searchText.Replace(" ", "").ToLower();
-                query = query.Where(b =>
-                    (b.Name != null && b.Name.Replace(" ", "").ToLower().Contains(normalized)) ||
-                    (b.LegoPartNum != null && b.LegoPartNum.Replace(" ", "").ToLower().Contains(normalized)) ||
-                    (b.LegoName != null && b.LegoName.Replace(" ", "").ToLower().Contains(normalized)) ||
-                    (b.BluebrixxName != null && b.BluebrixxName.Replace(" ", "").ToLower().Contains(normalized)) ||
-                    (b.CadaName != null && b.CadaName.Replace(" ", "").ToLower().Contains(normalized)) ||
-                    (b.PantasyName != null && b.PantasyName.Replace(" ", "").ToLower().Contains(normalized)) ||
-                    (b.MouldKingName != null && b.MouldKingName.Replace(" ", "").ToLower().Contains(normalized)) ||
-                    (b.UnknownName != null && b.UnknownName.Replace(" ", "").ToLower().Contains(normalized)) ||
-                    b.Id.ToString().Contains(normalized)
-                );
-            }
+    if (onlyMapped)
+        query = query.Where(b => b.HasAtLeastOneMapping);
 
-            query = query
-                .OrderBy(b => string.IsNullOrEmpty(b.LegoPartNum) ? 99 : b.LegoPartNum.Length)
-                .ThenBy(b => b.LegoPartNum)
-                .ThenBy(b => b.Name);
+    if (!string.IsNullOrWhiteSpace(searchText) && searchText.Length >= 3)
+    {
+        var normalized = searchText.Replace(" ", "").ToLower();
+        query = query.Where(b =>
+            (b.Name != null && b.Name.Replace(" ", "").ToLower().Contains(normalized)) ||
+            (b.LegoPartNum != null && b.LegoPartNum.Replace(" ", "").ToLower().Contains(normalized)) ||
+            (b.LegoName != null && b.LegoName.Replace(" ", "").ToLower().Contains(normalized)) ||
+            (b.BluebrixxName != null && b.BluebrixxName.Replace(" ", "").ToLower().Contains(normalized)) ||
+            (b.CadaName != null && b.CadaName.Replace(" ", "").ToLower().Contains(normalized)) ||
+            (b.PantasyName != null && b.PantasyName.Replace(" ", "").ToLower().Contains(normalized)) ||
+            (b.MouldKingName != null && b.MouldKingName.Replace(" ", "").ToLower().Contains(normalized)) ||
+            (b.UnknownName != null && b.UnknownName.Replace(" ", "").ToLower().Contains(normalized)) ||
+            b.Id.ToString().Contains(normalized)
+        );
+    }
 
-            var totalCount = await query.CountAsync();
-            var items = await query
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+    query = query
+        .OrderBy(b => string.IsNullOrEmpty(b.LegoPartNum) ? 99 : b.LegoPartNum.Length)
+        .ThenBy(b => b.LegoPartNum)
+        .ThenBy(b => b.Name);
 
-            return (items, totalCount);
-        }
+    var totalCount = await query.CountAsync();
+    var items = await query
+        .Skip((pageNumber - 1) * pageSize)
+        .Take(pageSize)
+        .ToListAsync();
+
+    return (items, totalCount);
+}
+
 
         public async Task<List<MappedBrick>> SearchLegoPartByNumberAsync(string legoPartNum, int maxResults = 10)
         {

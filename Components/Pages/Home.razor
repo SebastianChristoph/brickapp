@@ -13,62 +13,51 @@
 else
 {
     <MudText Typo="Typo.h4" GutterBottom="true">Hello @_username</MudText>
-    
-    <MudGrid Class="mt-4">
-        <MudItem xs="12" md="7">
-            <MudText Typo="Typo.body1">
-                BrickIsBrick is a community-driven project!<br /><br />
-                To make this platform better for everyone, there are two main ways you can help:
-                <MudList T="string">
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.Map">
-                        <b>Map Bricks:</b> Help us connect and match bricks across different brands.<br />
-                        <MudLink Href="/allbricks" Color="Color.Primary">Go to All Mapped Bricks</MudLink>
-                    </MudListItem>
-                    <MudListItem T="string" Icon="@Icons.Material.Filled.AddBox">
-                        <b>Add New Sets:</b> Contribute by entering new sets into the database.<br />
-                        <MudLink Href="/add-new-set" Color="Color.Primary">Add a New Set</MudLink>
-                    </MudListItem>
-                </MudList>
-            </MudText>
-        </MudItem>
 
-        <MudItem xs="12" md="5" Class="d-flex flex-column align-center">
-            <MudText Typo="Typo.h6" Align="Align.Center" GutterBottom="true">Database Progress</MudText>
-            
-            @if (_stats != null)
-            {
-               
-       <MudChart ChartType="ChartType.Donut" 
-          Width="250px" Height="250px"
-          InputData="@_chartData" 
-          InputLabels="@_chartLabels"
-          ChartOptions="@_options">
-    <CustomGraphics>
-        <text x="50%" y="40%" 
-              dominant-baseline="middle" 
-              text-anchor="middle" 
-              fill="black" 
-              font-family="Helvetica" 
-              font-size="20">Total</text>
-        <text x="50%" y="55%" 
-              dominant-baseline="middle" 
-              text-anchor="middle" 
-              fill="black" 
-              font-family="Helvetica" 
-              font-size="35">@_stats?.TotalBricks</text>
-    </CustomGraphics>
-</MudChart>
-                <div class="mt-4">
-                    <MudAlert Severity="Severity.Success" Dense="true" Class="mb-2">Mapped: @_stats.MappedCount</MudAlert>
-                    <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Dense="true">Unmapped: @_stats.UnmappedCount</MudAlert>
-                </div>
-            }
-            else
-            {
-                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-            }
-        </MudItem>
-    </MudGrid>
+  <MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.body1">
+        BrickIsBrick is a community-driven project!<br /><br />
+        To make this platform better for everyone, there are two main ways you can help:
+        <MudList T="string">
+            <MudListItem T="string" Icon="@Icons.Material.Filled.Map">
+                <b>Map Bricks:</b> Help us connect and match bricks across different brands.<br />
+                <MudLink Href="/allbricks" Color="Color.Primary">Go to All Mapped Bricks</MudLink>
+            </MudListItem>
+            <MudListItem T="string" Icon="@Icons.Material.Filled.AddBox">
+                <b>Add New Sets:</b> Contribute by entering new sets into the database.<br />
+                <MudLink Href="/add-new-set" Color="Color.Primary">Add a New Set</MudLink>
+            </MudListItem>
+        </MudList>
+    </MudText>
+
+    </MudPaper>
+
+
+
+    @if (_stats != null)
+    {
+        <MudPaper Class="pa-4 mt-4" Elevation="1">
+        <MudText Class="mt-4" Typo="Typo.h6" GutterBottom="true">Database Progress</MudText>
+
+        <MudChart ChartType="ChartType.Donut" Width="250px" Height="250px" InputData="@_chartData" InputLabels="@_chartLabels"
+            ChartOptions="@_options">
+            <CustomGraphics>
+                <text x="50%" y="40%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica"
+                    font-size="20">Total items</text>
+                <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica"
+                    font-size="35">@_stats?.TotalBricks</text>
+            </CustomGraphics>
+        </MudChart>
+
+        <MudText>We have @_stats.MappedCount Items in our database</MudText>
+        </MudPaper>
+
+    }
+    else
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+
 }
 
 <style>
@@ -82,7 +71,8 @@ else
     private BrickMappingStats? _stats;
     private double[] _chartData = [];
     private string[] _chartLabels = ["Mapped", "Unmapped"];
-    private ChartOptions _options = new ChartOptions { 
+    private ChartOptions _options = new ChartOptions
+    {
         ChartPalette = new[] { "#4CAF50", "#E0E0E0" } // Grün für Mapped, Grau für Unmapped
     };
 
@@ -92,12 +82,12 @@ else
 
         _username = await UserService.GetUsernameAsync();
         _stats = await StatsService.GetBrickMappingStatsAsync();
-        
+
         if (_stats != null)
         {
             _chartData = new double[] { _stats.MappedCount, _stats.UnmappedCount };
         }
-        
+
         StateHasChanged();
     }
 }
