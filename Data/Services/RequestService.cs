@@ -93,61 +93,79 @@ namespace brickapp.Data.Services
             return true;
         }
 
-        public async Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
+      public async Task ApproveNewItemRequestAsync(
+    int requestId,
+    string adminUserId,
+    string? overrideName)
+{
+    await using var db = await _dbFactory.CreateDbContextAsync();
+
+    var request = await db.NewItemRequests.FindAsync(requestId);
+    if (request == null || request.Status != NewItemRequestStatus.Pending)
+        return;
+
+    var finalName = string.IsNullOrWhiteSpace(overrideName)
+        ? request.Name
+        : overrideName.Trim();
+
+    // Namen ggf. überschreiben
+    request.Name = finalName;
+
+    request.Status = NewItemRequestStatus.Approved;
+    request.ApprovedByUserId = adminUserId;
+    request.ApprovedAt = DateTime.UtcNow;
+
+    var mappedBrick = new MappedBrick
+    {
+        Name = finalName,
+        Uuid = request.Uuid,
+    };
+
+    switch (request.Brand?.Trim().ToLower())
         {
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            case "lego":
+            mappedBrick.LegoName = finalName;
+            mappedBrick.LegoPartNum = request.PartNum;
+            break;
+        case "bluebrixx":
+            mappedBrick.BluebrixxName = finalName;
+            mappedBrick.BluebrixxPartNum = request.PartNum;
+            break;
+        case "cada":
+            mappedBrick.CadaName = finalName;
+            mappedBrick.CadaPartNum = request.PartNum;
+            break;
+        case "pantasy":
+            mappedBrick.PantasyName = finalName;
+            mappedBrick.PantasyPartNum = request.PartNum;
+            break;
+        case "mould king":
+        case "mouldking":
+            mappedBrick.MouldKingName = finalName;
+            mappedBrick.MouldKingPartNum = request.PartNum;
+            break;
+        default:
+            mappedBrick.UnknownName = finalName;
+            mappedBrick.UnknownPartNum = request.PartNum;
+            break;
+    }
 
-            var request = await db.NewItemRequests.FindAsync(requestId);
-            if (request == null || request.Status != NewItemRequestStatus.Pending) return;
+    db.MappedBricks.Add(mappedBrick);
+    await db.SaveChangesAsync();
 
-            request.Status = NewItemRequestStatus.Approved;
-            request.ApprovedByUserId = adminUserId;
-            request.ApprovedAt = DateTime.UtcNow;
+    await _notificationService.AddNotificationAsync(
+        request.RequestedByUserId,
+        "New Item Approved",
+        $"Your request for {request.Brand} ({finalName}) has been approved.",
+        "NewItemRequest",
+        request.Id
+    );
+}
 
-            var mappedBrick = new MappedBrick
-            {
-                Name = request.Name,
-                Uuid = request.Uuid,
-            };
-
-            switch (request.Brand?.Trim().ToLower())
-            {
-                case "bluebrixx":
-                    mappedBrick.BluebrixxName = request.Name;
-                    mappedBrick.BluebrixxPartNum = request.PartNum;
-                    break;
-                case "cada":
-                    mappedBrick.CadaName = request.Name;
-                    mappedBrick.CadaPartNum = request.PartNum;
-                    break;
-                case "pantasy":
-                    mappedBrick.PantasyName = request.Name;
-                    mappedBrick.PantasyPartNum = request.PartNum;
-                    break;
-                case "mould king":
-                case "mouldking":
-                    mappedBrick.MouldKingName = request.Name;
-                    mappedBrick.MouldKingPartNum = request.PartNum;
-                    break;
-                case "unknown":
-                default:
-                    mappedBrick.UnknownName = request.Name;
-                    mappedBrick.UnknownPartNum = request.PartNum;
-                    break;
-            }
-
-            db.MappedBricks.Add(mappedBrick);
-            await db.SaveChangesAsync();
-
-            await _notificationService.AddNotificationAsync(
-                request.RequestedByUserId,
-                "New Item Approved",
-                $"Your request for {request.Brand} ({request.Name}) has been approved.",
-                "NewItemRequest",
-                request.Id
-            );
-        }
-
+public Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
+{
+    return ApproveNewItemRequestAsync(requestId, adminUserId, null);
+}
         public async Task RejectNewItemRequestAsync(int requestId, string adminUserId, string reason)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();

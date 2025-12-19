@@ -72,6 +72,17 @@
         }
     </MudTabPanel>
     <MudTabPanel Text="@(openItemRequests == null ? "Item Requests" : $"Item Requests ({openItemRequests.Count})")">
+        @if (openItemRequests != null && openItemRequests.Any())
+    {
+        <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-3">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
+                       StartIcon="Icons.Material.Filled.DeleteForever"
+                       OnClick="RejectAllItemRequests">
+                Reject all item requests
+            </MudButton>
+        </MudStack>
+    }
         @if (openItemRequests == null)
         {
             <MudProgressCircular Indeterminate="true" />
@@ -84,8 +95,9 @@
         {
             <MudTable Items="openItemRequests" Hover="true">
                 <HeaderContent>
-                    <MudTh>Id</MudTh>
+                    
                     <MudTh>Brand</MudTh>
+                    <MudTh>PartNum</MudTh>
                     <MudTh>Name</MudTh>
                     <MudTh>Image</MudTh>
                     <MudTh>Requested By</MudTh>
@@ -94,8 +106,18 @@
                     <MudTh>Actions</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Id">@context.Id</MudTd>
                     <MudTd DataLabel="Brand">@context.Brand</MudTd>
+                    <MudTd DataLabel="PartNum">
+                        @context.PartNum 
+                        @if (context.Brand?.ToLower() == "lego")
+                        {
+                            <MudText Typo="Typo.caption"> 
+                            <MudLink Href="@($"https://www.bricklink.com/v2/catalog/catalogitem.page?P={context.PartNum}")" Target="_blank">
+                                Check auf Bricklink
+                            </MudLink>
+                            </MudText>
+                        }
+                    </MudTd>
                     <MudTd DataLabel="Name">@context.Name</MudTd>
                     <MudTd DataLabel="Image">
                         @{
@@ -108,8 +130,12 @@
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
                     <MudTd DataLabel="Status">@context.Status.ToString()</MudTd>
                     <MudTd DataLabel="Actions">
+                        
                         <MudButton Variant="Variant.Filled" Color="Color.Success"
-                            OnClick="() => ApproveNewItemRequest(context.Id)">Approve</MudButton>
+    OnClick="() => ApproveNewItemRequestWithDialog(context)">
+    Approve
+</MudButton>
+
                       <MudButton Variant="Variant.Filled" Color="Color.Error"
            OnClick="() => RejectNewItemRequestWithDialog(context.Id)">
     Reject
@@ -200,6 +226,72 @@
         StateHasChanged();
     }
 
+
+private async Task<string?> OpenApproveNewItemDialogAsync(string currentName)
+{
+    var parameters = new DialogParameters
+    {
+        ["CurrentName"] = currentName
+    };
+
+    var options = new DialogOptions
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true
+    };
+
+    var dialogRef = await DialogService.ShowAsync<ApproveNewItemRequestDialog>(
+        "Approve Item", parameters, options);
+
+    if (dialogRef?.Result is null)
+        return null;
+
+    var result = await dialogRef.Result;
+    if (result is null || result.Canceled)
+        return null;
+
+    var name = result.Data?.ToString();
+    return string.IsNullOrWhiteSpace(name) ? null : name.Trim();
+}
+
+private async Task<string?> OpenApproveItemNameDialogAsync(string currentName)
+{
+    var parameters = new DialogParameters
+    {
+        ["CurrentName"] = currentName
+    };
+
+    var options = new DialogOptions
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true
+    };
+
+    var dialogRef = await DialogService.ShowAsync<ApproveNewItemRequestDialog>(
+        "Approve Item", parameters, options);
+
+    if (dialogRef?.Result is null)
+        return null;
+
+    var result = await dialogRef.Result;
+    if (result is null || result.Canceled)
+        return null;
+
+    var name = result.Data?.ToString();
+    return string.IsNullOrWhiteSpace(name) ? null : name.Trim();
+}
+
+private async Task ApproveNewItemRequestWithDialog(Data.Entities.NewItemRequest req)
+{
+    var newName = await OpenApproveItemNameDialogAsync(req.Name ?? "");
+    if (newName is null) return; // cancel
+
+    await ApproveNewItemRequest(req.Id, newName);
+}
+
+
  private async Task<string?> OpenRejectReasonDialogAsync(string? defaultReason = null)
 {
     var parameters = new DialogParameters();
@@ -232,6 +324,39 @@
     var reason = result.Data?.ToString();
     return string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
 }
+
+private async Task RejectAllItemRequests()
+{
+    if (openItemRequests == null || !openItemRequests.Any())
+        return;
+
+    try
+    {
+        var token = await UserService.GetTokenAsync();
+        if (token == null)
+        {
+            NotificationService.Error("User token not found.");
+            return;
+        }
+
+        foreach (var request in openItemRequests)
+        {
+            await RequestService.RejectNewItemRequestAsync(
+                request.Id,
+                token,
+                "rejected by admin"
+            );
+        }
+
+        openItemRequests = await RequestService.GetOpenNewItemRequestsAsync();
+        NotificationService.Success("Alle Item Requests wurden abgelehnt.");
+    }
+    catch (Exception ex)
+    {
+        NotificationService.Error($"Fehler beim Ablehnen aller Item Requests: {ex.Message}");
+    }
+}
+
 
 
 
@@ -329,25 +454,28 @@ private async Task RejectMappingRequest(int requestId, string reason)
         }
     }
 
-    private async Task ApproveNewItemRequest(int requestId)
+   private async Task ApproveNewItemRequest(int requestId, string newName)
+{
+    try
     {
-        try
+        var token = await UserService.GetTokenAsync();
+        if (token == null)
         {
-            var token = await UserService.GetTokenAsync();
-            if (token == null)
-            {
-                NotificationService.Error("User token not found.");
-                return;
-            }
-            await RequestService.ApproveNewItemRequestAsync(requestId, token);
-            NotificationService.Success("new item request approved successfully.");
-            openItemRequests = await RequestService.GetOpenNewItemRequestsAsync();
+            NotificationService.Error("User token not found.");
+            return;
         }
-        catch (Exception ex)
-        {
-            NotificationService.Error($"Error approving request: {ex.Message}");
-        }
+
+        // token ist bei dir offenbar adminUserId
+        await RequestService.ApproveNewItemRequestAsync(requestId, token, newName);
+
+        NotificationService.Success("New item request approved successfully.");
+        openItemRequests = await RequestService.GetOpenNewItemRequestsAsync();
     }
+    catch (Exception ex)
+    {
+        NotificationService.Error($"Error approving request: {ex.Message}");
+    }
+}
 
     private async Task RejectNewItemRequestWithDialog(int requestId)
 {

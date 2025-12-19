@@ -509,7 +509,15 @@ else
             return;
 
         _saving = true;
-        LoadingService.Show("Saving wanted list...");
+        if (newListModel.UnmappedRows.Count > 0)
+        {
+            LoadingService.Show("Saving wanted list and inform admin about missing items...");
+
+        }
+        else
+        {
+            LoadingService.Show("Saving wanted list...");
+        }
 
         try
         {

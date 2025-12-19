@@ -13,22 +13,20 @@ namespace brickapp.Data.Services
     {
         private readonly IDbContextFactory<AppDbContext> _factory;
         private readonly UserService _userService;
+        private readonly ILogger<WantedListService> _logger;
 
         // Schnelles DTO für Overview (keine Includes nötig)
         public record WantedListSummary(int Id, string Name, string? Source, int ItemCount);
+        private readonly RebrickableApiService _rebrickableApi;
 
-        public WantedListService(IDbContextFactory<AppDbContext> factory, UserService userService)
+        public WantedListService(IDbContextFactory<AppDbContext> factory, UserService userService, RebrickableApiService rebrickableApi, ILogger<WantedListService> logger)
         {
             _factory = factory;
             _userService = userService;
+            _rebrickableApi = rebrickableApi;
+            _logger = logger;
         }
 
-        /// <summary>
-        /// Einheitliche Normalisierung von Source/Format Strings.
-        /// - trim + lower
-        /// - "csv"/"xml" entfernen
-        /// - bekannte Aliase ("bricklink csv", "rebrickable xml", etc.) vereinheitlichen
-        /// </summary>
         public static string NormalizeSource(string? source)
         {
             if (string.IsNullOrWhiteSpace(source))
@@ -180,74 +178,127 @@ namespace brickapp.Data.Services
             return true;
         }
 
-        public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
+    public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
+{
+    var user = await _userService.GetCurrentUserAsync();
+    if (user == null) return 0;
+
+    await using var db = await _factory.CreateDbContextAsync();
+
+    // 1. Validierungs-Caches (IDs) laden für Performance
+    var validBrickIds = await db.MappedBricks.AsNoTracking().Select(b => b.Id).ToHashSetAsync();
+    var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
+
+    // 2. Mapped Items deduplizieren und validieren
+    var groupedMapped = (model.Items ?? new List<NewWantedListItemModel>())
+        .Where(i => i.MappedBrickId > 0 && i.ColorId > 0 && i.Quantity > 0)
+        .GroupBy(i => (i.MappedBrickId, i.ColorId))
+        .Select(g => new NewWantedListItemModel
         {
-            var user = await _userService.GetCurrentUserAsync();
-            if (user == null) return 0;
+            MappedBrickId = g.Key.MappedBrickId,
+            ColorId = g.Key.ColorId,
+            Quantity = g.Sum(x => x.Quantity)
+        })
+        .ToList();
 
-            await using var db = await _factory.CreateDbContextAsync();
+    var validItems = groupedMapped
+        .Where(i => validBrickIds.Contains(i.MappedBrickId) && validColorIds.Contains(i.ColorId))
+        .ToList();
 
-            // Validierungs-Caches (IDs)
-            var validBrickIds = await db.MappedBricks.AsNoTracking().Select(b => b.Id).ToHashSetAsync();
-            var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
+    // 3. WantedList Objekt initialisieren
+    var wantedList = new WantedList
+    {
+        Name = model.Name,
+        AppUserId = user.Id.ToString(),
+        Source = NormalizeSource(model.Source),
+        Items = new List<WantedListItem>(),
+        MissingItems = new List<MissingItem>()
+    };
 
-            // Items deduplizieren
-            var groupedMapped = (model.Items ?? new List<NewWantedListItemModel>())
-                .Where(i => i.MappedBrickId > 0 && i.ColorId > 0 && i.Quantity > 0)
-                .GroupBy(i => (i.MappedBrickId, i.ColorId))
-                .Select(g => new NewWantedListItemModel
+    // 4. Validierte Items zur Liste hinzufügen
+    foreach (var item in validItems)
+    {
+        wantedList.Items.Add(new WantedListItem
+        {
+            MappedBrickId = item.MappedBrickId,
+            BrickColorId = item.ColorId,
+            Quantity = item.Quantity
+        });
+    }
+
+    // 5. Unmapped Rows verarbeiten: MissingItems & NewItemRequests
+    if (model.UnmappedRows != null && model.UnmappedRows.Any())
+    {
+        // A) NewItemRequests erstellen (Dedupliziert nach PartNum)
+        var distinctPartNums = model.UnmappedRows
+            .Where(r => !string.IsNullOrEmpty(r.PartNum))
+            .Select(r => r.PartNum!)
+            .Distinct()
+            .ToList();
+
+        foreach (var partNum in distinctPartNums)
+        {
+            // Datenbank-Check: Existiert bereits ein Request für dieses LEGO Teil?
+            // Wir ignorieren Rejected Requests, damit ein neuer Versuch gestartet werden kann.
+            bool requestExists = await db.NewItemRequests
+                .AnyAsync(r => r.PartNum == partNum 
+                            && r.Brand == "Lego" 
+                            && r.Status != NewItemRequestStatus.Rejected
+                            && r.Status != NewItemRequestStatus.Pending);
+
+            if (!requestExists)
+            {
+                // Hier greift nun die verbesserte API-Logik (Direkt-Check -> Suche)
+                // Beispiel: User sendet "3068", API findet "3068b" und liefert den Namen
+                var officialName = await _rebrickableApi.GetLegoItemNameByPartNumber(partNum);
+
+                // Nur erstellen, wenn ein offizieller Name gefunden wurde
+                if (!string.IsNullOrWhiteSpace(officialName))
                 {
-                    MappedBrickId = g.Key.MappedBrickId,
-                    ColorId = g.Key.ColorId,
-                    Quantity = g.Sum(x => x.Quantity)
-                })
-                .ToList();
-
-            // Gültige Items filtern
-            var valid = groupedMapped
-                .Where(i => validBrickIds.Contains(i.MappedBrickId) && validColorIds.Contains(i.ColorId))
-                .ToList();
-
-            var wantedList = new WantedList
-            {
-                Name = model.Name,
-                AppUserId = user.Id.ToString(),
-                Source = NormalizeSource(model.Source),
-                Items = new List<WantedListItem>(),
-                MissingItems = new List<MissingItem>()
-            };
-
-            // Validierte Mapped Items hinzufügen
-            foreach (var item in valid)
-            {
-                wantedList.Items.Add(new WantedListItem
-                {
-                    MappedBrickId = item.MappedBrickId,
-                    BrickColorId = item.ColorId,
-                    Quantity = item.Quantity
-                });
-            }
-
-            // Missing Items mappen & deduplizieren
-            if (model.UnmappedRows != null && model.UnmappedRows.Any())
-            {
-                wantedList.MissingItems = model.UnmappedRows
-                    .GroupBy(u => new { u.PartNum, u.ColorId })
-                    .Select(g => new MissingItem
+                    var newRequest = new NewItemRequest
                     {
-                        ExternalPartNum = g.Key.PartNum,
-                        ExternalColorId = g.Key.ColorId,
-                        Quantity = g.Sum(x => x.Quantity)
-                    })
-                    .ToList();
+                        Uuid = Guid.NewGuid().ToString(),
+                        Brand = "Lego",
+                        PartNum = partNum, // Wir speichern die ID, die der User geliefert hat
+                        Name = officialName,
+                        RequestedByUserId = user.Uuid,
+                        CreatedAt = DateTime.UtcNow,
+                        Status = NewItemRequestStatus.Pending
+                    };
+
+                    db.NewItemRequests.Add(newRequest);
+                    _logger.LogInformation("✅ NewItemRequest für {PartNum} ({Name}) erstellt.", partNum, officialName);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Kein offizieller Name für {PartNum} gefunden. Mapping-Request übersprungen.", partNum);
+                }
             }
-
-            db.WantedLists.Add(wantedList);
-            await db.SaveChangesAsync();
-
-            return wantedList.Id;
+            else 
+            {
+                _logger.LogInformation("ℹ️ Mapping-Request für {PartNum} existiert bereits oder ist genehmigt.", partNum);
+            }
         }
 
+        // B) MissingItems für die WantedList erstellen (Dedupliziert nach PartNum & Farbe)
+        // Das passiert immer, damit der User in seiner Liste sieht, was fehlt.
+        wantedList.MissingItems = model.UnmappedRows
+            .GroupBy(u => new { u.PartNum, u.ColorId })
+            .Select(g => new MissingItem
+            {
+                ExternalPartNum = g.Key.PartNum,
+                ExternalColorId = g.Key.ColorId,
+                Quantity = g.Sum(x => x.Quantity)
+            })
+            .ToList();
+    }
+
+    // 6. Alles in einem Rutsch speichern (Atomarität)
+    db.WantedLists.Add(wantedList);
+    await db.SaveChangesAsync();
+
+    return wantedList.Id;
+}
         public async Task<bool> DeleteWantedListItemAsync(int wantedListItemId)
         {
             var user = await _userService.GetCurrentUserAsync();
