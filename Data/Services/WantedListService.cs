@@ -119,74 +119,79 @@ namespace brickapp.Data.Services
             await db.SaveChangesAsync();
             return true;
         }
+public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
+{
+    var user = await _userService.GetCurrentUserAsync();
+    if (user == null) return 0;
 
-        public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
+    await using var db = await _factory.CreateDbContextAsync();
+
+    // 1. Validierungs-Caches
+    var validBrickIds = await db.MappedBricks.AsNoTracking().Select(b => b.Id).ToHashSetAsync();
+    var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
+
+    // 2. Mapped Items deduplizieren (hast du bereits)
+    var groupedMapped = (model.Items ?? new List<NewWantedListItemModel>())
+        .Where(i => i.MappedBrickId > 0 && i.ColorId > 0 && i.Quantity > 0)
+        .GroupBy(i => (i.MappedBrickId, i.ColorId))
+        .Select(g => new NewWantedListItemModel
         {
-            var user = await _userService.GetCurrentUserAsync();
-            if (user == null)
-                return 0;
+            MappedBrickId = g.Key.MappedBrickId,
+            ColorId = g.Key.ColorId,
+            Quantity = g.Sum(x => x.Quantity)
+        })
+        .ToList();
 
-            await using var db = await _factory.CreateDbContextAsync();
+    // 3. Gültige Items filtern
+    var valid = groupedMapped
+        .Where(i => validBrickIds.Contains(i.MappedBrickId) && validColorIds.Contains(i.ColorId))
+        .ToList();
 
-            // 1. Validierungs-Caches
-            var validBrickIds = await db.MappedBricks.AsNoTracking().Select(b => b.Id).ToHashSetAsync();
-            var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
+    // 4. WantedList Objekt erstellen
+    var wantedList = new WantedList
+    {
+        Name = model.Name,
+        AppUserId = user.Id.ToString(),
+        // NEU: Source hier zuweisen!
+        Source = (model.Source ?? "manual")
+            .ToLower()
+            .Replace("csv", "")
+            .Replace("xml", "")
+            .Trim(),
+        Items = new List<WantedListItem>(),
+        MissingItems = new List<MissingItem>() 
+    };
 
-            // 2. Mapped Items deduplizieren
-            var grouped = (model.Items ?? new List<NewWantedListItemModel>())
-                .Where(i => i.MappedBrickId > 0 && i.ColorId > 0 && i.Quantity > 0)
-                .GroupBy(i => (i.MappedBrickId, i.ColorId))
-                .Select(g => new NewWantedListItemModel
-                {
-                    MappedBrickId = g.Key.MappedBrickId,
-                    ColorId = g.Key.ColorId,
-                    Quantity = g.Sum(x => x.Quantity)
-                })
-                .ToList();
+    // 5. Validierte Mapped Items hinzufügen
+    foreach (var item in valid)
+    {
+        wantedList.Items.Add(new WantedListItem
+        {
+            MappedBrickId = item.MappedBrickId,
+            BrickColorId = item.ColorId,
+            Quantity = item.Quantity
+        });
+    }
 
-            // 3. Gültige von ungültigen Items trennen
-            var valid = grouped
-                .Where(i => validBrickIds.Contains(i.MappedBrickId) && validColorIds.Contains(i.ColorId))
-                .ToList();
-
-                // 4. WantedList Objekt erstellen
-            var wantedList = new WantedList
+    // 6. Missing Items im Service mappen & deduplizieren
+    if (model.UnmappedRows != null && model.UnmappedRows.Any())
+    {
+        wantedList.MissingItems = model.UnmappedRows
+            .GroupBy(u => new { u.PartNum, u.ColorId }) // Gleiche Teile zusammenfassen
+            .Select(g => new MissingItem
             {
-                Name = model.Name,
-                AppUserId = user.Id.ToString(),
-                Items = new List<WantedListItem>(),
-                // Initialisiere die Liste für die fehlenden Items
-                MissingItems = new List<MissingItem>() 
-            };
+                ExternalPartNum = g.Key.PartNum,
+                ExternalColorId = g.Key.ColorId,
+                Quantity = g.Sum(x => x.Quantity)
+            }).ToList();
+    }
 
-            // 5. Validierte Mapped Items hinzufügen
-            foreach (var item in valid)
-            {
-                wantedList.Items.Add(new WantedListItem
-                {
-                    MappedBrickId = item.MappedBrickId,
-                    BrickColorId = item.ColorId,
-                    Quantity = item.Quantity
-                });
-            }
+    // 7. In Datenbank speichern
+    db.WantedLists.Add(wantedList);
+    await db.SaveChangesAsync();
 
-           // 6. Missing Items im Service mappen
-            if (model.UnmappedRows != null && model.UnmappedRows.Any())
-            {
-                wantedList.MissingItems = model.UnmappedRows.Select(u => new MissingItem
-                {
-                    ExternalPartNum = u.PartNum, //
-                    ExternalColorId = u.ColorId,  //
-                    Quantity = u.Quantity        //
-                }).ToList();
-            }
-
-            // 7. In Datenbank speichern
-            db.WantedLists.Add(wantedList);
-            await db.SaveChangesAsync();
-
-            return wantedList.Id;
-        }
+    return wantedList.Id;
+}
 
 public async Task<bool> DeleteWantedListItemAsync(int wantedListItemId)
 {

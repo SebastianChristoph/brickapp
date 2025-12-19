@@ -86,6 +86,7 @@ else
                 <span style="cursor:pointer; color: #1976d2; text-decoration: underline;" @onclick="() => GoToDetails(wl.Id)">
                     @wl.Name
                 </span>
+                 Added from: @wl.Source
             </MudTd>
             <MudTd>@wl.Items.Count</MudTd>
             <MudTd>
@@ -475,9 +476,10 @@ else
         // Wir weisen die Liste der ungemappten Zeilen direkt dem Model zu.
         // Es findet hier noch keine Umwandlung in Datenbank-Entities statt.
         newListModel.UnmappedRows = result.Unmapped;
+        newListModel.Source = result.AppliedFormat.ToString();
 
         return Task.CompletedTask;
-    }
+    }   
 
     private void AddUploadItemsToNewList_FromComponent(List<ParsedPart> parts)
     {

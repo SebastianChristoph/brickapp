@@ -152,6 +152,10 @@
     private string newMockComment = string.Empty;
     private string newMockWebSource = string.Empty;
     private List<MockItem> uploadedItems = new();
+        // NEU: Liste für ungemappte Teile
+private List<UnmappedRow> unmappedRows = new(); 
+// NEU: Source für die Farblogik
+private string currentSource = string.Empty;
     private bool fileReadyForUpload = false;
     private IBrowserFile? uploadedImage = null;
     private string imagePreviewUrl = string.Empty;
@@ -181,7 +185,7 @@
 
 private Task OnMocParsed(ParseResult<ParsedPart> result)
 {
-    // Hier baust du aus ParsedPart deine MockItems
+    // 1. Mapped Items wie bisher
     uploadedItems = result.MappedItems
         .Select(p => new MockItem
         {
@@ -192,13 +196,18 @@ private Task OnMocParsed(ParseResult<ParsedPart> result)
         })
         .ToList();
 
-    // Wenn du vorher Unmapped/Invalid etc. in der Page angezeigt hast:
-    //_lastParseResult = result; // optional für UI
+    // 2. Unmapped Rows speichern
+    unmappedRows = result.Unmapped ?? new();
+
+    // 3. Source merken
+    currentSource = result.AppliedFormat.ToString();
+
+    // --- FIX: Button aktivieren ---
+    // Wir aktivieren den Button, wenn entweder gemappte ODER ungemappte Teile gefunden wurden
+    fileReadyForUpload = uploadedItems.Any() || unmappedRows.Any();
 
     return Task.CompletedTask;
 }
-
-
     private async Task<ParseResult<MockItem>> ParseMocUploadAsync(string content, PartsUploadFormat format)
     {
         var (rows, invalidRows, invalidColorIdsFromFile) = format switch
@@ -342,20 +351,44 @@ private Task OnMocParsed(ParseResult<ParsedPart> result)
             var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
             var userUuid = await UserService.GetTokenAsync();
             
+            if (string.IsNullOrEmpty(userUuid)) {
+                NotificationService.Success("User not authenticated.");
+                return;
+            }
+            
             var mock = new Mock { 
-                Name = newMockName, 
-                Comment = newMockComment, 
-                WebSource = newMockWebSource, 
-                UserUuid = userUuid, 
-                MockType = "Upload" 
-            };
+            Name = newMockName, 
+            Comment = newMockComment, 
+            WebSource = newMockWebSource, 
+            UserUuid = userUuid, 
+            MockType =  currentSource.ToLower()
+            .Replace("csv", "")
+            .Replace("xml", "")
+            .Trim(),
+            // WICHTIG: Source speichern (musst du evtl. in Mock.cs Entity noch hinzufügen!)
+            // MockSource = currentSource 
+        };
             db.Mocks.Add(mock);
             await db.SaveChangesAsync();
 
-            foreach (var item in uploadedItems) {
-                item.MockId = mock.Id;
-                db.MockItems.Add(item);
-            }
+           // 1. Mapped Items hinzufügen
+        foreach (var item in uploadedItems) {
+            item.MockId = mock.Id; // Wird von EF gehandelt
+            mock.Items.Add(item);
+        }
+
+        // 2. NEU: Missing Items transformieren und hinzufügen
+        if (unmappedRows.Any())
+        {
+            mock.MissingItems = unmappedRows
+                .GroupBy(u => new { u.PartNum, u.ColorId })
+                .Select(g => new MissingItem
+                {
+                    ExternalPartNum = g.Key.PartNum,
+                    ExternalColorId = g.Key.ColorId,
+                    Quantity = g.Sum(x => x.Quantity)
+                }).ToList();
+        }
 
             if (uploadedImage != null) {
                 await ImageService.SaveMockImageAsync(uploadedImage, userUuid, mock.Id);
@@ -363,8 +396,9 @@ private Task OnMocParsed(ParseResult<ParsedPart> result)
 
             await db.SaveChangesAsync();
             NotificationService.Success("MOC created!");
-            newMockName = ""; uploadedItems.Clear(); fileReadyForUpload = false;
-            await LoadMocks();
+            // --- NAVIGATION HINZUFÜGEN ---
+        // Wir leiten direkt auf die Detailseite weiter
+        Nav.NavigateTo($"/mockdetail/{mock.Id}");
         } catch (Exception ex) { SetError(ex, "Create"); }
         finally { LoadingService.Hide(); _loading = false; }
     }
@@ -377,7 +411,65 @@ private Task OnMocParsed(ParseResult<ParsedPart> result)
         await stream.CopyToAsync(ms);
         imagePreviewUrl = $"data:{e.File.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
     }
+private async Task DeleteMock(int mockId)
+    {
+        if (_loading) return;
 
-    private async Task DeleteMock(int id) { /* Bestehende Logik ... */ }
-    private async Task DeleteAllMocks() { /* Bestehende Logik ... */ }
+        try
+        {
+            var userUuid = await UserService.GetTokenAsync();
+            if (string.IsNullOrEmpty(userUuid))
+                return;
+
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+
+            var mock = db.Mocks.FirstOrDefault(m => m.Id == mockId && m.UserUuid == userUuid);
+            if (mock != null)
+            {
+                await ImageService.DeleteMockImageAsync(mock);
+                db.Mocks.Remove(mock);
+                db.SaveChanges();
+            }
+
+            await LoadMocks();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex, "DeleteMock");
+            NotificationService.Error(_error ?? "DeleteMock failed.");
+        }
+    }
+
+    private async Task DeleteAllMocks()
+    {
+        if (_loading) return;
+
+        try
+        {
+            var userUuid = await UserService.GetTokenAsync();
+            if (string.IsNullOrEmpty(userUuid))
+                return;
+
+            using var scope = ServiceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+
+            var mocks = db.Mocks.Where(m => m.UserUuid == userUuid).ToList();
+            if (mocks.Any())
+            {
+                foreach (var mock in mocks)
+                    await ImageService.DeleteMockImageAsync(mock);
+
+                db.Mocks.RemoveRange(mocks);
+                db.SaveChanges();
+            }
+
+            await LoadMocks();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex, "DeleteAllMocks");
+            NotificationService.Error(_error ?? "DeleteAllMocks failed.");
+        }
+    }
 }

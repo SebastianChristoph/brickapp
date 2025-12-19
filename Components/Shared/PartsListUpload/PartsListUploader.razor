@@ -248,6 +248,7 @@ else
             }
 
             var parsed = await UploadService.ParseAsync(content, _selectedFormat);
+            parsed.AppliedFormat = _selectedFormat;
             _result = parsed;
 
             if (!string.IsNullOrWhiteSpace(parsed.FatalError))

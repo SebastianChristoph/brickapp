@@ -19,5 +19,6 @@ namespace brickapp.Components.Shared.PartsListUpload
         public HashSet<int> InvalidColorIds { get; set; } = new();
 
         public string? FatalError { get; set; }
+        public PartsUploadFormat AppliedFormat { get; set; } // NEU
     }
 }

@@ -164,6 +164,19 @@ public class AppDbContext : DbContext
             .HasForeignKey(us => us.ItemSetId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<MissingItem>()
+        .HasOne<WantedList>()
+        .WithMany(w => w.MissingItems)
+        .HasForeignKey("WantedListId") // Schatten-Eigenschaft, die EF generiert hat
+        .OnDelete(DeleteBehavior.Cascade);
+        
+    // Das Gleiche für Mock, falls gewünscht
+    modelBuilder.Entity<MissingItem>()
+        .HasOne<Mock>()
+        .WithMany(m => m.MissingItems)
+        .HasForeignKey("MockId")
+        .OnDelete(DeleteBehavior.Cascade);
+
         // ----------------- Minimal-Seed: Admin-User -----------------
 
         var adminUuid = Environment.GetEnvironmentVariable("ADMIN_UUID") ?? "111";

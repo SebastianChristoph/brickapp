@@ -223,6 +223,58 @@ else
         </div>
     }
 
+    
+    @if (_mock.MissingItems != null && _mock.MissingItems.Any())
+{
+    <MudText Typo="Typo.h5" Class="mt-8 mb-4"> Unassigned parts (Missing Mappings)</MudText>
+    <MudAlert Severity="Severity.Warning" Class="mb-4">
+            The following parts were found in the import file but could not be matched to any brick in the database.
+        </MudAlert>
+
+    <MudTable Items="@_mock.MissingItems" Dense="true" Hover="true" Elevation="1">
+        <HeaderContent>
+            <MudTh>External PartNum</MudTh>
+            <MudTh>External Color ID</MudTh>
+            <MudTh>Quantity</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="PartNum">@context.ExternalPartNum</MudTd>
+           <MudTd DataLabel="Color ID">
+    @{
+        string? hex = null;
+        // Wir speichern die Source in einer lokalen Variable für bessere Lesbarkeit
+        var source = _mock.MockType?.ToLower();
+
+        if (source == "bricklink")
+        {
+            // Expliziter Aufruf mit dem nullable int?
+            hex = ColorIdMappingHelper.GetColorRgbWithBricklinkColorId(context.ExternalColorId);
+        }
+        else if (source == "rebrickable")
+        {
+            hex = ColorIdMappingHelper.GetColorRgbWithRebrickableColorId(context.ExternalColorId);
+        }
+        else{
+              hex = ColorIdMappingHelper.GetColorRgbWithRebrickableColorId(context.ExternalColorId);
+        }
+
+        var displayHex = hex ?? "#eeeeee";
+    }
+
+    <div style="display:flex; align-items:center; gap:8px;">
+        <div style="width:14px; height:14px; border-radius:50%; background-color:@displayHex; border:1px solid #ccc;"></div>
+        <MudText Typo="Typo.body2">
+            @_mock.MockType ColorId: @context.ExternalColorId 
+            <span style="color:gray; font-size: 0.8rem;">(@displayHex)</span>
+        </MudText>
+    </div>
+</MudTd>
+            <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+
     <MudButton StartIcon="@Icons.Material.Filled.ArrowBack"
                Variant="Variant.Outlined"
                Class="mt-8"
@@ -287,13 +339,14 @@ else
         {
             using var scope = ServiceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-
-            _mock = db.Mocks
-                .Include(m => m.Items)
-                    .ThenInclude(i => i.MappedBrick)
-                .Include(m => m.Items)
-                    .ThenInclude(i => i.BrickColor)
-                .FirstOrDefault(m => m.Id == mockId);
+_mock = db.Mocks
+    .Include(m => m.Items)
+        .ThenInclude(i => i.MappedBrick)
+    .Include(m => m.Items)
+        .ThenInclude(i => i.BrickColor)
+    // NEU: Die fehlenden Teile direkt vom Mock aus laden
+    .Include(m => m.MissingItems) 
+    .FirstOrDefault(m => m.Id == mockId);
 
             _mockImageUrl = _mock != null
                 ? ImageService.GetMockImagePath(_mock)
@@ -384,5 +437,6 @@ else
         }
     }
 
-    private void GoBack() => Nav.NavigateTo("/mymocks");
+    private void GoBack() => Nav.NavigateTo("/mymocks", forceLoad: true);
+    
 }

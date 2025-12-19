@@ -10,6 +10,7 @@
 @inject brickapp.Data.Services.ImageService ImageService
 @inject brickapp.Data.Services.NotificationService NotificationService
 
+
 <PageTitle>Wanted List Details</PageTitle>
 
 @if (_loading)
@@ -30,7 +31,7 @@ else
     <MudPaper Class="pa-4 mb-4">
         <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
             <MudStack Spacing="1">
-                <MudText Typo="Typo.h4">@_wantedList.Name</MudText>
+                <MudText Typo="Typo.h4">@_wantedList.Name , Source @_wantedList.Source</MudText>
                 <MudText Typo="Typo.subtitle1" Color="Color.Secondary">Wanted List</MudText>
             </MudStack>
 
@@ -158,24 +159,51 @@ else
 
     @if (_wantedList.MissingItems != null && _wantedList.MissingItems.Any())
 {
-    <MudText Typo="Typo.h5" Class="mt-8 mb-4">Nicht zugeordnete Teile (Missing Mappings)</MudText>
+    <MudText Typo="Typo.h5" Class="mt-8 mb-4"> Unassigned parts (Missing Mappings)</MudText>
     <MudAlert Severity="Severity.Warning" Class="mb-4">
-        Die folgenden Teile wurden in der Import-Datei gefunden, konnten aber keinem Stein in der Datenbank zugeordnet werden.
-    </MudAlert>
+            The following parts were found in the import file but could not be matched to any brick in the database.
+        </MudAlert>
 
     <MudTable Items="@_wantedList.MissingItems" Dense="true" Hover="true" Elevation="1">
         <HeaderContent>
             <MudTh>External PartNum</MudTh>
             <MudTh>External Color ID</MudTh>
-            <MudTh>Vorschau Farbe</MudTh>
-            <MudTh>Menge</MudTh>
+            <MudTh>Quantity</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="PartNum">@context.ExternalPartNum</MudTd>
-            <MudTd DataLabel="ColorId">@context.ExternalColorId</MudTd>
-            <MudTd DataLabel="ColorPreview">
-                <div style="width: 20px; height: 20px; border-radius: 4px; border: 1px solid #ccc; background-color: @GetMissingColorHex(context.ExternalColorId);"></div>
-            </MudTd>
+           
+          <MudTd DataLabel="Color ID">
+    @{
+        string? hex = null;
+        // Wir speichern die Source in einer lokalen Variable für bessere Lesbarkeit
+        var source = _wantedList.Source?.ToLower();
+
+        if (source == "bricklink")
+        {
+            // Expliziter Aufruf mit dem nullable int?
+            hex = ColorIdMappingHelper.GetColorRgbWithBricklinkColorId(context.ExternalColorId);
+        }
+        else if (source == "rebrickable")
+        {
+            hex = ColorIdMappingHelper.GetColorRgbWithRebrickableColorId(context.ExternalColorId);
+        }
+        else{
+              hex = ColorIdMappingHelper.GetColorRgbWithRebrickableColorId(context.ExternalColorId);
+        }
+
+        var displayHex = hex ?? "#eeeeee";
+    }
+
+    <div style="display:flex; align-items:center; gap:8px;">
+        <div style="width:14px; height:14px; border-radius:50%; background-color:@displayHex; border:1px solid #ccc;"></div>
+        <MudText Typo="Typo.body2">
+            @_wantedList.Source ColorId: @context.ExternalColorId 
+            <span style="color:gray; font-size: 0.8rem;">(@displayHex)</span>
+        </MudText>
+    </div>
+</MudTd>
+
             <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
         </RowTemplate>
     </MudTable>
@@ -217,24 +245,5 @@ else
     out var brandDict) ? brandDict.Values.Sum() : 0;
     private void GoBack() => Nav.NavigateTo("/mywantedlists");
 
-    private string GetMissingColorHex(int? externalId)
-    {
-        // 1. Prüfen, ob die ID vorhanden ist
-        if (!externalId.HasValue) return "#eeeeee";
 
-        // 2. Den Namen aus deiner BricklinkColorMap holen
-        var colorName = Helpers.BricklinkColorMap.GetBrickColorName(externalId.Value);
-
-        if (!string.IsNullOrEmpty(colorName))
-        {
-            // 3. Den Hex-Wert aus dem BrickColorHelper holen
-            var hex = Helpers.BrickColorHelper.GetHexForColor(colorName);
-            if (!string.IsNullOrEmpty(hex))
-            {
-                return hex;
-            }
-        }
-
-        return "#eeeeee"; // Fallback
-    }
 }
