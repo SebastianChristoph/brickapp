@@ -120,7 +120,6 @@ namespace brickapp.Data.Services
             return true;
         }
 
-
         public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
         {
             var user = await _userService.GetCurrentUserAsync();
@@ -150,13 +149,14 @@ namespace brickapp.Data.Services
                 .Where(i => validBrickIds.Contains(i.MappedBrickId) && validColorIds.Contains(i.ColorId))
                 .ToList();
 
-            // 4. WantedList Objekt erstellen
+                // 4. WantedList Objekt erstellen
             var wantedList = new WantedList
             {
                 Name = model.Name,
                 AppUserId = user.Id.ToString(),
                 Items = new List<WantedListItem>(),
-             
+                // Initialisiere die Liste für die fehlenden Items
+                MissingItems = new List<MissingItem>() 
             };
 
             // 5. Validierte Mapped Items hinzufügen
@@ -170,7 +170,17 @@ namespace brickapp.Data.Services
                 });
             }
 
-        
+           // 6. Missing Items im Service mappen
+            if (model.UnmappedRows != null && model.UnmappedRows.Any())
+            {
+                wantedList.MissingItems = model.UnmappedRows.Select(u => new MissingItem
+                {
+                    ExternalPartNum = u.PartNum, //
+                    ExternalColorId = u.ColorId,  //
+                    Quantity = u.Quantity        //
+                }).ToList();
+            }
+
             // 7. In Datenbank speichern
             db.WantedLists.Add(wantedList);
             await db.SaveChangesAsync();
@@ -205,12 +215,13 @@ public async Task<bool> DeleteWantedListItemAsync(int wantedListItemId)
 public async Task<WantedList?> GetWantedListByIdAsync(int wantedListId)
 {
     await using var db = await _factory.CreateDbContextAsync();
-
-    return await db.WantedLists
+return await db.WantedLists
         .Include(w => w.Items)
             .ThenInclude(i => i.MappedBrick)
         .Include(w => w.Items)
             .ThenInclude(i => i.BrickColor)
+        // KORREKTUR: MissingItems hängen direkt an der WantedList
+        .Include(w => w.MissingItems) 
         .FirstOrDefaultAsync(w => w.Id == wantedListId);
 }
 

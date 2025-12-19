@@ -156,6 +156,31 @@ else
         </RowTemplate>
     </MudTable>
 
+    @if (_wantedList.MissingItems != null && _wantedList.MissingItems.Any())
+{
+    <MudText Typo="Typo.h5" Class="mt-8 mb-4">Nicht zugeordnete Teile (Missing Mappings)</MudText>
+    <MudAlert Severity="Severity.Warning" Class="mb-4">
+        Die folgenden Teile wurden in der Import-Datei gefunden, konnten aber keinem Stein in der Datenbank zugeordnet werden.
+    </MudAlert>
+
+    <MudTable Items="@_wantedList.MissingItems" Dense="true" Hover="true" Elevation="1">
+        <HeaderContent>
+            <MudTh>External PartNum</MudTh>
+            <MudTh>External Color ID</MudTh>
+            <MudTh>Vorschau Farbe</MudTh>
+            <MudTh>Menge</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="PartNum">@context.ExternalPartNum</MudTd>
+            <MudTd DataLabel="ColorId">@context.ExternalColorId</MudTd>
+            <MudTd DataLabel="ColorPreview">
+                <div style="width: 20px; height: 20px; border-radius: 4px; border: 1px solid #ccc; background-color: @GetMissingColorHex(context.ExternalColorId);"></div>
+            </MudTd>
+            <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
 
     <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-8" Variant="Variant.Outlined" OnClick="GoBack">Back
     </MudButton>

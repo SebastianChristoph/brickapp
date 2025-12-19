@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+using brickapp.Components.Shared.PartsListUpload;
+
 
 namespace brickapp.Data.DTOs
 {
@@ -6,6 +7,8 @@ namespace brickapp.Data.DTOs
     {
         public string Name { get; set; } = string.Empty;
         public List<NewWantedListItemModel> Items { get; set; } = new();
+        public List<UnmappedRow> UnmappedRows { get; set; } = new();
+        public string Source { get; set; } = string.Empty; // z.B. manual, import, ...
       
     }
 

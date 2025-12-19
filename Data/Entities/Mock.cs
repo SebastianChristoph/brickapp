@@ -19,5 +19,6 @@ namespace brickapp.Data.Entities
         [ForeignKey("UserUuid")]
         public AppUser User { get; set; } = default!;
         public List<MockItem> Items { get; set; } = new();
+        public List<MissingItem> MissingItems { get; set; } = new();
     }
 }

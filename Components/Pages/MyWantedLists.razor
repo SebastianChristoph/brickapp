@@ -472,17 +472,10 @@ else
 
     private Task OnUploadParsed(ParseResult<ParsedPart> result)
     {
-        // MissingItems aus Unmapped für den späteren Save übernehmen (WantedListService nutzt das)
-        // Hinweis: Falls dein DTO-Typ anders heißt, hier den Typ/Property-Namen anpassen.
-/*        newListModel.MissingItems = result.Unmapped
-            .Select(u => new NewWantedListMissingItemModel
-            {
-                ExternalPartNum = u.PartNum,
-                ExternalColorId = u.ColorId ?? 0,
-                Quantity = u.Quantity
-            })
-            .ToList();
-*/
+        // Wir weisen die Liste der ungemappten Zeilen direkt dem Model zu.
+        // Es findet hier noch keine Umwandlung in Datenbank-Entities statt.
+        newListModel.UnmappedRows = result.Unmapped;
+
         return Task.CompletedTask;
     }
 

@@ -8,6 +8,8 @@ namespace brickapp.Data.Entities
         public string Name { get; set; } = string.Empty;
         public string? AppUserId { get; set; }
         public List<WantedListItem> Items { get; set; } = new();
+        public List<MissingItem> MissingItems { get; set; } = new();
+        public string Source { get; set; } = string.Empty; // z.B. manual, import, ...
     }
 
     public class WantedListItem
