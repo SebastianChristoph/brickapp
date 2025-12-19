@@ -1,0 +1,56 @@
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-2">Reject Request</MudText>
+
+        <MudTextField @bind-Value="_reason"
+                      Label="Reason for rejection"
+                      Variant="Variant.Outlined"
+                      Lines="4"
+                      AutoGrow="true"
+                      Required="true"
+                      Immediate="true" />
+
+        <MudText Typo="Typo.caption" Class="mt-2">
+            Please provide a brief, clear reason for rejection. This reason will be communicated to the user who submitted the request.
+        </MudText>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Color="Color.Secondary" Variant="Variant.Text" OnClick="Cancel">
+            Cancel
+        </MudButton>
+
+        <MudButton Color="Color.Error"
+                   Variant="Variant.Filled"
+                   Disabled="@string.IsNullOrWhiteSpace(_reason)"
+                   OnClick="Reject">
+            Reject
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    // optional: falls du einen Default-Grund setzen willst (z.B. vom Call-Site)
+    [Parameter] public string? DefaultReason { get; set; }
+
+    private string _reason = "";
+
+    protected override void OnInitialized()
+    {
+        _reason = DefaultReason ?? "";
+    }
+
+    private void Cancel(){
+           MudDialog?.Close(DialogResult.Cancel());
+    }
+
+    private void Reject()
+    {
+        // gibt den Text an die aufrufende Seite zurück
+        MudDialog?.Close(DialogResult.Ok(_reason.Trim()));
+    }
+}

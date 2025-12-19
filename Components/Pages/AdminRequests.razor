@@ -1,6 +1,7 @@
 @page "/admin-requests"
 @using Microsoft.AspNetCore.Components
 @using brickapp.Data.Services
+@using brickapp.Components.Dialogs
 
 <PageTitle>Admin Requests</PageTitle>
 
@@ -61,8 +62,10 @@
         <MudTd DataLabel="Actions">
             <MudButton Variant="Variant.Filled" Color="Color.Success"
                        OnClick="() => ApproveMappingRequest(context.Id)">Approve</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Error"
-                       OnClick="() => RejectMappingRequest(context.Id)">Reject</MudButton>
+           <MudButton Variant="Variant.Filled" Color="Color.Error"
+           OnClick="() => RejectMappingRequestWithDialog(context.Id)">
+    Reject
+</MudButton>
         </MudTd>
     </RowTemplate>
 </MudTable>
@@ -107,8 +110,10 @@
                     <MudTd DataLabel="Actions">
                         <MudButton Variant="Variant.Filled" Color="Color.Success"
                             OnClick="() => ApproveNewItemRequest(context.Id)">Approve</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Error"
-                            OnClick="() => RejectNewItemRequest(context.Id)">Reject</MudButton>
+                      <MudButton Variant="Variant.Filled" Color="Color.Error"
+           OnClick="() => RejectNewItemRequestWithDialog(context.Id)">
+    Reject
+</MudButton>
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -153,8 +158,10 @@
                     <MudTd DataLabel="Actions">
                         <MudButton Variant="Variant.Filled" Color="Color.Success"
                             OnClick="() => ApproveNewSetRequest(context.Id)">Approve</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Error"
-                            OnClick="() => RejectNewSetRequest(context.Id)">Reject</MudButton>
+                       <MudButton Variant="Variant.Filled" Color="Color.Error"
+           OnClick="() => RejectNewSetRequestWithDialog(context.Id)">
+    Reject
+</MudButton>
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -173,6 +180,8 @@
         get; set;
     } = default!;
     [Inject] private brickapp.Data.Services.UserService UserService { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+
 
     private List<Data.Entities.MappingRequest>? openMappingRequests;
     private List<Data.Entities.NewItemRequest>? openItemRequests;
@@ -190,6 +199,95 @@
         openSetRequests = await RequestService.GetOpenNewSetRequestsAsync();
         StateHasChanged();
     }
+
+ private async Task<string?> OpenRejectReasonDialogAsync(string? defaultReason = null)
+{
+    var parameters = new DialogParameters();
+
+    if (!string.IsNullOrWhiteSpace(defaultReason))
+        parameters.Add("DefaultReason", defaultReason);
+
+    var options = new DialogOptions
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true
+    };
+
+    var dialogReference = await DialogService.ShowAsync<RejectRequestDialog>(
+        "Reject Request", parameters, options);
+
+    if (dialogReference is null)
+        return null;
+
+    // 👇 WICHTIG: Result kann (selten/versionsabhängig) null sein
+    if (dialogReference.Result is null)
+        return null;
+
+    var result = await dialogReference.Result;
+
+    if (result is null || result.Canceled)
+        return null;
+
+    var reason = result.Data?.ToString();
+    return string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+}
+
+
+
+private async Task RejectMappingRequestWithDialog(int requestId)
+{
+            var reason = await OpenRejectReasonDialogAsync();
+    if (reason is null) return;
+
+    await RejectMappingRequest(requestId, reason);
+}
+
+private async Task RejectNewSetRequestWithDialog(int requestId)
+{
+       var reason = await OpenRejectReasonDialogAsync();
+    if (reason is null) return;
+
+    await RejectNewSetRequest(requestId, reason);
+}
+
+private async Task RejectNewSetRequest(int requestId, string reason)
+{
+    try
+    {
+        await RequestService.RejectNewSetRequestAsync(requestId, reason);
+        openSetRequests = await RequestService.GetOpenNewSetRequestsAsync();
+        NotificationService.Success("New set request erfolgreich abgelehnt.");
+    }
+    catch (Exception ex)
+    {
+        NotificationService.Error($"Fehler beim Ablehnen: {ex.Message}");
+    }
+}
+
+
+private async Task RejectMappingRequest(int requestId, string reason)
+{
+    try
+    {
+        var token = await UserService.GetTokenAsync();
+        if (token == null)
+        {
+            NotificationService.Error("User token not found.");
+            return;
+        }
+
+        await RequestService.RejectMappingRequestAsync(requestId, token, reason);
+        openMappingRequests = await RequestService.GetOpenMappingRequestsAsync();
+        NotificationService.Success("Mapping-Request erfolgreich abgelehnt.");
+    }
+    catch (Exception ex)
+    {
+        NotificationService.Error($"Fehler beim Ablehnen: {ex.Message}");
+    }
+}
+
+
     private async Task ApproveMappingRequest(int requestId)
     {
         try
@@ -250,6 +348,36 @@
             NotificationService.Error($"Error approving request: {ex.Message}");
         }
     }
+
+    private async Task RejectNewItemRequestWithDialog(int requestId)
+{
+       var reason = await OpenRejectReasonDialogAsync();
+    if (reason is null) return;
+
+    await RejectNewItemRequest(requestId, reason);
+}
+
+private async Task RejectNewItemRequest(int requestId, string reason)
+{
+    try
+    {
+        var token = await UserService.GetTokenAsync();
+        if (token == null)
+        {
+            NotificationService.Error("User token not found.");
+            return;
+        }
+
+        await RequestService.RejectNewItemRequestAsync(requestId, token, reason);
+        openItemRequests = await RequestService.GetOpenNewItemRequestsAsync();
+        NotificationService.Success("New item request erfolgreich abgelehnt.");
+    }
+    catch (Exception ex)
+    {
+        NotificationService.Error($"Fehler beim Ablehnen: {ex.Message}");
+    }
+}
+
 
     private async Task RejectNewItemRequest(int requestId)
     {
