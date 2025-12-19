@@ -9,7 +9,7 @@ namespace brickapp.Components.Shared.PartsListUpload
 
     public record UnmappedRow(string? PartNum, int? ColorId, int Quantity);
 
-    public record InvalidRow(string? PartNum, int? ColorId, int Qty, string Reason);
+    public record InvalidRow(string? PartNum, int? ColorId, int Quantity, string Error);
 
     public class ParseResult<TItem>
     {
@@ -19,5 +19,6 @@ namespace brickapp.Components.Shared.PartsListUpload
         public HashSet<int> InvalidColorIds { get; set; } = new();
 
         public string? FatalError { get; set; }
+        public PartsUploadFormat AppliedFormat { get; set; } // NEU
     }
 }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Data.Entities
+namespace brickapp.Data.Entities
 {
     public class NewItemRequest
     {

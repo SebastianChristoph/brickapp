@@ -1,14 +1,14 @@
 
 @using Microsoft.AspNetCore.Components.Forms
-@using Data.Entities
-@using Data.Services
-@inject Data.Services.RequestService RequestService
-@inject Data.Services.ImageService ImageService
-@inject Services.MappedBrickService BrickService
-@inject Services.UserService UserService
-@inject Services.NotificationService NotificationService
+@using brickapp.Data.Entities
+@using brickapp.Data.Services
+@inject brickapp.Data.Services.RequestService RequestService
+@inject brickapp.Data.Services.ImageService ImageService
+@inject brickapp.Data.Services.MappedBrickService BrickService
+@inject brickapp.Data.Services.UserService UserService
+@inject brickapp.Data.Services.NotificationService NotificationService
 @inject ILogger<AddItemDialog> Logger
-@inject Services.LoadingService LoadingService
+@inject brickapp.Data.Services.LoadingService LoadingService
 
 <MudDialog>
     <DialogContent>

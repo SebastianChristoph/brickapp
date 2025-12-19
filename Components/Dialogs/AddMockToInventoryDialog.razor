@@ -1,9 +1,9 @@
-@using Services
+@using brickapp.Data.Services
 @using Microsoft.EntityFrameworkCore
-@inject Services.InventoryService InventoryService
-@inject Data.AppDbContext Db
+@inject brickapp.Data.Services.InventoryService InventoryService
+@inject brickapp.Data.AppDbContext Db
 @inject IDialogService DialogService
-@inject Services.LoadingService LoadingService
+@inject brickapp.Data.Services.LoadingService LoadingService
 
 <MudDialog>
     <DialogContent>

@@ -1,11 +1,11 @@
-using Data.Entities;
+using brickapp.Data.Entities;
 using Microsoft.AspNetCore.Components.Forms;
-using Services;
-using Services.Storage;
+using brickapp.Data.Services;
+using brickapp.Data.Services.Storage;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
-namespace Data.Services
+namespace brickapp.Data.Services
 {
     public class ImageService
     {
@@ -214,11 +214,33 @@ namespace Data.Services
             return BuildWebPath(relativePath);
         }
 
-        // Optional: Delete auf Blob -> IImageStorage um DeleteAsync erweitern
-        public void DeleteMockImage(Mock mock)
+       public async Task DeleteMockImageAsync(Mock mock)
+{
+    if (mock == null || string.IsNullOrWhiteSpace(mock.UserUuid)) return;
+
+    var usertoken = mock.UserUuid;
+    var mockid = mock.Id;
+
+    // Wir prüfen alle möglichen Endungen, die wir beim GetMockImagePath erlauben
+    string[] extensions = new[] { ".png", ".jpg", ".jpeg" };
+    
+    foreach (var ext in extensions)
+    {
+        var rel = $"{usertoken}/{mockid}{ext}";
+        if (_storage.Exists(rel))
         {
-            // Wenn du das willst, sag Bescheid: ich gebe dir IImageStorage + Implementierungen inkl. DeleteAsync.
+            try 
+            {
+                await _storage.DeleteAsync(rel);
+                _logger.LogInformation($"[ImageService] Deleted image for Mock {mockid} at {rel}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"[ImageService] Error deleting image for Mock {mockid} at {rel}");
+            }
         }
+    }
+}
 
         public string GetMockImagePath(Mock mock)
         {

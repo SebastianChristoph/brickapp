@@ -1,18 +1,17 @@
 @page "/mywantedlists"
 
-@using Data.Entities
-@using Data.Services
-@using Data.DTOs
-@using Helpers
-@using System.Xml.Linq
+@using brickapp.Data.Entities
+@using brickapp.Data.Services
+@using brickapp.Data.DTOs
+@using brickapp.Helpers
 @using brickapp.Components.Shared.PartsListUpload
 
-@inject WantedListService WantedListService
-@inject Services.MappedBrickService MappedBrickService
-@inject Data.Services.ImageService ImageService
+@inject brickapp.Data.Services.WantedListService WantedListService
+@inject brickapp.Data.Services.MappedBrickService MappedBrickService
+@inject brickapp.Data.Services.ImageService ImageService
 @inject NavigationManager Nav
-@inject Services.LoadingService LoadingService
-@inject Services.NotificationService NotificationService
+@inject brickapp.Data.Services.LoadingService LoadingService
+@inject brickapp.Data.Services.NotificationService NotificationService
 
 <PageTitle>My Wanted Lists</PageTitle>
 
@@ -87,6 +86,7 @@ else
                 <span style="cursor:pointer; color: #1976d2; text-decoration: underline;" @onclick="() => GoToDetails(wl.Id)">
                     @wl.Name
                 </span>
+                 Added from: @wl.Source
             </MudTd>
             <MudTd>@wl.Items.Count</MudTd>
             <MudTd>
@@ -106,18 +106,17 @@ else
 
         <MudDivider Class="my-2" />
 
-        <!-- UPLOAD (external component) -->
-        <PartsListUploader TItem="NewWantedListItemModel"
-                           Title="Upload wanted list file"
+        @* ✅ Neuer zentraler Uploader: keine ParseAsync/Parsing-Logik mehr in der Page *@
+        <PartsListUploader Title="Upload wanted list file"
                            HelpText="Choose the exact format you upload. We validate structure and show unmapped parts / invalid color IDs (those rows are ignored)."
-                           ParseAsync="ParseWantedUploadAsync"
                            AddButtonText="Add upload items to list"
                            ClearButtonText="Clear upload"
-                           OnAdd="AddUploadItemsToNewList_FromComponent" />
+                           OnParsed="OnUploadParsed"
+                           OnAdd="AddUploadItemsToNewList_FromComponent"
+                           OnCleared="OnUploadCleared" />
 
         <MudDivider Class="my-2" />
 
-        <!-- MANUAL ADD -->
         <MudText Typo="Typo.body1" GutterBottom="true" Style="font-weight:bold;">Add items manually</MudText>
 
         <MudTextField T="string"
@@ -267,7 +266,7 @@ else
         <MudButton Variant="Variant.Filled"
                    Color="Color.Success"
                    ButtonType="ButtonType.Submit"
-                   Disabled="@_saving"
+                   Disabled="@(_saving || !newListModel.Items.Any())"
                    Class="mt-3">
             @(_saving ? "Saving..." : "Save wanted list")
         </MudButton>
@@ -302,12 +301,8 @@ else
     private int? selectedColorId = null;
     private int brickQuantity = 1;
 
-    // For fast part lookup
-    private Dictionary<string, MappedBrick> _brickByLegoPartNum = new(StringComparer.OrdinalIgnoreCase);
-
-    // Color mapping caches
-    private Dictionary<int, int> _rebrickableColorIdToBrickColorId = new();
-    private Dictionary<string, int> _brickColorNameToBrickColorId = new(StringComparer.OrdinalIgnoreCase);
+    // Cache all bricks once for fast search + mapping BrickName after upload
+    private List<MappedBrick> _allBricks = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -318,22 +313,11 @@ else
             _wantedLists = await WantedListService.GetCurrentUserWantedListsAsync();
             brickColors = await MappedBrickService.GetAllColorsAsync();
 
-            // Build color maps
-            _rebrickableColorIdToBrickColorId = brickColors
-                .GroupBy(c => c.RebrickableColorId)
-                .ToDictionary(g => g.Key, g => g.First().Id);
+            _allBricks = await MappedBrickService.GetAllMappedBricksAsync();
 
-            _brickColorNameToBrickColorId = brickColors
-                .Where(c => !string.IsNullOrWhiteSpace(c.Name))
-                .GroupBy(c => c.Name!, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
-
-            // Load bricks for fast mapping
-            var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
-            _brickByLegoPartNum = allBricks
-                .Where(b => !string.IsNullOrWhiteSpace(b.LegoPartNum))
-                .GroupBy(b => b.LegoPartNum!)
-                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+            // prime dictionary for fast lookup in UI
+            foreach (var b in _allBricks)
+                _brickById[b.Id] = b;
         }
         catch (Exception ex)
         {
@@ -384,10 +368,10 @@ else
 
         try
         {
-            var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
+            // use cached _allBricks (no DB roundtrip)
             if (reqId != _searchRequestId) return;
 
-            brickSearchResults = allBricks
+            brickSearchResults = _allBricks
                 .Where(b =>
                     (b.LegoPartNum?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
                     (b.LegoName?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
@@ -484,317 +468,44 @@ else
     }
 
     // =========================
-    // ===== External Upload ====
+    // ===== Upload (zentral) ===
     // =========================
 
-    private Task<ParseResult<NewWantedListItemModel>> ParseWantedUploadAsync(string content, PartsUploadFormat format)
-{
-    // Parse-Funktionen liefern Tuple zurück -> NICHT über .mapped/.unmapped zugreifen,
-    // sondern deconstructen.
-    List<NewWantedListItemModel> mapped;
-    List<(string? PartNum, int? ColorId, int Quantity)> unmapped;
-    List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows;
-    HashSet<int> invalidColorIds;
-
-    switch (format)
+    private Task OnUploadParsed(ParseResult<ParsedPart> result)
     {
-        case PartsUploadFormat.RebrickableCsv:
-            (mapped, unmapped, invalidRows, invalidColorIds) = ParseRebrickableCsv(content);
-            break;
+        // Wir weisen die Liste der ungemappten Zeilen direkt dem Model zu.
+        // Es findet hier noch keine Umwandlung in Datenbank-Entities statt.
+        newListModel.UnmappedRows = result.Unmapped;
+        newListModel.Source = result.AppliedFormat.ToString();
 
-        case PartsUploadFormat.RebrickableXml:
-            (mapped, unmapped, invalidRows, invalidColorIds) = ParseRebrickableXml(content);
-            break;
+        return Task.CompletedTask;
+    }   
 
-        case PartsUploadFormat.BricklinkXml:
-            (mapped, unmapped, invalidRows, invalidColorIds) = ParseBricklinkXml(content);
-            break;
-
-        default:
-            mapped = new();
-            unmapped = new();
-            invalidRows = new() { (null, null, 0, "Unknown upload format selected.") };
-            invalidColorIds = new();
-            break;
-    }
-
-    var result = new ParseResult<NewWantedListItemModel>
+    private void AddUploadItemsToNewList_FromComponent(List<ParsedPart> parts)
     {
-        MappedItems = mapped,
-        Unmapped = unmapped.Select(x => new UnmappedRow(x.PartNum, x.ColorId, x.Quantity)).ToList(),
-        InvalidRows = invalidRows.Select(x => new InvalidRow(x.PartNum, x.ColorId, x.Qty, x.Reason)).ToList(),
-        InvalidColorIds = invalidColorIds
-    };
+        foreach (var p in parts)
+        {
+            // BrickName für UI aus Cache holen (Uploader liefert bewusst nur IDs)
+            _brickById.TryGetValue(p.MappedBrickId, out var brick);
 
-    return Task.FromResult(result);
-}
-
-    private void AddUploadItemsToNewList_FromComponent(List<NewWantedListItemModel> items)
-    {
-        foreach (var item in items)
-            AddOrMergeItem(newListModel.Items, item);
+            AddOrMergeItem(newListModel.Items, new NewWantedListItemModel
+            {
+                MappedBrickId = p.MappedBrickId,
+                BrickName = brick?.Name ?? $"Brick #{p.MappedBrickId}",
+                ColorId = p.BrickColorId,
+                Quantity = p.Quantity
+            });
+        }
 
         NotificationService.Success("Upload items added to list.");
         StateHasChanged();
     }
 
-    // ========= PARSER (unchanged from working version) =========
-
-    private (List<NewWantedListItemModel> mapped,
-             List<(string? PartNum, int? ColorId, int Quantity)> unmapped,
-             List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows,
-             HashSet<int> invalidColorIds)
-    ParseRebrickableCsv(string csv)
+    private Task OnUploadCleared()
     {
-        var mapped = new List<NewWantedListItemModel>();
-        var unmapped = new List<(string? PartNum, int? ColorId, int Quantity)>();
-        var invalidRows = new List<(string? PartNum, int? ColorId, int Qty, string Reason)>();
-        var invalidColorIds = new HashSet<int>();
-
-        csv = (csv ?? "").Trim();
-        var lines = csv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        if (lines.Length < 2)
-        {
-            invalidRows.Add((null, null, 0, "CSV has no data rows."));
-            return (mapped, unmapped, invalidRows, invalidColorIds);
-        }
-
-        var header = lines[0].Split(',').Select(x => x.Trim()).ToArray();
-        int partIdx = Array.FindIndex(header, h => h.Equals("Part", StringComparison.OrdinalIgnoreCase));
-        int colorIdx = Array.FindIndex(header, h => h.Equals("Color", StringComparison.OrdinalIgnoreCase));
-        int qtyIdx = Array.FindIndex(header, h => h.Equals("Quantity", StringComparison.OrdinalIgnoreCase));
-
-        if (partIdx < 0 || colorIdx < 0 || qtyIdx < 0)
-        {
-            invalidRows.Add((null, null, 0, "Invalid Rebrickable CSV header. Expected: Part,Color,Quantity."));
-            return (mapped, unmapped, invalidRows, invalidColorIds);
-        }
-
-        for (int i = 1; i < lines.Length; i++)
-        {
-            var cols = lines[i].Split(',');
-            int maxIdx = Math.Max(partIdx, Math.Max(colorIdx, qtyIdx));
-            if (cols.Length <= maxIdx) continue;
-
-            var partNum = cols[partIdx]?.Trim();
-            var rbColorId = int.TryParse(cols[colorIdx]?.Trim(), out var c) ? c : (int?)null;
-            var qty = int.TryParse(cols[qtyIdx]?.Trim(), out var q) ? q : 1;
-
-            AddParsedRow_Wanted(mapped, unmapped, invalidRows, invalidColorIds,
-                partNum, rbColorId, qty, colorMode: "rebrickable");
-        }
-
-        return (mapped, unmapped, invalidRows, invalidColorIds);
-    }
-
-    private (List<NewWantedListItemModel> mapped,
-             List<(string? PartNum, int? ColorId, int Quantity)> unmapped,
-             List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows,
-             HashSet<int> invalidColorIds)
-    ParseBricklinkXml(string xml)
-    {
-        var mapped = new List<NewWantedListItemModel>();
-        var unmapped = new List<(string? PartNum, int? ColorId, int Quantity)>();
-        var invalidRows = new List<(string? PartNum, int? ColorId, int Qty, string Reason)>();
-        var invalidColorIds = new HashSet<int>();
-
-        XDocument doc;
-        try { doc = XDocument.Parse(xml); }
-        catch
-        {
-            invalidRows.Add((null, null, 0, "Invalid XML."));
-            return (mapped, unmapped, invalidRows, invalidColorIds);
-        }
-
-        var items = doc.Descendants().Where(x => x.Name.LocalName.Equals("ITEM", StringComparison.OrdinalIgnoreCase)).ToList();
-        if (!items.Any())
-        {
-            invalidRows.Add((null, null, 0, "BrickLink XML: no <ITEM> nodes found."));
-            return (mapped, unmapped, invalidRows, invalidColorIds);
-        }
-
-        foreach (var it in items)
-        {
-            var partNum = GetChild(it, "ITEMID")?.Trim();
-            var colorStr = GetChild(it, "COLOR")?.Trim();
-
-            var qtyStr = GetChild(it, "MINQTY") ?? GetChild(it, "QTY") ?? GetChild(it, "QUANTITY");
-            var qty = int.TryParse(qtyStr, out var q) ? q : 0;
-
-            var blColorId = int.TryParse(colorStr, out var c) ? c : (int?)null;
-
-            if (string.IsNullOrWhiteSpace(partNum) || blColorId is null || qty <= 0)
-            {
-                invalidRows.Add((partNum, blColorId, qty, "Row missing ITEMID/COLOR/MINQTY (or qty<=0)."));
-                continue;
-            }
-
-            AddParsedRow_Wanted(mapped, unmapped, invalidRows, invalidColorIds,
-                partNum, blColorId, qty, colorMode: "bricklink");
-        }
-
-        return (mapped, unmapped, invalidRows, invalidColorIds);
-
-        static string? GetChild(XElement parent, string name)
-            => parent.Elements().FirstOrDefault(e => e.Name.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase))?.Value;
-    }
-
-    private (List<NewWantedListItemModel> mapped,
-             List<(string? PartNum, int? ColorId, int Quantity)> unmapped,
-             List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows,
-             HashSet<int> invalidColorIds)
-    ParseRebrickableXml(string xml)
-    {
-        var mapped = new List<NewWantedListItemModel>();
-        var unmapped = new List<(string? PartNum, int? ColorId, int Quantity)>();
-        var invalidRows = new List<(string? PartNum, int? ColorId, int Qty, string Reason)>();
-        var invalidColorIds = new HashSet<int>();
-
-        XDocument doc;
-        try { doc = XDocument.Parse(xml); }
-        catch
-        {
-            invalidRows.Add((null, null, 0, "Invalid XML."));
-            return (mapped, unmapped, invalidRows, invalidColorIds);
-        }
-
-        // CASE A: Part/Color/Quantity
-        var candidates = doc.Descendants()
-            .Where(n =>
-                n.Elements().Any(e => e.Name.LocalName.Equals("Part", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("PART", StringComparison.OrdinalIgnoreCase)) &&
-                n.Elements().Any(e => e.Name.LocalName.Equals("Color", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("COLOR", StringComparison.OrdinalIgnoreCase)) &&
-                n.Elements().Any(e => e.Name.LocalName.Equals("Quantity", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("QTY", StringComparison.OrdinalIgnoreCase)))
-            .ToList();
-
-        if (candidates.Any())
-        {
-            foreach (var n in candidates)
-            {
-                string? partNum =
-                    n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Part", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("PART", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
-
-                string? colorStr =
-                    n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Color", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("COLOR", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
-
-                string? qtyStr =
-                    n.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("Quantity", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("QTY", StringComparison.OrdinalIgnoreCase))?.Value?.Trim();
-
-                var rbColorId = int.TryParse(colorStr, out var c) ? c : (int?)null;
-                var qty = int.TryParse(qtyStr, out var q) ? q : 1;
-
-                AddParsedRow_Wanted(mapped, unmapped, invalidRows, invalidColorIds,
-                    partNum, rbColorId, qty, colorMode: "rebrickable");
-            }
-
-            return (mapped, unmapped, invalidRows, invalidColorIds);
-        }
-
-        // CASE B: INVENTORY/ITEM (BrickLink schema inside "Rebrickable XML" exports)
-        var items = doc.Descendants().Where(x => x.Name.LocalName.Equals("ITEM", StringComparison.OrdinalIgnoreCase)).ToList();
-        if (!items.Any())
-        {
-            invalidRows.Add((null, null, 0, "Rebrickable XML: neither Part/Color/Quantity nor <ITEM> nodes found."));
-            return (mapped, unmapped, invalidRows, invalidColorIds);
-        }
-
-        foreach (var it in items)
-        {
-            var partNum = GetChild(it, "ITEMID")?.Trim();
-            var colorStr = GetChild(it, "COLOR")?.Trim();
-
-            var qtyStr = GetChild(it, "MINQTY") ?? GetChild(it, "QTY") ?? GetChild(it, "QUANTITY");
-            var qty = int.TryParse(qtyStr, out var q) ? q : 0;
-
-            var blColorId = int.TryParse(colorStr, out var c) ? c : (int?)null;
-
-            if (string.IsNullOrWhiteSpace(partNum) || blColorId is null || qty <= 0)
-            {
-                invalidRows.Add((partNum, blColorId, qty, "INVENTORY row missing ITEMID/COLOR/MINQTY (or qty<=0)."));
-                continue;
-            }
-
-            // IMPORTANT: COLOR is BrickLink ColorId here
-            AddParsedRow_Wanted(mapped, unmapped, invalidRows, invalidColorIds,
-                partNum, blColorId, qty, colorMode: "bricklink");
-        }
-
-        return (mapped, unmapped, invalidRows, invalidColorIds);
-
-        static string? GetChild(XElement parent, string name)
-            => parent.Elements().FirstOrDefault(e => e.Name.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase))?.Value;
-    }
-
-    private void AddParsedRow_Wanted(
-        List<NewWantedListItemModel> mapped,
-        List<(string? PartNum, int? ColorId, int Quantity)> unmapped,
-        List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows,
-        HashSet<int> invalidColorIds,
-        string? partNum,
-        int? colorIdFromFile,
-        int qty,
-        string colorMode // "rebrickable" | "bricklink"
-    )
-    {
-        if (string.IsNullOrWhiteSpace(partNum) || !colorIdFromFile.HasValue || qty <= 0)
-            return;
-
-        var partTrim = partNum.Trim();
-
-        if (!_brickByLegoPartNum.TryGetValue(partTrim, out var brick))
-        {
-            unmapped.Add((partTrim, colorIdFromFile, qty));
-            return;
-        }
-
-        int? internalBrickColorId = null;
-
-        if (colorMode == "rebrickable")
-        {
-            if (_rebrickableColorIdToBrickColorId.TryGetValue(colorIdFromFile.Value, out var dbColorId))
-                internalBrickColorId = dbColorId;
-            else
-            {
-                invalidColorIds.Add(colorIdFromFile.Value);
-                invalidRows.Add((partTrim, colorIdFromFile, qty, "Unknown Rebrickable ColorId (not seeded)."));
-                return;
-            }
-        }
-        else // bricklink
-        {
-            if (BricklinkColorMap.IsNotApplicable(colorIdFromFile.Value))
-            {
-                invalidColorIds.Add(colorIdFromFile.Value);
-                invalidRows.Add((partTrim, colorIdFromFile, qty, "BrickLink ColorId 0 = Not Applicable."));
-                return;
-            }
-
-            var blName = BricklinkColorMap.GetBrickColorName(colorIdFromFile.Value);
-            if (string.IsNullOrWhiteSpace(blName))
-            {
-                invalidColorIds.Add(colorIdFromFile.Value);
-                invalidRows.Add((partTrim, colorIdFromFile, qty, "Unknown BrickLink ColorId."));
-                return;
-            }
-
-            if (_brickColorNameToBrickColorId.TryGetValue(blName, out var dbColorId))
-                internalBrickColorId = dbColorId;
-            else
-            {
-                invalidColorIds.Add(colorIdFromFile.Value);
-                invalidRows.Add((partTrim, colorIdFromFile, qty, $"BrickLink color '{blName}' not found in BrickColors (name mismatch / missing)."));
-                return;
-            }
-        }
-
-        _brickById[brick.Id] = brick;
-
-        AddOrMergeItem(mapped, new NewWantedListItemModel
-        {
-            MappedBrickId = brick.Id,
-            BrickName = brick.Name,
-            ColorId = internalBrickColorId.Value,
-            Quantity = qty
-        });
+        // Wenn Upload gelöscht wird, auch MissingItems zurücksetzen
+   //     newListModel.MissingItems = new List<NewWantedListMissingItemModel>();
+        return Task.CompletedTask;
     }
 
     private static void AddOrMergeItem(List<NewWantedListItemModel> list, NewWantedListItemModel item)

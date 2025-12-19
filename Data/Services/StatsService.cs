@@ -1,8 +1,7 @@
-using Data.Entities;
+using brickapp.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using Data; // Dein Namespace für den AppDbContext
-
-namespace Services
+using brickapp.Data; // Dein Namespace für den AppDbContext
+namespace brickapp.Data.Services
 {
     public class StatsService
     {

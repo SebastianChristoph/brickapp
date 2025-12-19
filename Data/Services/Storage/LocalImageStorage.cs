@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 
-namespace Services.Storage;
+namespace brickapp.Data.Services.Storage;
 
 public class LocalImageStorage : IImageStorage
 {
@@ -29,4 +29,14 @@ public class LocalImageStorage : IImageStorage
         var fullPath = Path.Combine(_basePath, relativePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
         return File.Exists(fullPath);
     }
+    public Task<bool> DeleteAsync(string relativePath)
+{
+    var fullPath = Path.Combine(_basePath, relativePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+    if (File.Exists(fullPath))
+    {
+        File.Delete(fullPath);
+        return Task.FromResult(true);
+    }
+    return Task.FromResult(false);
+}
 }

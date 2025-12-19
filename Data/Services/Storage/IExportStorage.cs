@@ -1,5 +1,4 @@
-namespace Services.Storage;
-
+namespace brickapp.Data.Services.Storage;
 public interface IExportStorage
 {
     Task WriteTextAsync(string relativePath, string contentType, string content);

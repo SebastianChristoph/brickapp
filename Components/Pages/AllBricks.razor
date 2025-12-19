@@ -1,13 +1,12 @@
 ﻿@using Helpers
 @page "/allbricks"
-@using Services
-@using Data.Services
-@using Data.Entities
-@using Components.Dialogs
-@inject UserService UserService
-@inject MappedBrickService BrickService
-@inject RequestService RequestService
-@inject Data.Services.ImageService ImageService
+@using brickapp.Data.Services
+@using brickapp.Data.Entities
+@using brickapp.Components.Dialogs
+@inject brickapp.Data.Services.UserService UserService
+@inject brickapp.Data.Services.MappedBrickService BrickService
+@inject brickapp.Data.Services.RequestService RequestService
+@inject brickapp.Data.Services.ImageService ImageService
 
 <style>
     .my-custom-class {
@@ -465,7 +464,7 @@ else if (_showMappedOnly)
     private IDialogService DialogService { get; set; } = default!;
 
     [Inject]
-    private Services.NotificationService NotificationService { get; set; } = default!;
+    private brickapp.Data.Services.NotificationService NotificationService { get; set; } = default!;
 
     private async Task OpenAddInventoryDialog(MappedBrick brick)
     {

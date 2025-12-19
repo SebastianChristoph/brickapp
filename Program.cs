@@ -1,11 +1,11 @@
-using Services.Storage;
+using brickapp.Data.Services.Storage;
 
 using MudBlazor.Services;
-using Data;
+using brickapp.Data.Services.PartsListUpload;
+using brickapp.Data;
 using Microsoft.EntityFrameworkCore;
-using Services;
+using brickapp.Data.Services;
 using brickapp.Components;
-using Data.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -81,6 +81,13 @@ builder.Services.AddScoped<ItemSetService>();
 builder.Services.AddScoped<ItemSetExportService>();
 builder.Services.AddScoped<MappedBrickExportService>();
 builder.Services.AddScoped<StatsService>();
+
+builder.Services.AddScoped<IPartsListUploadService, PartsListUploadService>();
+
+builder.Services.AddScoped<IPartsListFormatParser, RebrickableCsvParser>();
+builder.Services.AddScoped<IPartsListFormatParser, RebrickableXmlParser>();
+builder.Services.AddScoped<IPartsListFormatParser, BricklinkXmlParser>();
+
 
 // Global Services
 builder.Services.AddSingleton<LoadingService>();

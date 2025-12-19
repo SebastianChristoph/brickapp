@@ -1,5 +1,4 @@
-namespace Services.Storage;
-
+namespace brickapp.Data.Services.Storage;
 public interface IImageStorage
 {
     string BaseUrl { get; } 
@@ -11,4 +10,5 @@ public interface IImageStorage
     );
 
     bool Exists(string relativePath);
+    Task<bool> DeleteAsync(string relativePath); // Neu
 }

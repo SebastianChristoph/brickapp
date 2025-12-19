@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Helpers
+namespace brickapp.Helpers
 {
     public static class BrickColorHelper
     {

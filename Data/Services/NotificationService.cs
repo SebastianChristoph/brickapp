@@ -1,6 +1,6 @@
 using MudBlazor;
 
-namespace Services
+namespace brickapp.Data.Services
 {
     public class NotificationService
     {

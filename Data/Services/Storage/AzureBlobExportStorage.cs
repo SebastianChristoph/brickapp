@@ -1,7 +1,7 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 
-namespace Services.Storage;
+namespace brickapp.Data.Services.Storage;
 
 public class AzureBlobExportStorage : IExportStorage
 {

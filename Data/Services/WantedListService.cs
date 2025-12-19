@@ -1,12 +1,11 @@
        
-    using Data.DTOs;
-       
-using Data;
-using Data.Entities;
+using brickapp.Data.DTOs;
+using brickapp.Data;
+using brickapp.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using Services;
+using brickapp.Data.Services;
 
-namespace Data.Services
+namespace brickapp.Data.Services
 {
     public class WantedListService
     {
@@ -120,21 +119,19 @@ namespace Data.Services
             await db.SaveChangesAsync();
             return true;
         }
-
-     public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
+public async Task<int> CreateWantedListAndReturnIdAsync(NewWantedListModel model)
 {
     var user = await _userService.GetCurrentUserAsync();
-    if (user == null)
-        return 0;
+    if (user == null) return 0;
 
     await using var db = await _factory.CreateDbContextAsync();
 
-    // Validierungs-Caches (damit nicht pro Item ein Query feuert)
+    // 1. Validierungs-Caches
     var validBrickIds = await db.MappedBricks.AsNoTracking().Select(b => b.Id).ToHashSetAsync();
     var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
 
-    // Items deduplizieren (gleicher Brick+Color => Mengen addieren)
-    var grouped = (model.Items ?? new List<NewWantedListItemModel>())
+    // 2. Mapped Items deduplizieren (hast du bereits)
+    var groupedMapped = (model.Items ?? new List<NewWantedListItemModel>())
         .Where(i => i.MappedBrickId > 0 && i.ColorId > 0 && i.Quantity > 0)
         .GroupBy(i => (i.MappedBrickId, i.ColorId))
         .Select(g => new NewWantedListItemModel
@@ -145,26 +142,27 @@ namespace Data.Services
         })
         .ToList();
 
-    // Ungültige FK-Werte rausfiltern
-    var invalid = grouped
-        .Where(i => !validBrickIds.Contains(i.MappedBrickId) || !validColorIds.Contains(i.ColorId))
-        .ToList();
-
-    var valid = grouped
+    // 3. Gültige Items filtern
+    var valid = groupedMapped
         .Where(i => validBrickIds.Contains(i.MappedBrickId) && validColorIds.Contains(i.ColorId))
         .ToList();
 
-    // Wenn du lieber "hart" fehlschlagen willst, statt skippen:
-    // if (invalid.Any())
-    //     throw new InvalidOperationException($"Upload contains invalid BrickColorId / MappedBrickId. Invalid items: {invalid.Count}");
-
+    // 4. WantedList Objekt erstellen
     var wantedList = new WantedList
     {
         Name = model.Name,
         AppUserId = user.Id.ToString(),
-        Items = new List<WantedListItem>()
+        // NEU: Source hier zuweisen!
+        Source = (model.Source ?? "manual")
+            .ToLower()
+            .Replace("csv", "")
+            .Replace("xml", "")
+            .Trim(),
+        Items = new List<WantedListItem>(),
+        MissingItems = new List<MissingItem>() 
     };
 
+    // 5. Validierte Mapped Items hinzufügen
     foreach (var item in valid)
     {
         wantedList.Items.Add(new WantedListItem
@@ -175,11 +173,22 @@ namespace Data.Services
         });
     }
 
+    // 6. Missing Items im Service mappen & deduplizieren
+    if (model.UnmappedRows != null && model.UnmappedRows.Any())
+    {
+        wantedList.MissingItems = model.UnmappedRows
+            .GroupBy(u => new { u.PartNum, u.ColorId }) // Gleiche Teile zusammenfassen
+            .Select(g => new MissingItem
+            {
+                ExternalPartNum = g.Key.PartNum,
+                ExternalColorId = g.Key.ColorId,
+                Quantity = g.Sum(x => x.Quantity)
+            }).ToList();
+    }
+
+    // 7. In Datenbank speichern
     db.WantedLists.Add(wantedList);
     await db.SaveChangesAsync();
-
-    // Optional: falls du im UI anzeigen willst "X items skipped", könntest du das loggen:
-    // if (invalid.Any()) { ... }
 
     return wantedList.Id;
 }
@@ -208,18 +217,18 @@ public async Task<bool> DeleteWantedListItemAsync(int wantedListItemId)
     return true;
 }
 
-
-        public async Task<WantedList?> GetWantedListByIdAsync(int wantedListId)
-        {
-            await using var db = await _factory.CreateDbContextAsync();
-
-            return await db.WantedLists
-                .Include(w => w.Items)
-                    .ThenInclude(i => i.MappedBrick)
-                .Include(w => w.Items)
-                    .ThenInclude(i => i.BrickColor)
-                .FirstOrDefaultAsync(w => w.Id == wantedListId);
-        }
+public async Task<WantedList?> GetWantedListByIdAsync(int wantedListId)
+{
+    await using var db = await _factory.CreateDbContextAsync();
+return await db.WantedLists
+        .Include(w => w.Items)
+            .ThenInclude(i => i.MappedBrick)
+        .Include(w => w.Items)
+            .ThenInclude(i => i.BrickColor)
+        // KORREKTUR: MissingItems hängen direkt an der WantedList
+        .Include(w => w.MissingItems) 
+        .FirstOrDefaultAsync(w => w.Id == wantedListId);
+}
 
                     public async Task<bool> DeleteWantedListAsync(int wantedListId)
             {

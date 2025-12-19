@@ -1,8 +1,11 @@
+@using System.IO
 @using Microsoft.AspNetCore.Components.Forms
 @using brickapp.Components.Shared.PartsListUpload
-@typeparam TItem
+@using brickapp.Data.Services.PartsListUpload
+@inject IPartsListUploadService UploadService
 
 <MudText Typo="Typo.body1" GutterBottom="true" Style="font-weight:bold;">@Title</MudText>
+
 @if (!string.IsNullOrWhiteSpace(HelpText))
 {
     <MudText Typo="Typo.caption" Class="mb-2" Style="color:#666;">@HelpText</MudText>
@@ -14,8 +17,8 @@
                @bind-Value="_selectedFormat"
                Label="Upload format"
                Dense="true"
-               Disabled="@(_uploading || Disabled)"
-               Style="max-width:360px;">
+               Disabled="@(Disabled || _uploading)"
+               Class="mb-2">
         @foreach (var f in Formats)
         {
             <MudSelectItem Value="@f">@FormatLabel(f)</MudSelectItem>
@@ -24,102 +27,150 @@
 }
 else
 {
-    <MudText Typo="Typo.caption" Class="mb-1" Style="color:#666;">
-        Upload format: <b>@FormatLabel(_selectedFormat)</b>
+    <MudText Typo="Typo.caption" Class="mb-2">
+        Format: <b>@FormatLabel(_selectedFormat)</b>
     </MudText>
 }
 
-<InputFile OnChange="OnFileSelected"
-           accept="@EffectiveAccept"
-           disabled="@(_uploading || Disabled)"
-           class="mt-2" />
+<MudPaper Class="pa-3" Elevation="0" Style="border:1px solid #e0e0e0; border-radius:8px;">
+    <div class="d-flex align-center" style="gap:12px; flex-wrap:wrap;">
+        <InputFile OnChange="OnFileSelected" accept="@EffectiveAccept" disabled="@(Disabled || _uploading)" />
 
-@if (!string.IsNullOrWhiteSpace(_error))
-{
-    <MudAlert Severity="Severity.Error" Class="mt-2">@_error</MudAlert>
-}
-
-@if (_result is not null)
-{
-    @if (_result.MappedItems.Count > 0)
-    {
-        <MudAlert Severity="Severity.Success" Class="mt-3">
-            Upload parsed: @_result.MappedItems.Count item(s) ready.
-        </MudAlert>
-    }
-
-    @if (_result.Unmapped.Count > 0)
-    {
-        <MudAlert Severity="Severity.Warning" Class="mt-3">
-            Unmapped parts: @_result.Unmapped.Count (ignored).
-        </MudAlert>
-
-        <MudExpansionPanels>
-            <MudExpansionPanel Text="Show unmapped items" Expanded="false" MaxHeight="450">
-                <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
-                    <MudList T="string">
-                        @foreach (var u in _result.Unmapped)
-                        {
-                            <MudChip>@u.PartNum ColorId: @u.ColorId, Qty: @u.Quantity</MudChip>
-                        }
-                    </MudList>
-                </MudPaper>
-            </MudExpansionPanel>
-        </MudExpansionPanels>
-    }
-
-    @if (_result.InvalidColorIds.Count > 0)
-    {
-        <MudAlert Severity="Severity.Error" Class="mt-3">
-            Invalid ColorId(s): <b>@string.Join(", ", _result.InvalidColorIds.OrderBy(x => x))</b> (ignored).
-        </MudAlert>
-    }
-
-    @if (_result.InvalidRows.Count > 0)
-    {
-        <MudExpansionPanels>
-            <MudExpansionPanel Text="Show invalid rows (details)" Expanded="false" MaxHeight="450">
-                <MudPaper Class="pa-2 mb-2" Style="background:#fff5f5;border:1px solid #ffcdd2;">
-                    <MudList T="string">
-                        @foreach (var r in _result.InvalidRows.Take(MaxInvalidRowsShown))
-                        {
-                            <MudChip>@r.PartNum ColorId: @r.ColorId, Qty: @r.Qty, @r.Reason</MudChip>
-                        }
-                    </MudList>
-                </MudPaper>
-            </MudExpansionPanel>
-        </MudExpansionPanels>
-    }
-
-    @if (ShowAddButton && _result.MappedItems.Count > 0)
-    {
-        <MudStack Row="true" Spacing="2" Class="mt-2 mb-2">
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       Disabled="@(_uploading || Disabled)"
-                       OnClick="AddItems">
-                @AddButtonText
-            </MudButton>
-
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Secondary"
-                       Disabled="@(_uploading || Disabled)"
-                       OnClick="Clear">
-                @ClearButtonText
-            </MudButton>
-        </MudStack>
-    }
-    else
-    {
         <MudButton Variant="Variant.Outlined"
-                   Color="Color.Secondary"
-                   Disabled="@(_uploading || Disabled)"
-                   Class="mt-2"
+                   Disabled="@(_uploading || Disabled || (_result is null && string.IsNullOrWhiteSpace(_error)))"
                    OnClick="Clear">
             @ClearButtonText
         </MudButton>
+
+        @if (ShowAddButton)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@(_uploading || Disabled || _result is null || (_result.MappedItems?.Count ?? 0) == 0)"
+                       OnClick="Add">
+                @AddButtonText
+            </MudButton>
+        }
+
+        @if (_uploading)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+            <MudText Typo="Typo.caption">Parsing…</MudText>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-3">
+            @_error
+        </MudAlert>
     }
-}
+
+    @if (_result is not null)
+    {
+        @* 1) Erfolg *@
+        @if ((_result.MappedItems?.Count ?? 0) > 0)
+        {
+            <MudAlert Severity="Severity.Success" Class="mt-3">
+                <b>@_result.MappedItems.Count Teil(e)</b> wurden erfolgreich erkannt und sind bereit zum Hinzufügen.
+            </MudAlert>
+        }
+
+        @* 2) Unmapped *@
+        @if ((_result.Unmapped?.Count ?? 0) > 0)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mt-3">
+                <b>@_result.Unmapped.Count Teil(e)</b> konnten nicht automatisch zugeordnet werden.
+                Sie werden als "fehlende Mappings" in der Liste gespeichert, damit du sie später in den Details sehen kannst.
+            </MudAlert>
+
+            <MudExpansionPanels Class="mt-2">
+                <MudExpansionPanel Text="Nicht zugeordnete Teile anzeigen" Expanded="false" MaxHeight="450">
+                    <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
+                        <MudList T="string">
+                            @foreach (var u in _result.Unmapped!)
+                            {
+                                <MudChip T="string"
+                                         Color="Color.Warning"
+                                         Variant="Variant.Outlined"
+                                         Size="Size.Small"
+                                         Class="ma-1">
+                                    Part: @u.PartNum, Color: @u.ColorId, Menge: @u.Quantity
+                                </MudChip>
+                            }
+                        </MudList>
+                    </MudPaper>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+
+        @* 3) Invalid colors *@
+        @if ((_result.InvalidColorIds?.Count ?? 0) > 0)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mt-3">
+                <b>@_result.InvalidColorIds.Count</b> Farbe(n) aus der Datei konnten nicht auf deine BrickColors gemappt werden.
+            </MudAlert>
+
+            <MudExpansionPanels Class="mt-2">
+                <MudExpansionPanel Text="Ungültige/Unbekannte Farben anzeigen" Expanded="false" MaxHeight="450">
+                    <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
+                        <MudList T="string">
+                            @foreach (var c in _result.InvalidColorIds!.OrderBy(x => x))
+                            {
+                                <MudChip T="string"
+                                         Color="Color.Warning"
+                                         Variant="Variant.Outlined"
+                                         Size="Size.Small"
+                                         Class="ma-1">
+                                    ColorId: @c
+                                </MudChip>
+                            }
+                        </MudList>
+                    </MudPaper>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+
+        @* 4) Invalid rows *@
+        @if ((_result.InvalidRows?.Count ?? 0) > 0)
+        {
+            <MudAlert Severity="Severity.Warning" Class="mt-3">
+                <b>@_result.InvalidRows.Count</b> Zeile(n) waren ungültig und wurden übersprungen.
+            </MudAlert>
+
+            <MudExpansionPanels Class="mt-2">
+                <MudExpansionPanel Text="Ungültige Zeilen anzeigen" Expanded="false" MaxHeight="450">
+                    <MudPaper Class="pa-2 mb-2" Style="background:#fffbe6;border:1px solid #ffe082;">
+                        <MudTable Items="@_result.InvalidRows!.Take(MaxInvalidRowsShown)"
+                                  Dense="true"
+                                  Hover="true"
+                                  Bordered="true">
+                            <HeaderContent>
+                                <MudTh>Part</MudTh>
+                                <MudTh>Color</MudTh>
+                                <MudTh>Qty</MudTh>
+                                <MudTh>Error</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Part">@context.PartNum</MudTd>
+                                <MudTd DataLabel="Color">@context.ColorId</MudTd>
+                                <MudTd DataLabel="Qty">@context.Quantity</MudTd>
+                                <MudTd DataLabel="Error">@context.Error</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+
+                        @if (_result.InvalidRows!.Count > MaxInvalidRowsShown)
+                        {
+                            <MudText Typo="Typo.caption" Class="mt-2">
+                                Es werden nur die ersten @MaxInvalidRowsShown Einträge angezeigt.
+                            </MudText>
+                        }
+                    </MudPaper>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        }
+    }
+</MudPaper>
 
 @code {
     [Parameter] public string Title { get; set; } = "Upload parts list";
@@ -140,10 +191,8 @@ else
     [Parameter] public long MaxFileBytes { get; set; } = 10 * 1024 * 1024;
     [Parameter] public int MaxInvalidRowsShown { get; set; } = 500;
 
-    [Parameter] public Func<string, PartsUploadFormat, Task<ParseResult<TItem>>> ParseAsync { get; set; } = default!;
-
-    [Parameter] public EventCallback<ParseResult<TItem>> OnParsed { get; set; }
-    [Parameter] public EventCallback<List<TItem>> OnAdd { get; set; }
+    [Parameter] public EventCallback<ParseResult<ParsedPart>> OnParsed { get; set; }
+    [Parameter] public EventCallback<List<ParsedPart>> OnAdd { get; set; }
     [Parameter] public EventCallback OnCleared { get; set; }
 
     [Parameter] public bool ShowAddButton { get; set; } = true;
@@ -152,7 +201,7 @@ else
 
     private bool _uploading;
     private string? _error;
-    private ParseResult<TItem>? _result;
+    private ParseResult<ParsedPart>? _result;
 
     private PartsUploadFormat _selectedFormat = PartsUploadFormat.RebrickableCsv;
 
@@ -190,7 +239,7 @@ else
         {
             using var stream = file.OpenReadStream(MaxFileBytes);
             using var reader = new StreamReader(stream);
-            var content = (await reader.ReadToEndAsync())?.Trim() ?? "";
+            var content = await reader.ReadToEndAsync();
 
             if (string.IsNullOrWhiteSpace(content))
             {
@@ -198,21 +247,8 @@ else
                 return;
             }
 
-            bool looksLikeXml = content.TrimStart().StartsWith("<")
-                                || file.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase);
-
-            if (_selectedFormat == PartsUploadFormat.RebrickableCsv && looksLikeXml)
-            {
-                _error = "Selected CSV format, but file looks like XML.";
-                return;
-            }
-            if (_selectedFormat != PartsUploadFormat.RebrickableCsv && !looksLikeXml)
-            {
-                _error = "Selected XML format, but file does not look like XML.";
-                return;
-            }
-
-            var parsed = await ParseAsync(content, _selectedFormat);
+            var parsed = await UploadService.ParseAsync(content, _selectedFormat);
+            parsed.AppliedFormat = _selectedFormat;
             _result = parsed;
 
             if (!string.IsNullOrWhiteSpace(parsed.FatalError))
@@ -228,7 +264,7 @@ else
         }
         catch (Exception ex)
         {
-            _error = $"Error processing file: {ex.Message}";
+            _error = $"Upload/Parse failed: {ex.Message}";
         }
         finally
         {
@@ -237,10 +273,10 @@ else
         }
     }
 
-    private async Task AddItems()
+    private async Task Add()
     {
-        if (Disabled) return;
-        if (_result is null || _result.MappedItems.Count == 0) return;
+        if (_result is null) return;
+        if ((_result.MappedItems?.Count ?? 0) == 0) return;
 
         if (OnAdd.HasDelegate)
             await OnAdd.InvokeAsync(_result.MappedItems);

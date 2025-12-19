@@ -20,9 +20,9 @@
     public int ItemCount { get; set; }
 
     [Inject]
-    public Services.LoadingService LoadingService { get; set; } = default!;
+    public brickapp.Data.Services.LoadingService LoadingService { get; set; } = default!;
     [Inject]
-    public Services.InventoryService InventoryService { get; set; } = default!;
+    public brickapp.Data.Services.InventoryService InventoryService { get; set; } = default!;
     [Parameter]
     public int ItemSetId { get; set; }
 

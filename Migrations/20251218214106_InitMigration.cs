@@ -9,7 +9,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace brickapp.Migrations
 {
     /// <inheritdoc />
-    public partial class InitPostgres : Migration
+    public partial class InitMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -22,6 +22,7 @@ namespace brickapp.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "text", nullable: false),
                     RebrickableColorId = table.Column<int>(type: "integer", nullable: false),
+                    BricklinkColorId = table.Column<int>(type: "integer", nullable: true),
                     Rgb = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
@@ -107,6 +108,20 @@ namespace brickapp.Migrations
                 {
                     table.PrimaryKey("PK_users", x => x.Id);
                     table.UniqueConstraint("AK_users_Uuid", x => x.Uuid);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "wantedlists",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    AppUserId = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_wantedlists", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -357,6 +372,40 @@ namespace brickapp.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "wantedlistitems",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    WantedListId = table.Column<int>(type: "integer", nullable: false),
+                    MappedBrickId = table.Column<int>(type: "integer", nullable: false),
+                    BrickColorId = table.Column<int>(type: "integer", nullable: false),
+                    Quantity = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_wantedlistitems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_wantedlistitems_colors_BrickColorId",
+                        column: x => x.BrickColorId,
+                        principalTable: "colors",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_wantedlistitems_mappedBricks_MappedBrickId",
+                        column: x => x.MappedBrickId,
+                        principalTable: "mappedBricks",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_wantedlistitems_wantedlists_WantedListId",
+                        column: x => x.WantedListId,
+                        principalTable: "wantedlists",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "mockitems",
                 columns: table => new
                 {
@@ -499,6 +548,21 @@ namespace brickapp.Migrations
                 name: "IX_userNotifications_UserUuid",
                 table: "userNotifications",
                 column: "UserUuid");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_wantedlistitems_BrickColorId",
+                table: "wantedlistitems",
+                column: "BrickColorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_wantedlistitems_MappedBrickId",
+                table: "wantedlistitems",
+                column: "MappedBrickId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_wantedlistitems_WantedListId",
+                table: "wantedlistitems",
+                column: "WantedListId");
         }
 
         /// <inheritdoc />
@@ -529,10 +593,7 @@ namespace brickapp.Migrations
                 name: "userNotifications");
 
             migrationBuilder.DropTable(
-                name: "colors");
-
-            migrationBuilder.DropTable(
-                name: "mappedBricks");
+                name: "wantedlistitems");
 
             migrationBuilder.DropTable(
                 name: "mocks");
@@ -542,6 +603,15 @@ namespace brickapp.Migrations
 
             migrationBuilder.DropTable(
                 name: "itemsets");
+
+            migrationBuilder.DropTable(
+                name: "colors");
+
+            migrationBuilder.DropTable(
+                name: "mappedBricks");
+
+            migrationBuilder.DropTable(
+                name: "wantedlists");
 
             migrationBuilder.DropTable(
                 name: "users");
