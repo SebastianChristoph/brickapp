@@ -27,34 +27,45 @@
         }
         else
         {
-            <MudTable Items="openMappingRequests" Hover="true">
-                <HeaderContent>
-                
-                    <MudTh>Brick</MudTh>
-                    <MudTh>Brand</MudTh>
-                    <MudTh>Mapping Name</MudTh>
-                    <MudTh>Mapping ItemId</MudTh>
-                    <MudTh>Requested By</MudTh>
-                    <MudTh>Created At</MudTh>
-                    <MudTh>Actions</MudTh>
-                    <!-- Actions column entfernt -->
-                </HeaderContent>
-                <RowTemplate>
-              
-                    <MudTd DataLabel="Brick">@context.Brick?.Name</MudTd>
-                    <MudTd DataLabel="Brand">@context.Brand</MudTd>
-                    <MudTd DataLabel="Mapping Name">@context.MappingName</MudTd>
-                    <MudTd DataLabel="Mapping ItemId">@context.MappingItemId</MudTd>
-                    <MudTd DataLabel="Requested By">@context.RequestedByUser?.Name</MudTd>
-                    <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
-                    <MudTd DataLabel="Actions">
-                        <MudButton Variant="Variant.Filled" Color="Color.Success"
-                            OnClick="() => ApproveMappingRequest(context.Id)">Approve</MudButton>
-                        <MudButton Variant="Variant.Filled" Color="Color.Error"
-                            OnClick="() => RejectMappingRequest(context.Id)">Reject</MudButton>
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
+         <MudTable Items="openMappingRequests" Hover="true">
+    <HeaderContent>
+        <MudTh>Image</MudTh> <MudTh>Brick</MudTh>
+        <MudTh>Brand</MudTh>
+        <MudTh>Mapping Name</MudTh>
+        <MudTh>Mapping ItemId</MudTh>
+        <MudTh>Requested By</MudTh>
+        <MudTh>Created At</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Image">
+            @if (context.Brick != null)
+            {
+                <img src="@ImageService.GetMappedBrickImagePath(context.Brick)" 
+                     alt="Brick Image" 
+                     style="max-width:64px; max-height:64px; border:1px solid #ccc; padding:2px;" />
+            }
+            else
+            {
+                <img src="@ImageService.GetPlaceHolder()" 
+                     alt="Placeholder" 
+                     style="max-width:64px; max-height:64px; border:1px solid #ccc; padding:2px;" />
+            }
+        </MudTd>
+        <MudTd DataLabel="Brick">@context.Brick?.Name</MudTd>
+        <MudTd DataLabel="Brand">@context.Brand</MudTd>
+        <MudTd DataLabel="Mapping Name">@context.MappingName</MudTd>
+        <MudTd DataLabel="Mapping ItemId">@context.MappingItemId</MudTd>
+        <MudTd DataLabel="Requested By">@context.RequestedByUser?.Name</MudTd>
+        <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+        <MudTd DataLabel="Actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Success"
+                       OnClick="() => ApproveMappingRequest(context.Id)">Approve</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error"
+                       OnClick="() => RejectMappingRequest(context.Id)">Reject</MudButton>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
         }
     </MudTabPanel>
     <MudTabPanel Text="@(openItemRequests == null ? "Item Requests" : $"Item Requests ({openItemRequests.Count})")">

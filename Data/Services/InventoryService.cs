@@ -32,7 +32,7 @@ public class InventoryService
         return true;
     }
 
-    public async Task<bool> AddMockItemsToInventoryAsync(int mockId)
+    public async Task<bool> AddMockItemsToInventoryAsync(int mockId, string mocksource)
     {
         var user = await _userService.GetCurrentUserAsync();
         if (user == null)
@@ -45,7 +45,7 @@ public class InventoryService
             return false;
 
         var mockType = mock.MockType?.ToLower();
-        var brand = (mockType == "bricklink" || mockType == "rebrickable") ? "Lego" : "Mock";
+        var brand = (mocksource == "bricklink" || mocksource == "rebrickable") ? "Lego" : "Unbranded";
 
         foreach (var item in mock.Items)
         {

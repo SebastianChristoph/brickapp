@@ -28,19 +28,19 @@ else if (_wantedList == null)
 else
 {
     @* --- HEADER --- *@
-    
-        <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudStack Spacing="1">
-                <MudText Typo="Typo.h4">Wanted List: @_wantedList.Name</MudText>
-                <MudText Typo="Typo.caption">Source: @_wantedList.Source</MudText>
-            </MudStack>
 
-            <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
-                OnClick="DeleteList" Disabled="@_deletingList">
-                Delete this wanted list
-            </MudButton>
+    <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h4">Wanted List: @_wantedList.Name</MudText>
+            <MudText Typo="Typo.caption">Source: @_wantedList.Source</MudText>
         </MudStack>
- 
+
+        <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+            OnClick="DeleteList" Disabled="@_deletingList">
+            Delete this wanted list
+        </MudButton>
+    </MudStack>
+
 
     @* --- PROGRESS --- *@
     <MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
@@ -102,7 +102,9 @@ else
     </style>
 
     <MudTable Items="(_wantedList.Items ?? Enumerable.Empty<WantedListItem>()).OrderBy(b => b.BrickColor?.Name)"
-        Hover="true" Dense="true">
+        Hover="true" Dense="true" Page="_itemsPage" RowsPerPage="_itemsRowsPerPage" OnPageChanged="OnItemsPageChanged"
+        OnRowsPerPageChanged="OnItemsRowsPerPageChanged">
+
         <HeaderContent>
             <MudTh>Image</MudTh>
             <MudTh>Standard Name</MudTh>
@@ -155,59 +157,65 @@ else
                     OnClick="@(() => DeleteItem(context.Id))">Delete</MudButton>
             </MudTd>
         </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[] { 25, 50, 100, 250 }" />
+        </PagerContent>
     </MudTable>
 
     @if (_wantedList.MissingItems != null && _wantedList.MissingItems.Any())
-{
-    <MudText Typo="Typo.h5" Class="mt-8 mb-4"> Unassigned parts (Missing Mappings)</MudText>
-    <MudAlert Severity="Severity.Warning" Class="mb-4">
+    {
+        <MudText Typo="Typo.h5" Class="mt-8 mb-4"> Unassigned parts (Missing Mappings)</MudText>
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
             The following parts were found in the import file but could not be matched to any brick in the database.
         </MudAlert>
 
-    <MudTable Items="@_wantedList.MissingItems" Dense="true" Hover="true" Elevation="1">
-        <HeaderContent>
-            <MudTh>External PartNum</MudTh>
-            <MudTh>External Color ID</MudTh>
-            <MudTh>Quantity</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="PartNum">@context.ExternalPartNum</MudTd>
-           
-          <MudTd DataLabel="Color ID">
-    @{
-        string? hex = null;
-        // Wir speichern die Source in einer lokalen Variable für bessere Lesbarkeit
-        var source = _wantedList.Source?.ToLower();
+        <MudTable Items="@_wantedList.MissingItems" Dense="true" Hover="true" Elevation="1">
+            <HeaderContent>
+                <MudTh>External PartNum</MudTh>
+                <MudTh>External Color ID</MudTh>
+                <MudTh>Quantity</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="PartNum">@context.ExternalPartNum</MudTd>
 
-        if (source == "bricklink")
-        {
-            // Expliziter Aufruf mit dem nullable int?
-            hex = ColorIdMappingHelper.GetColorRgbWithBricklinkColorId(context.ExternalColorId);
-        }
-        else if (source == "rebrickable")
-        {
-            hex = ColorIdMappingHelper.GetColorRgbWithRebrickableColorId(context.ExternalColorId);
-        }
-        else{
-              hex = ColorIdMappingHelper.GetColorRgbWithRebrickableColorId(context.ExternalColorId);
-        }
+                <MudTd DataLabel="Color ID">
+                    @{
+                        string? hex = null;
+                        // Wir speichern die Source in einer lokalen Variable für bessere Lesbarkeit
+                        var source = _wantedList.Source?.ToLower();
 
-        var displayHex = hex ?? "#eeeeee";
+                        if (source == "bricklink")
+                        {
+                            // Expliziter Aufruf mit dem nullable int?
+                            hex = ColorIdMappingHelper.GetColorRgbWithBricklinkColorId(context.ExternalColorId);
+                        }
+                        else if (source == "rebrickable")
+                        {
+                            hex = ColorIdMappingHelper.GetColorRgbWithRebrickableColorId(context.ExternalColorId);
+                        }
+                        else
+                        {
+                            hex = ColorIdMappingHelper.GetColorRgbWithRebrickableColorId(context.ExternalColorId);
+                        }
+
+                        var displayHex = hex ?? "#eeeeee";
+                    }
+
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div
+                            style="width:14px; height:14px; border-radius:50%; background-color:@displayHex; border:1px solid #ccc;">
+                        </div>
+                        <MudText Typo="Typo.body2">
+                            @_wantedList.Source ColorId: @context.ExternalColorId
+                            <span style="color:gray; font-size: 0.8rem;">(@displayHex)</span>
+                        </MudText>
+                    </div>
+                </MudTd>
+
+                <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+            </RowTemplate>
+        </MudTable>
     }
-
-    <div style="display:flex; align-items:center; gap:8px;">
-        <div style="width:14px; height:14px; border-radius:50%; background-color:@displayHex; border:1px solid #ccc;"></div>
-        <MudText Typo="Typo.body2">
-            @_wantedList.Source ColorId: @context.ExternalColorId 
-            <span style="color:gray; font-size: 0.8rem;">(@displayHex)</span>
-        </MudText>
-    </div>
-</MudTd>
-
-            <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
-        </RowTemplate>
-    </MudTable>
-}
 
 
     <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-8" Variant="Variant.Outlined" OnClick="GoBack">Back
@@ -220,6 +228,9 @@ else
     private bool _loading = true;
     private bool _deletingList = false;
     private Dictionary<(int, int), Dictionary<string, int>> _ownedByBrand = new();
+
+    private int _itemsPage = 0;
+    private int _itemsRowsPerPage = 25;
 
 
     protected override async Task OnInitializedAsync()
@@ -237,13 +248,37 @@ else
         _loading = false;
     }
 
-    private async Task DeleteList() { /* ... wie zuvor ... */ }
-    private async Task DeleteItem(int id) { /* ... wie zuvor ... */ }
+    private async Task DeleteList()
+    {
+
+        _deletingList = true;
+        await WantedListService.DeleteWantedListAsync(wantedListId);
+        NotificationService.Success("Wanted List deleted successfully.");
+        Nav.NavigateTo("/mywantedlists");
+    }
+    private async Task DeleteItem(int id)
+    {
+        await WantedListService.DeleteWantedListItemAsync(id);
+
+        _itemsPage = 0; // <-- wichtig
+        _wantedList = await WantedListService.GetWantedListByIdAsync(wantedListId);
+    }
     protected int TotalNeeded => _wantedList?.Items?.Sum(b => b.Quantity) ?? 0;
     protected int TotalOwned => _wantedList?.Items?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
     private int GetOwnedQuantity(WantedListItem item) => _ownedByBrand.TryGetValue((item.MappedBrickId, item.BrickColorId),
     out var brandDict) ? brandDict.Values.Sum() : 0;
     private void GoBack() => Nav.NavigateTo("/mywantedlists");
+
+    private void OnItemsPageChanged(int page)
+    {
+        _itemsPage = page;
+    }
+
+    private void OnItemsRowsPerPageChanged(int size)
+    {
+        _itemsRowsPerPage = size;
+        _itemsPage = 0;
+    }
 
 
 }

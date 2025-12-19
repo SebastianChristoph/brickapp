@@ -23,28 +23,60 @@
         }
         else
         {
-            <MudTable Items="_mappingRequests" Hover="true" Striped="true">
-                <HeaderContent>
-                    <MudTh>Brick</MudTh>
-                    <MudTh>Brand</MudTh>
-                    <MudTh>Mapping Name</MudTh>
-                    <MudTh>Mapping Item ID</MudTh>
-                    <MudTh>Status</MudTh>
-                    <MudTh>Reason (if rejected)</MudTh>
-                    <MudTh>Created</MudTh>
-                    <MudTh>Approved By</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd>@context.Brick?.Name</MudTd>
-                    <MudTd>@context.Brand</MudTd>
-                    <MudTd>@context.MappingName</MudTd>
-                    <MudTd>@context.MappingItemId</MudTd>
-                    <MudTd>@context.Status</MudTd>
-                    <MudTd>@context.ReasonRejected</MudTd>
-                    <MudTd>@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
-                    <MudTd>@context.ApprovedByUser?.Name</MudTd>
-                </RowTemplate>
-            </MudTable>
+        <MudTable Items="_mappingRequests" Hover="true" Striped="true">
+    <HeaderContent>
+        <MudTh>Image</MudTh>
+        <MudTh>Brick</MudTh>
+        <MudTh>Brand</MudTh>
+        <MudTh>Mapping Name</MudTh>
+        <MudTh>Mapping Item ID</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Reason (if rejected)</MudTh>
+        <MudTh>Created</MudTh>
+        <MudTh>Approved By</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Image">
+            @{
+                var imageUrl = context.Brick != null 
+                    ? ImageService.GetMappedBrickImagePath(context.Brick) 
+                    : ImageService.GetPlaceHolder();
+            }
+            <img src="@imageUrl" alt="Brick Image" 
+                 style="max-width:64px; max-height:64px; border:1px solid #ccc; padding:2px;" />
+        </MudTd>
+        <MudTd DataLabel="Brick">@context.Brick?.Name</MudTd>
+        <MudTd DataLabel="Brand">@context.Brand</MudTd>
+        <MudTd DataLabel="Mapping Name">@context.MappingName</MudTd>
+        <MudTd DataLabel="Mapping Item ID">@context.MappingItemId</MudTd>
+        
+        <MudTd DataLabel="Status">
+            @if (context.Status == MappingRequestStatus.Approved)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Success" Title="Approved" Class="mr-2" />
+            }
+            else if (context.Status == MappingRequestStatus.Rejected)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.HeartBroken" Color="Color.Error" Title="Rejected" Class="mr-2" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Pending" Color="Color.Warning" Title="Pending" Class="mr-2" />
+            }
+            @context.Status.ToString()
+        </MudTd>
+
+        <MudTd DataLabel="Reason">
+            @if (context.Status == MappingRequestStatus.Rejected && !string.IsNullOrWhiteSpace(context.ReasonRejected))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@context.ReasonRejected</MudAlert>
+            }
+        </MudTd>
+        
+        <MudTd DataLabel="Created">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+        <MudTd DataLabel="Approved By">@context.ApprovedByUser?.Name</MudTd>
+    </RowTemplate>
+</MudTable>
         }
     </MudTabPanel>
     <MudTabPanel Text="New Item Requests">

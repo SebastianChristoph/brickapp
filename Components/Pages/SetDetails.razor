@@ -55,10 +55,10 @@ else
             {
                 <div style="flex-shrink:0;">
                     <img src="@setImgUrl" alt="@_itemSet.Name"
-                         style="height:200px; width:auto; object-fit:contain; border-radius:4px;" />
+                        style="height:200px; width:auto; object-fit:contain; border-radius:4px;" />
                 </div>
             }
-        
+
             <MudStack Spacing="1" Style="flex: 1;">
                 <MudText Typo="Typo.h4" GutterBottom="true">@_itemSet.Name</MudText>
 
@@ -66,41 +66,40 @@ else
 
                 <MudText Typo="Typo.subtitle2">Set Nr: @_itemSet.SetNum | Year: @_itemSet.Year</MudText>
 
-              
+
             </MudStack>
         </MudStack>
     </MudPaper>
 
-<MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
-       <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
-       <MudSpacer />
-        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" OnClick="@OpenAddSetDialog">
+    <MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
+        <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
+        <MudSpacer />
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary"
+            OnClick="@OpenAddSetDialog">
             Add Set items to Inventory
         </MudButton>
 
-        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Outlined" Color="Color.Primary" OnClick="@OpenAddSetToWantedListDialog">
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Outlined" Color="Color.Primary"
+            OnClick="@OpenAddSetToWantedListDialog">
             Add Set items to Wanted List
         </MudButton>
     </MudStack>
- 
-   <br/><br/>
- 
 
-   <MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
+    <br />
+
+    <br />
+
+
+    <MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
         <MudText Typo="Typo.h6" GutterBottom="true">Items in this set</MudText>
 
-        <MudButton Variant="@(_showOnlyMissing ? Variant.Outlined : Variant.Filled)"
-                   Color="Color.Primary"
-                   OnClick="@ShowAllItems"
-                   StartIcon="@Icons.Material.Filled.List"
-                   Class="ml-4">
+        <MudButton Variant="@(_showOnlyMissing? Variant.Outlined: Variant.Filled)" Color="Color.Primary"
+            OnClick="@ShowAllItems" StartIcon="@Icons.Material.Filled.List" Class="ml-4">
             Show all items
         </MudButton>
 
-        <MudButton Variant="@(_showOnlyMissing ? Variant.Filled : Variant.Outlined)"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.FilterList"
-                   OnClick="@ShowOnlyMissingItems">
+        <MudButton Variant="@(_showOnlyMissing? Variant.Filled: Variant.Outlined)" Color="Color.Primary"
+            StartIcon="@Icons.Material.Filled.FilterList" OnClick="@ShowOnlyMissingItems">
             Show only missing items
         </MudButton>
     </MudStack>
@@ -141,7 +140,8 @@ else
         }
     </style>
 
-    <MudTable @key="_tableKey" Items="@_tableItems">
+    <MudTable @key="_tableKey" Items="@_tableItems" Page="_itemsPage" RowsPerPage="_itemsRowsPerPage"
+        OnPageChanged="OnItemsPageChanged" OnRowsPerPageChanged="OnItemsRowsPerPageChanged">
         <HeaderContent>
             <MudTh>Image</MudTh>
             <MudTh>Name</MudTh>
@@ -160,8 +160,8 @@ else
             <MudTd DataLabel="Image">
                 @{
                     var imgUrl = context.MappedBrick != null
-                        ? ImageService.GetMappedBrickImagePath(context.MappedBrick)
-                        : "/placeholder-image.png";
+                                            ? ImageService.GetMappedBrickImagePath(context.MappedBrick)
+                    : "/placeholder-image.png";
 
                     var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
                 }
@@ -173,19 +173,20 @@ else
                         {
                             <div class="brick" style="--brick-color:@overlay">
                                 <img src="@imgUrl" alt="" class="brick-img"
-                                     onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                                    onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
                             </div>
                         }
                         else
                         {
                             <img src="@imgUrl" alt=""
-                                 style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
-                                 onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                                style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
+                                onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
                         }
                     }
                     else
                     {
-                        <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">
+                        <span
+                            style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">
                             No image
                         </span>
                     }
@@ -262,6 +263,9 @@ else
                 }
             </MudTd>
         </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[] { 25, 50, 100, 250 }" />
+        </PagerContent>
     </MudTable>
 
     <MudButton Class="mt-4" Variant="Variant.Outlined" OnClick="@GoBack">
@@ -275,7 +279,8 @@ else
 
     private ItemSet? _itemSet;
     private UserItemSet? _userItemSet;
-
+    private int _itemsPage = 0;
+    private int _itemsRowsPerPage = 25;
     private bool _loading = true;
     private bool _showOnlyMissing = false;
 
@@ -304,9 +309,20 @@ else
     protected int TotalNeeded => _itemSet?.Bricks?.Sum(b => b.Quantity) ?? 0;
     protected int TotalOwned => _itemSet?.Bricks?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
 
+    private void OnItemsPageChanged(int page)
+    {
+        _itemsPage = page;
+    }
+
+    private void OnItemsRowsPerPageChanged(int size)
+    {
+        _itemsRowsPerPage = size;
+        _itemsPage = 0;
+    }
+
     protected int Percent => (TotalNeeded > 0 && TotalOwned == TotalNeeded)
-        ? 100
-        : (TotalNeeded > 0 ? (int)Math.Floor(100.0 * (double)TotalOwned / TotalNeeded) : 0);
+    ? 100
+            : (TotalNeeded > 0 ? (int)Math.Floor(100.0 * (double)TotalOwned / TotalNeeded) : 0);
 
     protected bool HasAll => TotalNeeded > 0 && TotalOwned == TotalNeeded;
 
@@ -341,12 +357,12 @@ else
         var inventory = await InventoryService.GetCurrentUserInventoryAsync() ?? new List<InventoryItem>();
 
         _ownedByBrand = inventory
-            .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
-            .ToDictionary(
-                g => g.Key,
-                g => g.GroupBy(i => i.Brand)
-                      .ToDictionary(bg => bg.Key, bg => bg.Sum(i => i.Quantity))
-            );
+        .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
+        .ToDictionary(
+        g => g.Key,
+        g => g.GroupBy(i => i.Brand)
+        .ToDictionary(bg => bg.Key, bg => bg.Sum(i => i.Quantity))
+        );
 
         UpdateTableItems();
         _tableKey = Guid.NewGuid();
@@ -360,14 +376,14 @@ else
                 return;
 
             var items = _itemSet.Bricks
-                .Where(b => b.MappedBrickId > 0 && b.BrickColorId > 0 && b.Quantity > 0)
-                .Select(b => new Data.DTOs.NewWantedListItemModel
-                {
-                    MappedBrickId = b.MappedBrickId,
-                    ColorId = b.BrickColorId,
-                    Quantity = b.Quantity
-                })
-                .ToList();
+            .Where(b => b.MappedBrickId > 0 && b.BrickColorId > 0 && b.Quantity > 0)
+            .Select(b => new Data.DTOs.NewWantedListItemModel
+            {
+                MappedBrickId = b.MappedBrickId,
+                ColorId = b.BrickColorId,
+                Quantity = b.Quantity
+            })
+            .ToList();
 
             var parameters = new DialogParameters<AddSetToWantedListDialog>();
             parameters.Add(x => x.SetName, _itemSet.Name);
@@ -403,14 +419,15 @@ else
         }
 
         _tableItems = filtered
-            .OrderBy(b => b.BrickColor?.Name)
-            .ToList();
+        .OrderBy(b => b.BrickColor?.Name)
+        .ToList();
     }
 
     private void ShowAllItems()
     {
         _showOnlyMissing = false;
         UpdateTableItems();
+        _itemsPage = 0;
         _tableKey = Guid.NewGuid();
         StateHasChanged();
     }
@@ -419,6 +436,7 @@ else
     {
         _showOnlyMissing = true;
         UpdateTableItems();
+        _itemsPage = 0;
         _tableKey = Guid.NewGuid();
         StateHasChanged();
     }
@@ -467,7 +485,8 @@ else
 
     private BrickOwnershipState GetOwnershipState(ItemSetBrick brick)
     {
-        if (!_ownedByBrand.TryGetValue((brick.MappedBrickId, brick.BrickColorId), out var brandDict) || brandDict.Values.Sum() <= 0)
+        if (!_ownedByBrand.TryGetValue((brick.MappedBrickId, brick.BrickColorId), out var brandDict) || brandDict.Values.Sum()
+        <= 0)
             return BrickOwnershipState.None;
 
         var total = brandDict.Values.Sum();
@@ -480,7 +499,7 @@ else
     private int GetOwnedQuantity(ItemSetBrick brick)
     {
         return _ownedByBrand.TryGetValue((brick.MappedBrickId, brick.BrickColorId), out var brandDict)
-            ? brandDict.Values.Sum()
-            : 0;
+        ? brandDict.Values.Sum()
+        : 0;
     }
 }

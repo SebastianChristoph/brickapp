@@ -13,6 +13,8 @@
                 <span> (@Brick.LegoPartNum)</span>
             }
         </MudText>
+       
+       
         <div style="margin-bottom:12px; min-height:68px;">
             @{
                 var imgUrl = Brick != null ? ImageService.GetMappedBrickImagePath(Brick) : "/placeholder-image.png";
@@ -20,7 +22,17 @@
             <img src="@imgUrl" alt="" style="max-width:64px;max-height:64px;border-radius:4px;border:1px solid #ccc;@(imgUrl == "/placeholder-image.png" ? ";opacity:0.5" : "")" />
         </div>
         <MudTextField Value="@Brand" Label="Brand" Disabled="true" />
+
+       
+
         <MudTextField @bind-Value="MappingName" Label="Item name for this brand" Disabled="@(Brand == "Lego")" />
+
+          @if(Brand != null && Brand.ToLower() =="bluebrixx" && !string.IsNullOrWhiteSpace(Brick?.LegoPartNum))
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-2">Tip: Search for the LEGO part number <b>@Brick.LegoPartNum</b> on bluebrixx.com to identify the matching Bluebrixx item name. <MudLink Href="https://www.bluebrixx.com" Target="_blank">Go to BlueBrixx.com</MudLink></MudAlert>
+            
+        }
+
         <MudTextField Value="@MappingItemId" ValueChanged="@((string v) => OnMappingItemIdChanged(v))" ValueExpression="@(() => MappingItemId)" Label="Item Part Number" Immediate="true" />
 
         @if (_searchingLegoPreview)
