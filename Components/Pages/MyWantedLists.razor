@@ -273,7 +273,7 @@ else
         </HeaderContent>
         <RowTemplate Context="wl">
             <MudTd>
-                <span style="cursor:pointer; color: #1976d2; text-decoration: underline;"
+                <span style="cursor:pointer; color: #1976d2; font-size: 1.3rem; text-decoration: underline;"
                       @onclick="() => GoToDetails(wl.Id)">
                     @wl.Name
                 </span>
@@ -555,21 +555,23 @@ else
         return Task.CompletedTask;
     }
 
-    private void AddUploadItemsToNewList_FromComponent(List<ParsedPart> parts)
+    private async void AddUploadItemsToNewList_FromComponent(List<ParsedPart> parts)
+{
+    LoadingService.Show("Adding uploaded items to wanted list...");
+        await EnsureAllBricksLoadedAsync(); 
+
+    foreach (var p in parts)
     {
-        foreach (var p in parts)
+        _brickById.TryGetValue(p.MappedBrickId, out var brick);
+        AddOrMergeItem(newListModel.Items, new NewWantedListItemModel
         {
-            _brickById.TryGetValue(p.MappedBrickId, out var brick);
-
-            AddOrMergeItem(newListModel.Items, new NewWantedListItemModel
-            {
-                MappedBrickId = p.MappedBrickId,
-                BrickName = brick?.Name ?? $"Brick #{p.MappedBrickId}",
-                ColorId = p.BrickColorId,
-                Quantity = p.Quantity
-            });
-        }
-
+            MappedBrickId = p.MappedBrickId,
+            BrickName = brick?.Name ?? $"Brick #{p.MappedBrickId}",
+            ColorId = p.BrickColorId,
+            Quantity = p.Quantity
+        });
+    }
+LoadingService.Hide();
         _itemsPage = 0;
         NotificationService.Success("Upload items added to list.");
         StateHasChanged();
