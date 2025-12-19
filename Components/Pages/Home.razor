@@ -9,6 +9,9 @@
 @if (_username is null)
 {
     <MudText Typo="Typo.h4" GutterBottom="true">Welcome to BrickIsBrick!</MudText>
+    <MudAlert Severity="Severity.Info" Class="mt-4">
+        Please <MudLink Href="/login" Color="Color.Primary">log in</MudLink> to enjoy all features.
+    </MudAlert>
 }
 else
 {
