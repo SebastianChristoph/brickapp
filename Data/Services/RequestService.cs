@@ -93,7 +93,7 @@ namespace brickapp.Data.Services
             return true;
         }
 
-      public async Task ApproveNewItemRequestAsync(
+    public async Task ApproveNewItemRequestAsync(
     int requestId,
     string adminUserId,
     string? overrideName)
@@ -108,9 +108,44 @@ namespace brickapp.Data.Services
         ? request.Name
         : overrideName.Trim();
 
-    // Namen ggf. überschreiben
-    request.Name = finalName;
+    var brand = request.Brand?.Trim().ToLower();
+    var partNum = request.PartNum;
 
+    // --- DOPPELTEN-CHECK ---
+    // Wir prüfen, ob bereits ein MappedBrick mit dieser PartNum für diese Brand existiert
+    MappedBrick? existingBrick = brand switch
+    {
+        "lego" => await db.MappedBricks.FirstOrDefaultAsync(m => m.LegoPartNum == partNum),
+        "bluebrixx" => await db.MappedBricks.FirstOrDefaultAsync(m => m.BluebrixxPartNum == partNum),
+        "cada" => await db.MappedBricks.FirstOrDefaultAsync(m => m.CadaPartNum == partNum),
+        "pantasy" => await db.MappedBricks.FirstOrDefaultAsync(m => m.PantasyPartNum == partNum),
+        "mould king" or "mouldking" => await db.MappedBricks.FirstOrDefaultAsync(m => m.MouldKingPartNum == partNum),
+        _ => await db.MappedBricks.FirstOrDefaultAsync(m => m.UnknownPartNum == partNum)
+    };
+
+    if (existingBrick != null)
+    {
+        // Fall: Teil existiert bereits. 
+        // Wir markieren den Request als approved, erstellen aber KEINEN neuen Brick.
+        request.Status = NewItemRequestStatus.Approved;
+        request.ApprovedByUserId = adminUserId;
+        request.ApprovedAt = DateTime.UtcNow;
+        request.Name = finalName; // Ggf. Namen im Request anpassen
+
+        await db.SaveChangesAsync();
+
+        await _notificationService.AddNotificationAsync(
+            request.RequestedByUserId,
+            "Item already exists",
+            $"Your request for {request.Brand} ({partNum}) was approved because it already exists in our database.",
+            "NewItemRequest",
+            request.Id
+        );
+        return; // WICHTIG: Hier abbrechen, damit unten kein neuer MappedBrick erzeugt wird
+    }
+
+    // --- NORMALER FLOW (Neuer Brick) ---
+    request.Name = finalName;
     request.Status = NewItemRequestStatus.Approved;
     request.ApprovedByUserId = adminUserId;
     request.ApprovedAt = DateTime.UtcNow;
@@ -121,32 +156,33 @@ namespace brickapp.Data.Services
         Uuid = request.Uuid,
     };
 
-    switch (request.Brand?.Trim().ToLower())
-        {
-            case "lego":
+    // Brand-Zuweisung (wie gehabt)
+    switch (brand)
+    {
+        case "lego":
             mappedBrick.LegoName = finalName;
-            mappedBrick.LegoPartNum = request.PartNum;
+            mappedBrick.LegoPartNum = partNum;
             break;
         case "bluebrixx":
             mappedBrick.BluebrixxName = finalName;
-            mappedBrick.BluebrixxPartNum = request.PartNum;
+            mappedBrick.BluebrixxPartNum = partNum;
             break;
         case "cada":
             mappedBrick.CadaName = finalName;
-            mappedBrick.CadaPartNum = request.PartNum;
+            mappedBrick.CadaPartNum = partNum;
             break;
         case "pantasy":
             mappedBrick.PantasyName = finalName;
-            mappedBrick.PantasyPartNum = request.PartNum;
+            mappedBrick.PantasyPartNum = partNum;
             break;
         case "mould king":
         case "mouldking":
             mappedBrick.MouldKingName = finalName;
-            mappedBrick.MouldKingPartNum = request.PartNum;
+            mappedBrick.MouldKingPartNum = partNum;
             break;
         default:
             mappedBrick.UnknownName = finalName;
-            mappedBrick.UnknownPartNum = request.PartNum;
+            mappedBrick.UnknownPartNum = partNum;
             break;
     }
 

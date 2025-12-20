@@ -65,3 +65,4 @@ wwwroot/part_images/new
 .env
 appsettings.Development.json
 mappedData
+launchSettings.json

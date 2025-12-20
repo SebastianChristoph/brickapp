@@ -14,17 +14,19 @@ namespace brickapp.Data.Services
         private readonly IDbContextFactory<AppDbContext> _factory;
         private readonly UserService _userService;
         private readonly ILogger<WantedListService> _logger;
+        private readonly ImageService _imageService;
 
         // Schnelles DTO für Overview (keine Includes nötig)
         public record WantedListSummary(int Id, string Name, string? Source, int ItemCount);
         private readonly RebrickableApiService _rebrickableApi;
 
-        public WantedListService(IDbContextFactory<AppDbContext> factory, UserService userService, RebrickableApiService rebrickableApi, ILogger<WantedListService> logger)
+        public WantedListService(IDbContextFactory<AppDbContext> factory, UserService userService, RebrickableApiService rebrickableApi, ILogger<WantedListService> logger, ImageService imageService)
         {
             _factory = factory;
             _userService = userService;
             _rebrickableApi = rebrickableApi;
             _logger = logger;
+            _imageService = imageService;
         }
 
         public static string NormalizeSource(string? source)
@@ -44,9 +46,6 @@ namespace brickapp.Data.Services
             return string.IsNullOrWhiteSpace(s) ? "manual" : s;
         }
 
-        /// <summary>
-        /// Gibt für jedes InventoryItem (nach BrickId und ColorId) die zugehörigen WantedLists zurück.
-        /// </summary>
         public async Task<Dictionary<(int BrickId, int ColorId), List<string>>> GetWantedListNamesByBrickAndColorAsync(int userId)
         {
             await using var db = await _factory.CreateDbContextAsync();
@@ -83,29 +82,7 @@ namespace brickapp.Data.Services
             return dict.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.OrderBy(x => x).ToList());
         }
 
-        /// <summary>
-        /// Heavy: Lädt WantedLists inkl. Items + MappedBrick + BrickColor.
-        /// Verwenden für Details, nicht für Overview.
-        /// </summary>
-        public async Task<List<WantedList>> GetCurrentUserWantedListsAsync()
-        {
-            var user = await _userService.GetCurrentUserAsync();
-            if (user == null)
-                return new();
-
-            await using var db = await _factory.CreateDbContextAsync();
-
-            return await db.WantedLists
-                .AsNoTracking()
-                .Include(w => w.Items)
-                    .ThenInclude(i => i.MappedBrick)
-                .Include(w => w.Items)
-                    .ThenInclude(i => i.BrickColor)
-                .Where(w => w.AppUserId == user.Id.ToString())
-                .ToListAsync();
-        }
-
-        /// <summary>
+         /// <summary>
         /// Fast: Overview nur mit Name/Source/Count (ohne Includes).
         /// </summary>
         public async Task<List<WantedListSummary>> GetCurrentUserWantedListSummariesAsync()
@@ -128,6 +105,94 @@ namespace brickapp.Data.Services
                 ))
                 .ToListAsync();
         }
+
+      
+        public async Task<List<WantedList>> GetCurrentUserWantedListsAsync()
+        {
+            var user = await _userService.GetCurrentUserAsync();
+            if (user == null)
+                return new();
+
+            await using var db = await _factory.CreateDbContextAsync();
+
+            return await db.WantedLists
+                .AsNoTracking()
+                .Include(w => w.Items)
+                    .ThenInclude(i => i.MappedBrick)
+                .Include(w => w.Items)
+                    .ThenInclude(i => i.BrickColor)
+                .Where(w => w.AppUserId == user.Id.ToString())
+                .ToListAsync();
+        }
+
+     public async Task<List<MissingItem>> GetResolvableMissingItemsAsync(int wantedListId)
+{
+    await using var db = await _factory.CreateDbContextAsync();
+    
+    // Wir laden die Liste inkl. MissingItems
+    var wantedList = await db.WantedLists
+        .Include(w => w.MissingItems)
+        .FirstOrDefaultAsync(w => w.Id == wantedListId);
+
+    if (wantedList == null || !wantedList.MissingItems.Any()) 
+        return new List<MissingItem>();
+
+    // Alle externen PartNums aus der Liste sammeln
+    var partNums = wantedList.MissingItems
+        .Select(m => m.ExternalPartNum)
+        .Distinct()
+        .ToList();
+    
+    // Prüfen, welche davon nun in MappedBricks existieren
+    var existingLegoPartNums = await db.MappedBricks
+        .Where(mb => mb.LegoPartNum != null && partNums.Contains(mb.LegoPartNum))
+        .Select(mb => mb.LegoPartNum)
+        .ToListAsync();
+
+    // Nur die MissingItems zurückgeben, die jetzt gemappt werden können
+    return wantedList.MissingItems
+        .Where(m => existingLegoPartNums.Contains(m.ExternalPartNum))
+        .ToList();
+}
+      public async Task ResolveMissingItemsAsync(int wantedListId, List<int> missingItemIds)
+{
+    await using var db = await _factory.CreateDbContextAsync();
+    
+    // Hier laden wir die Liste mit BEIDEN Collections (wichtig für die Migration)
+    var wantedList = await db.WantedLists
+        .Include(w => w.Items)
+        .Include(w => w.MissingItems)
+        .FirstOrDefaultAsync(w => w.Id == wantedListId);
+
+    if (wantedList == null) return;
+
+    // Nur die MissingItems filtern, die der User auflösen will
+    var toResolve = wantedList.MissingItems
+        .Where(m => missingItemIds.Contains(m.Id))
+        .ToList();
+
+    foreach (var missing in toResolve)
+    {
+        var brick = await db.MappedBricks
+            .FirstOrDefaultAsync(mb => mb.LegoPartNum == missing.ExternalPartNum);
+
+        if (brick != null)
+        {
+            // Zu echten Items hinzufügen
+            wantedList.Items.Add(new WantedListItem
+            {
+                MappedBrickId = brick.Id,
+                BrickColorId = missing.ExternalColorId ?? 0,
+                Quantity = missing.Quantity
+            });
+
+            // Aus MissingItems entfernen
+            wantedList.MissingItems.Remove(missing);
+        }
+    }
+
+    await db.SaveChangesAsync();
+}
 
         public async Task<bool> CreateWantedListAsync(NewWantedListModel model)
         {
@@ -250,30 +315,45 @@ namespace brickapp.Data.Services
             {
                 // Hier greift nun die verbesserte API-Logik (Direkt-Check -> Suche)
                 // Beispiel: User sendet "3068", API findet "3068b" und liefert den Namen
-                var officialName = await _rebrickableApi.GetLegoItemNameByPartNumber(partNum);
+                // Im WantedListService.cs Konstruktor den ImageService hinzufügen
+                // private readonly ImageService _imageService;
 
-                // Nur erstellen, wenn ein offizieller Name gefunden wurde
-                if (!string.IsNullOrWhiteSpace(officialName))
+                // Innerhalb von CreateWantedListAndReturnIdAsync (Punkt 5.A):
+
+                // API Call liefert nun das DTO
+                var partInfo = await _rebrickableApi.GetLegoItemNameByPartNumber(partNum);
+
+                if (partInfo != null && !string.IsNullOrWhiteSpace(partInfo.Name))
                 {
+                    var newUuid = Guid.NewGuid().ToString();
                     var newRequest = new NewItemRequest
                     {
-                        Uuid = Guid.NewGuid().ToString(),
+                        Uuid = newUuid,
                         Brand = "Lego",
-                        PartNum = partNum, // Wir speichern die ID, die der User geliefert hat
-                        Name = officialName,
+                        PartNum = partNum,
+                        Name = partInfo.Name,
                         RequestedByUserId = user.Uuid,
                         CreatedAt = DateTime.UtcNow,
                         Status = NewItemRequestStatus.Pending
                     };
 
                     db.NewItemRequests.Add(newRequest);
-                    _logger.LogInformation("✅ NewItemRequest für {PartNum} ({Name}) erstellt.", partNum, officialName);
+
+                    // BILD SPEICHERN
+                    if (!string.IsNullOrWhiteSpace(partInfo.ImageUrl))
+                    {
+                        // Wir starten das Speichern asynchron, warten aber darauf, 
+                        // damit die Datei sicher existiert bevor der User die Liste sieht
+                        await _imageService.DownloadAndSaveItemImageAsync(
+                            partInfo.ImageUrl, 
+                            "Lego", 
+                            partNum, 
+                            newUuid);
+                    }
+
+                    _logger.LogInformation("✅ NewItemRequest und Bild für {PartNum} erstellt.", partNum);
                 }
-                else
-                {
-                    _logger.LogWarning("⚠️ Kein offizieller Name für {PartNum} gefunden. Mapping-Request übersprungen.", partNum);
-                }
-            }
+                            }
             else 
             {
                 _logger.LogInformation("ℹ️ Mapping-Request für {PartNum} existiert bereits oder ist genehmigt.", partNum);

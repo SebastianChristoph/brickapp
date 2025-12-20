@@ -29,6 +29,28 @@ else
 {
     @* --- HEADER --- *@
 
+    @if (_resolvableItems != null && _resolvableItems.Any())
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText>
+                   <MudText Typo="Typo.body2">
+                   <b>@_resolvableItems.Count </b>of the unmapped items have been mapped in the database since your last import.<br />
+                   You can now add them to your Wanted List by clicking the button below and make your Wanted List more accurate.
+                </MudText>
+
+            </MudText>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Disabled="@_isResolving"
+                       OnClick="AddResolvableItems">
+                Teile zur Liste hinzufügen
+            </MudButton>
+        </MudStack>
+    </MudAlert>
+}
+
     <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
         <MudStack Spacing="1">
             <MudText Typo="Typo.h4">Wanted List: @_wantedList.Name</MudText>
@@ -232,12 +254,23 @@ else
     private int _itemsPage = 0;
     private int _itemsRowsPerPage = 25;
 
+    private List<MissingItem> _resolvableItems = new();
+    private bool _isResolving = false;
+
 
     protected override async Task OnInitializedAsync()
     {
         _loading = true;
         _wantedList = await WantedListService.GetWantedListByIdAsync(wantedListId);
 
+        await LoadData();
+        _resolvableItems = await WantedListService.GetResolvableMissingItemsAsync(wantedListId);
+        _loading = false;
+    }
+
+    private async Task LoadData()
+    {
+        _wantedList = await WantedListService.GetWantedListByIdAsync(wantedListId);
         var inventory = await InventoryService.GetCurrentUserInventoryAsync();
         _ownedByBrand = inventory
         .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
@@ -245,8 +278,24 @@ else
         g => g.Key,
         g => g.GroupBy(i => i.Brand).ToDictionary(bg => bg.Key, bg => bg.Sum(i => i.Quantity))
         );
-        _loading = false;
     }
+
+    private async Task AddResolvableItems()
+{
+    if (!_resolvableItems.Any()) return;
+    
+    _isResolving = true;
+    var ids = _resolvableItems.Select(i => i.Id).ToList();
+    
+    await WantedListService.ResolveMissingItemsAsync(wantedListId, ids);
+    
+    NotificationService.Success($"{ids.Count} items were successfully added to your list.");
+    
+    // Daten neu laden
+    _resolvableItems.Clear();
+    await LoadData();
+    _isResolving = false;
+}
 
     private async Task DeleteList()
     {
