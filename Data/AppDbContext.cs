@@ -38,9 +38,9 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-            // NewSetRequest Tabelle
-            modelBuilder.Entity<NewSetRequest>().ToTable("newSetRequests");
-            modelBuilder.Entity<NewSetRequestItem>().ToTable("newSetRequestItems");
+        // NewSetRequest Tabelle
+        modelBuilder.Entity<NewSetRequest>().ToTable("newSetRequests");
+        modelBuilder.Entity<NewSetRequestItem>().ToTable("newSetRequestItems");
 
         modelBuilder.Entity<NewSetRequest>()
             .HasMany(nsr => nsr.Items)
@@ -48,25 +48,25 @@ public class AppDbContext : DbContext
             .HasForeignKey(i => i.NewSetRequestId)
             .OnDelete(DeleteBehavior.Cascade);
 
-    // NewItemRequest Tabelle
-            // NewItemRequest Tabelle
-            modelBuilder.Entity<NewItemRequest>().ToTable("newItemRequests");
+        // NewItemRequest Tabelle
+        // NewItemRequest Tabelle
+        modelBuilder.Entity<NewItemRequest>().ToTable("newItemRequests");
 
-            // Beziehungen NewItemRequest
-            modelBuilder.Entity<NewItemRequest>()
-                .HasOne(nr => nr.RequestedByUser)
-                .WithMany(u => u.NewItemRequestsRequested)
-                .HasForeignKey(nr => nr.RequestedByUserId)
-                .HasPrincipalKey(u => u.Uuid)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<NewItemRequest>()
-                .HasOne(nr => nr.ApprovedByUser)
-                .WithMany(u => u.NewItemRequestsApproved)
+        // Beziehungen NewItemRequest
+        modelBuilder.Entity<NewItemRequest>()
+            .HasOne(nr => nr.RequestedByUser)
+            .WithMany(u => u.NewItemRequestsRequested)
+            .HasForeignKey(nr => nr.RequestedByUserId)
             .HasPrincipalKey(u => u.Uuid)
             .OnDelete(DeleteBehavior.Restrict);
 
-    // UserNotification Tabelle
+        modelBuilder.Entity<NewItemRequest>()
+            .HasOne(nr => nr.ApprovedByUser)
+            .WithMany(u => u.NewItemRequestsApproved)
+        .HasPrincipalKey(u => u.Uuid)
+        .OnDelete(DeleteBehavior.Restrict);
+
+        // UserNotification Tabelle
         // UserNotification Tabelle
         modelBuilder.Entity<UserNotification>().ToTable("userNotifications");
 
@@ -77,28 +77,28 @@ public class AppDbContext : DbContext
             .HasForeignKey(n => n.UserUuid)
             .HasPrincipalKey(u => u.Uuid)
             .OnDelete(DeleteBehavior.Cascade);
-            // MappingRequest Tabelle
-            modelBuilder.Entity<MappingRequest>().ToTable("mappingRequests");
+        // MappingRequest Tabelle
+        modelBuilder.Entity<MappingRequest>().ToTable("mappingRequests");
 
-            // Beziehungen MappingRequest
-            modelBuilder.Entity<MappingRequest>()
-                .HasOne(mr => mr.Brick)
-                .WithMany(b => b.MappingRequests)
-                .HasForeignKey(mr => mr.BrickId)
-                .OnDelete(DeleteBehavior.Restrict);
+        // Beziehungen MappingRequest
+        modelBuilder.Entity<MappingRequest>()
+            .HasOne(mr => mr.Brick)
+            .WithMany(b => b.MappingRequests)
+            .HasForeignKey(mr => mr.BrickId)
+            .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<MappingRequest>()
-                .HasOne(mr => mr.RequestedByUser)
-                .WithMany(u => u.MappingRequestsRequested)
-                .HasForeignKey(mr => mr.RequestedByUserId)
-                .HasPrincipalKey(u => u.Uuid)
-                .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MappingRequest>()
+            .HasOne(mr => mr.RequestedByUser)
+            .WithMany(u => u.MappingRequestsRequested)
+            .HasForeignKey(mr => mr.RequestedByUserId)
+            .HasPrincipalKey(u => u.Uuid)
+            .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<MappingRequest>()
-                .HasOne(mr => mr.ApprovedByUser)
-                .WithMany(u => u.MappingRequestsApproved)
-                .HasPrincipalKey(u => u.Uuid)
-                .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MappingRequest>()
+            .HasOne(mr => mr.ApprovedByUser)
+            .WithMany(u => u.MappingRequestsApproved)
+            .HasPrincipalKey(u => u.Uuid)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Tabellen-Namen
         // Tabellen-Namen
@@ -169,18 +169,21 @@ public class AppDbContext : DbContext
         .WithMany(w => w.MissingItems)
         .HasForeignKey("WantedListId") // Schatten-Eigenschaft, die EF generiert hat
         .OnDelete(DeleteBehavior.Cascade);
-        
-    // Das Gleiche für Mock, falls gewünscht
-    modelBuilder.Entity<MissingItem>()
-        .HasOne<Mock>()
-        .WithMany(m => m.MissingItems)
-        .HasForeignKey("MockId")
-        .OnDelete(DeleteBehavior.Cascade);
+
+        // Das Gleiche für Mock, falls gewünscht
+        modelBuilder.Entity<MissingItem>()
+            .HasOne<Mock>()
+            .WithMany(m => m.MissingItems)
+            .HasForeignKey("MockId")
+            .OnDelete(DeleteBehavior.Cascade);
 
         // ----------------- Minimal-Seed: Admin-User -----------------
 
         var adminUuid = Environment.GetEnvironmentVariable("ADMIN_UUID") ?? "111";
         var uweUuid = Environment.GetEnvironmentVariable("UWE_UUID") ?? "222";
+        var christianUuid = Environment.GetEnvironmentVariable("CHRISTIAN_UUID") ?? "333222111";
+        var martinUuid = Environment.GetEnvironmentVariable("MARTIN_UUID") ?? "444555666";
+        var timUuid = Environment.GetEnvironmentVariable("TIM_UUID") ?? "555666777";
 
         modelBuilder.Entity<AppUser>().HasData(
             new AppUser
@@ -198,8 +201,35 @@ public class AppDbContext : DbContext
                 Name = "Uwe",
                 IsAdmin = false,
                 CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+
+            new AppUser
+            {
+                Id = 3,
+                Uuid = christianUuid,            // aus ENV
+                Name = "Christian",
+                IsAdmin = false,
+                CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+
+            new AppUser
+            {
+                Id = 4,
+                Uuid = martinUuid,            // aus ENV
+                Name = "Martin",
+                IsAdmin = false,
+                CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+
+            new AppUser
+            {
+                Id = 5,
+                Uuid = timUuid,            // aus ENV
+                Name = "Tim",
+                IsAdmin = false,
+                CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }
-        );
+                    );
 
         // Alle LEGO-Parts, Sets, Farben usw. kommen NICHT hier über HasData,
         // Alle LEGO-Parts, Sets, Farben usw. kommen NICHT hier über HasData,
