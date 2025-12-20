@@ -46,6 +46,7 @@ public class ItemSetService
             .Include(us => us.ItemSet)
                 .ThenInclude(s => s.Bricks)
                     .ThenInclude(sb => sb.MappedBrick)
+                        .ThenInclude(mb => mb.MappingRequests)
             .Include(us => us.ItemSet)
                 .ThenInclude(s => s.Bricks)
                     .ThenInclude(sb => sb.BrickColor)
@@ -76,6 +77,7 @@ public class ItemSetService
             .AsNoTracking()
             .Include(s => s.Bricks)
                 .ThenInclude(sb => sb.MappedBrick)
+                    .ThenInclude(mb => mb.MappingRequests)
             .Include(s => s.Bricks)
                 .ThenInclude(sb => sb.BrickColor)
             .FirstOrDefaultAsync(s => s.Id == itemSetId);

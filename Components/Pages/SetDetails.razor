@@ -16,6 +16,8 @@
 @inject brickapp.Data.Services.NotificationService NotificationService
 @inject brickapp.Data.Services.ImageService ImageService
 @inject brickapp.Data.Services.LoadingService LoadingService
+@inject brickapp.Data.Services.MappedBrickService BrickService
+@inject brickapp.Data.Services.RequestService RequestService
 
 <PageTitle>Set Details</PageTitle>
 
@@ -197,50 +199,146 @@ else
             <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
 
             <MudTd DataLabel="Lego">
-                @context.MappedBrick?.LegoName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.LegoPartNum))
+                @if (!string.IsNullOrWhiteSpace(context.MappedBrick?.LegoName))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.LegoPartNum)</span>
+                    @context.MappedBrick.LegoName
+                    @if (!string.IsNullOrWhiteSpace(context.MappedBrick.LegoPartNum))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.MappedBrick.LegoPartNum]</MudText>
+                    }
+                }
+                else if (context.MappedBrick != null)
+                {
+                    var legoRequest = context.MappedBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Lego" && r.Status == MappingRequestStatus.Pending);
+                    if (legoRequest != null)
+                    {
+                        <MudChip T="string" Color="Color.Warning">Mapping pending</MudChip>
+                    }
+                    else
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                            OnClick="@(() => OpenHelpMappingDialog(context.MappedBrick, "Lego"))">Help Mapping</MudButton>
+                    }
                 }
             </MudTd>
 
             <MudTd DataLabel="BlueBrixx">
-                @context.MappedBrick?.BluebrixxName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.BluebrixxPartNum))
+                @if (!string.IsNullOrWhiteSpace(context.MappedBrick?.BluebrixxName))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.BluebrixxPartNum)</span>
+                    @context.MappedBrick.BluebrixxName
+                    @if (!string.IsNullOrWhiteSpace(context.MappedBrick.BluebrixxPartNum))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.MappedBrick.BluebrixxPartNum]</MudText>
+                    }
+                }
+                else if (context.MappedBrick != null)
+                {
+                    var bluebrixxRequest = context.MappedBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "BlueBrixx" && r.Status == MappingRequestStatus.Pending);
+                    if (bluebrixxRequest != null)
+                    {
+                        <MudChip T="string" Color="Color.Warning">Mapping pending</MudChip>
+                    }
+                    else
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                            OnClick="@(() => OpenHelpMappingDialog(context.MappedBrick, "BlueBrixx"))">Help Mapping</MudButton>
+                    }
                 }
             </MudTd>
 
             <MudTd DataLabel="Cada">
-                @context.MappedBrick?.CadaName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.CadaPartNum))
+                @if (!string.IsNullOrWhiteSpace(context.MappedBrick?.CadaName))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.CadaPartNum)</span>
+                    @context.MappedBrick.CadaName
+                    @if (!string.IsNullOrWhiteSpace(context.MappedBrick.CadaPartNum))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.MappedBrick.CadaPartNum]</MudText>
+                    }
+                }
+                else if (context.MappedBrick != null)
+                {
+                    var cadaRequest = context.MappedBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Cada" && r.Status == MappingRequestStatus.Pending);
+                    if (cadaRequest != null)
+                    {
+                        <MudChip T="string" Color="Color.Warning">Mapping pending</MudChip>
+                    }
+                    else
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                            OnClick="@(() => OpenHelpMappingDialog(context.MappedBrick, "Cada"))">Help Mapping</MudButton>
+                    }
                 }
             </MudTd>
 
             <MudTd DataLabel="Pantasy">
-                @context.MappedBrick?.PantasyName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.PantasyPartNum))
+                @if (!string.IsNullOrWhiteSpace(context.MappedBrick?.PantasyName))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.PantasyPartNum)</span>
+                    @context.MappedBrick.PantasyName
+                    @if (!string.IsNullOrWhiteSpace(context.MappedBrick.PantasyPartNum))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.MappedBrick.PantasyPartNum]</MudText>
+                    }
+                }
+                else if (context.MappedBrick != null)
+                {
+                    var pantasyRequest = context.MappedBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status == MappingRequestStatus.Pending);
+                    if (pantasyRequest != null)
+                    {
+                        <MudChip T="string" Color="Color.Warning">Mapping pending</MudChip>
+                    }
+                    else
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                            OnClick="@(() => OpenHelpMappingDialog(context.MappedBrick, "Pantasy"))">Help Mapping</MudButton>
+                    }
                 }
             </MudTd>
 
             <MudTd DataLabel="Mould King">
-                @context.MappedBrick?.MouldKingName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.MouldKingPartNum))
+                @if (!string.IsNullOrWhiteSpace(context.MappedBrick?.MouldKingName))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.MouldKingPartNum)</span>
+                    @context.MappedBrick.MouldKingName
+                    @if (!string.IsNullOrWhiteSpace(context.MappedBrick.MouldKingPartNum))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.MappedBrick.MouldKingPartNum]</MudText>
+                    }
+                }
+                else if (context.MappedBrick != null)
+                {
+                    var mkRequest = context.MappedBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status == MappingRequestStatus.Pending);
+                    if (mkRequest != null)
+                    {
+                        <MudChip T="string" Color="Color.Warning">Mapping pending</MudChip>
+                    }
+                    else
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                            OnClick="@(() => OpenHelpMappingDialog(context.MappedBrick, "Mould King"))">Help Mapping</MudButton>
+                    }
                 }
             </MudTd>
 
             <MudTd DataLabel="Unknown">
-                @context.MappedBrick?.UnknownName
-                @if (!string.IsNullOrEmpty(context.MappedBrick?.UnknownPartNum))
+                @if (!string.IsNullOrWhiteSpace(context.MappedBrick?.UnknownName))
                 {
-                    <span style="font-size: 0.9em; color: #999;"> (@context.MappedBrick!.UnknownPartNum)</span>
+                    @context.MappedBrick.UnknownName
+                    @if (!string.IsNullOrWhiteSpace(context.MappedBrick.UnknownPartNum))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.MappedBrick.UnknownPartNum]</MudText>
+                    }
+                }
+                else if (context.MappedBrick != null)
+                {
+                    var unknownRequest = context.MappedBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status == MappingRequestStatus.Pending);
+                    if (unknownRequest != null)
+                    {
+                        <MudChip T="string" Color="Color.Warning">Mapping pending</MudChip>
+                    }
+                    else
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                            OnClick="@(() => OpenHelpMappingDialog(context.MappedBrick, "Unknown"))">Help Mapping</MudButton>
+                    }
                 }
             </MudTd>
 
@@ -501,5 +599,56 @@ else
         return _ownedByBrand.TryGetValue((brick.MappedBrickId, brick.BrickColorId), out var brandDict)
         ? brandDict.Values.Sum()
         : 0;
+    }
+
+    private async Task OpenHelpMappingDialog(MappedBrick brick, string brand)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("Brick", brick);
+        parameters.Add("Brand", brand);
+        var dialog = await DialogService.ShowAsync<HelpMappingDialog>("Help with mapping", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled && result.Data is ValueTuple<string, string, string> tuple)
+        {
+            await UpdateMappingAsync(brick, tuple.Item1, tuple.Item2, tuple.Item3);
+            await RefreshSetData();
+        }
+    }
+
+    private async Task UpdateMappingAsync(MappedBrick brick, string brand, string mappingName, string mappingItemId)
+    {
+        try
+        {
+            var userId = await UserService.GetTokenAsync();
+            if (userId is null)
+                throw new InvalidOperationException("User ist nicht eingeloggt (kein Token).");
+
+            await RequestService.CreateMappingRequestAsync(brick.Id, brand, mappingName, mappingItemId, userId);
+            NotificationService.Success($"Mapping request für '{mappingName ?? mappingItemId}' ({brand}) wurde erfolgreich erstellt.");
+        }
+        catch (Exception ex)
+        {
+            SetError(ex);
+            NotificationService.Error(_error ?? "Mapping Request konnte nicht erstellt werden.");
+        }
+    }
+
+    private async Task RefreshSetData()
+    {
+        try
+        {
+            _loading = true;
+            StateHasChanged();
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
     }
 }
