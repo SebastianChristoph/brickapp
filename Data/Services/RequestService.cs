@@ -109,11 +109,29 @@ namespace brickapp.Data.Services
         : overrideName.Trim();
 
     var brand = request.Brand?.Trim().ToLower();
-    var partNum = request.PartNum;
+            var partNum = request.PartNum;
 
-    // --- DOPPELTEN-CHECK ---
-    // Wir prüfen, ob bereits ein MappedBrick mit dieser PartNum für diese Brand existiert
-    MappedBrick? existingBrick = brand switch
+       MappedBrick? existingBrick = null;
+
+// --- DOPPELTEN-CHECK ---
+
+if (string.IsNullOrWhiteSpace(partNum))
+{
+    // 1. Fall: Keine PartNum -> Gezielte Namenssuche je nach Brand
+    existingBrick = brand switch
+    {
+        "lego" => await db.MappedBricks.FirstOrDefaultAsync(m => m.LegoName == request.Name),
+        "bluebrixx" => await db.MappedBricks.FirstOrDefaultAsync(m => m.BluebrixxName == request.Name),
+        "cada" => await db.MappedBricks.FirstOrDefaultAsync(m => m.CadaName == request.Name),
+        "pantasy" => await db.MappedBricks.FirstOrDefaultAsync(m => m.PantasyName == request.Name),
+        "mould king" or "mouldking" => await db.MappedBricks.FirstOrDefaultAsync(m => m.MouldKingName == request.Name),
+        _ => await db.MappedBricks.FirstOrDefaultAsync(m => m.UnknownName == request.Name) // Falls du ein UnknownName Feld hast
+    };
+}
+else
+{
+    // 2. Fall: PartNum vorhanden -> Suche über die ID
+    existingBrick = brand switch
     {
         "lego" => await db.MappedBricks.FirstOrDefaultAsync(m => m.LegoPartNum == partNum),
         "bluebrixx" => await db.MappedBricks.FirstOrDefaultAsync(m => m.BluebrixxPartNum == partNum),
@@ -122,6 +140,17 @@ namespace brickapp.Data.Services
         "mould king" or "mouldking" => await db.MappedBricks.FirstOrDefaultAsync(m => m.MouldKingPartNum == partNum),
         _ => await db.MappedBricks.FirstOrDefaultAsync(m => m.UnknownPartNum == partNum)
     };
+}
+
+    // MappedBrick? existingBrick = brand switch
+    // {
+    //     "lego" => await db.MappedBricks.FirstOrDefaultAsync(m => m.LegoPartNum == partNum),
+    //     "bluebrixx" => await db.MappedBricks.FirstOrDefaultAsync(m => m.BluebrixxPartNum == partNum),
+    //     "cada" => await db.MappedBricks.FirstOrDefaultAsync(m => m.CadaPartNum == partNum),
+    //     "pantasy" => await db.MappedBricks.FirstOrDefaultAsync(m => m.PantasyPartNum == partNum),
+    //     "mould king" or "mouldking" => await db.MappedBricks.FirstOrDefaultAsync(m => m.MouldKingPartNum == partNum),
+    //     _ => await db.MappedBricks.FirstOrDefaultAsync(m => m.UnknownPartNum == partNum)
+    // };
 
     if (existingBrick != null)
     {
