@@ -160,6 +160,7 @@ namespace brickapp.Helpers
             { "Purple", "#81007B" },
             { "Red", "#C91A09" },
             { "Reddish Brown", "#582A12" },
+            { "Reddish Orange", "#CA4C0B" },
             { "Rust", "#B31004" },
             { "Salmon", "#F2705E" },
             { "Sand Blue", "#6074A1" },
