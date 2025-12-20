@@ -33,6 +33,9 @@ public class AppDbContext : DbContext
     public DbSet<WantedList> WantedLists => Set<WantedList>();
     public DbSet<WantedListItem> WantedListItems => Set<WantedListItem>();
 
+    // Set Favorites
+    public DbSet<UserSetFavorite> UserSetFavorites => Set<UserSetFavorite>();
+
 
     // --- Model-Konfiguration ---------------------------------------
 

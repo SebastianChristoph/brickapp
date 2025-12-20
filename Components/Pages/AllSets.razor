@@ -4,6 +4,7 @@
 @inject brickapp.Data.Services.ImageService ImageService
 @inject brickapp.Data.Services.UserService UserService
 @inject brickapp.Data.Services.ItemSetService SetService
+@inject brickapp.Data.Services.SetFavoritesService SetFavoritesService
 @inject NavigationManager NavigationManager
 
 <PageTitle>All Sets</PageTitle>
@@ -35,6 +36,7 @@
         <MudText Typo="Typo.body2">Searching sets…</MudText>
     </MudStack>
 }
+
 
 @if (!string.IsNullOrWhiteSpace(_searchText) && _searchText.Length >= 3)
 {
@@ -83,11 +85,72 @@
     }
 }
 
+@* Show favorites when no search or empty results *@
+@if ((string.IsNullOrWhiteSpace(_searchText) || _searchText.Length < 3 || (_filteredSets?.Count == 0 && !_searchingSets)))
+{
+    @if (_loadingFavorites)
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+            <MudText Typo="Typo.body2">Loading your favorite sets…</MudText>
+        </MudStack>
+    }
+    else if (_favoriteSets != null && _favoriteSets.Any())
+    {
+        <MudText Typo="Typo.h6" Class="mb-3">Your Favorite Sets</MudText>
+        <MudGrid Spacing="3" Class="mb-4">
+            @foreach (var set in _favoriteSets)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudCard Style="height: 100%;">
+                        <a href="/sets/@set.Id" style="text-decoration: none; color: inherit; display: block;">
+                            @{
+                                var setImgUrl = ImageService.GetSetImagePath(set);
+                            }
+                            <div style="height: 200px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                @if (!string.IsNullOrEmpty(setImgUrl) && setImgUrl != "/placeholder-image.png")
+                                {
+                                    <img src="@setImgUrl" alt="@set.Name" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Large" Color="Color.Default" Style="opacity: 0.3;" />
+                                }
+                            </div>
+                            <MudCardContent>
+                                <MudText Typo="Typo.body1" Style="font-weight: 500;">@set.Name</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@set.Brand</MudText>
+                                @if (!string.IsNullOrWhiteSpace(set.SetNum))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Set: @set.SetNum</MudText>
+                                }
+                                @if (set.Year.HasValue)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Year: @set.Year</MudText>
+                                }
+                            </MudCardContent>
+                        </a>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            You don't have any favorite sets yet. Add some by clicking the star button on a set's detail page!
+        </MudAlert>
+    }
+}
+
+
 @code {
     private string? _username;
     private bool _searchingSets = false;
+    private bool _loadingFavorites = true;
 private int _searchRequestId = 0;
     private List<ItemSet>? sets;
+    private List<ItemSet>? _favoriteSets;
     private string _searchText = string.Empty;
     private bool _addSetDialogOpen = false;
 
@@ -136,6 +199,11 @@ private async Task OnSearchChanged(string value)
         // Load ALL sets for client-side pagination
         var (allSets, _) = await SetService.GetPaginatedItemSetsAsync(1, int.MaxValue);
         sets = allSets;
+        
+        // Load favorite sets
+        _favoriteSets = await SetFavoritesService.GetUserFavoriteSetListAsync();
+        _loadingFavorites = false;
+        
         StateHasChanged();
     }
 }

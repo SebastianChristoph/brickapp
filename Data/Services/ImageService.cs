@@ -197,16 +197,23 @@ namespace brickapp.Data.Services
 
         public string GetSetImagePath(ItemSet itemSet)
         {
+            _logger.LogInformation($"[ImageService] Get Set Image Path for ItemSet ID {itemSet?.Id}");
+             
             if (itemSet == null)
                 return "/placeholder-image.png";
 
             // 1) Falls ImageUrl gesetzt ist, verwende diese
             if (!string.IsNullOrWhiteSpace(itemSet.ImageUrl))
-                return itemSet.ImageUrl;
+            {
+                    _logger.LogInformation($"[ImageService] Using ImageUrl: {itemSet.ImageUrl}");
+                    return itemSet.ImageUrl;
+            }
+                
 
             // 2) lokales/blob Bild: setimages/<brand>/<setnum>.png
             if (!string.IsNullOrWhiteSpace(itemSet.SetNum) && !string.IsNullOrWhiteSpace(itemSet.Brand))
             {
+                _logger.LogInformation($"[ImageService] Checking local/blob storage for set image of brand {itemSet.Brand} and setnum {itemSet.SetNum}");
                 var safeBrand = itemSet.Brand.ToLower().Replace(" ", "_");
                 var safeSetNum = itemSet.SetNum.ToLower().Replace(" ", "_");
                 var rel = $"setimages/{safeBrand}/{safeSetNum}.png";

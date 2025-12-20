@@ -12,4 +12,5 @@ public class ItemSet
     public string? ImageUrl { get; set; }      // sets.img_url
 
     public ICollection<ItemSetBrick> Bricks { get; set; } = new List<ItemSetBrick>();
+    public ICollection<UserSetFavorite> FavoritedBy { get; set; } = new List<UserSetFavorite>();
 }
