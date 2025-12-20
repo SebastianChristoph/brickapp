@@ -28,7 +28,7 @@ namespace brickapp.Data.Services
 
         public async Task<string?> SaveResizedItemImageAsync(IBrowserFile file, string brand, string? legoPartNum, string? uuid)
         {
-             _logger.LogInformation($"🟡 [ImageService] Saving Image for brand {brand}");
+            _logger.LogInformation($"🟡 [ImageService] Saving Image for brand {brand}");
 
             if (file == null || file.ContentType == null || !file.ContentType.StartsWith("image/"))
                 return null;
@@ -75,6 +75,50 @@ namespace brickapp.Data.Services
             _logger.LogInformation($"🟢 [ImageService] Image saved at {webPath}");
             return webPath;
         }
+        
+        public async Task<string?> DownloadAndSaveItemImageAsync(string imageUrl, string brand, string? legoPartNum, string? uuid)
+{
+    try
+    {
+        using var client = new HttpClient();
+        var response = await client.GetAsync(imageUrl);
+        if (!response.IsSuccessStatusCode) return null;
+
+        var imageData = await response.Content.ReadAsByteArrayAsync();
+        
+        // ImageSharp Logik (ähnlich wie in deiner SaveResizedItemImageAsync)
+        using var image = Image.Load(imageData);
+
+        if (image.Width > 700)
+        {
+            var ratio = 700f / image.Width;
+            var newHeight = (int)(image.Height * ratio);
+            image.Mutate(x => x.Resize(700, newHeight));
+        }
+
+        string relativePath;
+        if (brand.Trim().ToLower() == "lego" && !string.IsNullOrWhiteSpace(legoPartNum))
+        {
+            relativePath = $"part_images/{legoPartNum.Trim()}.png";
+        }
+        else
+        {
+            relativePath = $"part_images/new/{uuid ?? Guid.NewGuid().ToString()}.png";
+        }
+
+        using var outStream = new MemoryStream();
+        await image.SaveAsPngAsync(outStream);
+        outStream.Position = 0;
+
+        await _storage.SaveAsync(outStream, "image/png", relativePath);
+        return BuildWebPath(relativePath);
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Fehler beim Download/Resize des Bildes von {Url}", imageUrl);
+        return null;
+    }
+}
 
         public string GetMappedBrickImagePath(MappedBrick mappedBrick)
         {

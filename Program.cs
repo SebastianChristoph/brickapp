@@ -22,43 +22,33 @@ var connectionString = cs;
 
 
 builder.Services.AddControllers();
+// 1. Azure Verbindung holen
+var blobConn = Environment.GetEnvironmentVariable("AZURE_BLOB_CONNECTION");
+if (string.IsNullOrWhiteSpace(blobConn))
+    throw new Exception("AZURE_BLOB_CONNECTION not set");
 
+// 2. Bilder IMMER in Azure (wie von dir gewünscht)
+builder.Services.AddSingleton<IImageStorage>(sp => 
+    new AzureBlobImageStorage(blobConn));
+
+// 3. Export-Strategie nach Umgebung trennen
 if (builder.Environment.IsDevelopment())
 {
-   builder.Services.AddSingleton<IImageStorage>(sp =>
-    {
-        var env = sp.GetRequiredService<IWebHostEnvironment>();
-        return new LocalImageStorage(env.WebRootPath); // oder ContentRootPath + "wwwroot"
-    });
-
+    // Lokal: In den Ordner auf der Platte
     builder.Services.AddSingleton<IExportStorage>(sp =>
     {
         var env = sp.GetRequiredService<IWebHostEnvironment>();
-        // mappedData im ContentRoot (nicht wwwroot)
         var baseDir = Path.Combine(env.ContentRootPath, "mappedData");
         return new LocalExportStorage(baseDir);
     });
 }
 else
 {
-    var blobConn =
-        Environment.GetEnvironmentVariable("AZURE_BLOB_CONNECTION");
-
-    if (string.IsNullOrWhiteSpace(blobConn))
-        throw new Exception("AZURE_BLOB_CONNECTION not set");
-
-    const string exportContainer = "brickapp"; // <- HIER deinen Container-Namen eintragen
-
+    // Produktion: In den Azure Container
+    const string exportContainer = "brickapp"; 
     builder.Services.AddSingleton<IExportStorage>(_ =>
-        new AzureBlobExportStorage(blobConn, exportContainer)
-    );
-
-  builder.Services.AddSingleton<IImageStorage>(sp =>
-    new AzureBlobImageStorage(blobConn)
-);
+        new AzureBlobExportStorage(blobConn, exportContainer));
 }
-
-
 
 // ----------------------------
 // Database (PostgreSQL)
