@@ -1,5 +1,6 @@
 @page "/mymocs"
 
+@using IBrowserFile = Microsoft.AspNetCore.Components.Forms.IBrowserFile
 @using System.Xml.Linq
 @using Microsoft.EntityFrameworkCore
 @using brickapp.Data.Entities
@@ -14,8 +15,10 @@
 @inject brickapp.Data.Services.UserService UserService
 @inject brickapp.Data.Services.LoadingService LoadingService
 @inject brickapp.Data.Services.NotificationService NotificationService
+@inject brickapp.Data.Services.RebrickableApiService RebrickableApi
+@inject ILogger<MyMocks> _logger
 
-@using IBrowserFile = Microsoft.AspNetCore.Components.Forms.IBrowserFile
+
 
 <MudText Typo="Typo.h4" GutterBottom="true">My MOCs</MudText>
 
@@ -173,10 +176,10 @@
     private string newMockComment = string.Empty;
     private string newMockWebSource = string.Empty;
     private List<MockItem> uploadedItems = new();
-        // NEU: Liste für ungemappte Teile
-private List<UnmappedRow> unmappedRows = new(); 
-// NEU: Source für die Farblogik
-private string currentSource = string.Empty;
+    // NEU: Liste für ungemappte Teile
+    private List<UnmappedRow> unmappedRows = new(); 
+    // NEU: Source für die Farblogik
+    private string currentSource = string.Empty;
     private bool fileReadyForUpload = false;
     private IBrowserFile? uploadedImage = null;
     private string imagePreviewUrl = string.Empty;
@@ -204,31 +207,31 @@ private string currentSource = string.Empty;
         userMocks = await db.Mocks.Where(m => m.UserUuid == userUuid).Include(m => m.Items).ToListAsync();
     }
 
-private Task OnMocParsed(ParseResult<ParsedPart> result)
-{
-    // 1. Mapped Items wie bisher
-    uploadedItems = result.MappedItems
-        .Select(p => new MockItem
+    private Task OnMocParsed(ParseResult<ParsedPart> result)
+    {
+        // 1. Mapped Items wie bisher
+        uploadedItems = result.MappedItems
+            .Select(p => new MockItem
         {
             MappedBrickId = p.MappedBrickId,
             BrickColorId = p.BrickColorId,
             Quantity = p.Quantity,
             ExternalPartNum = p.ExternalPartNum
         })
-        .ToList();
+            .ToList();
 
-    // 2. Unmapped Rows speichern
-    unmappedRows = result.Unmapped ?? new();
+        // 2. Unmapped Rows speichern
+        unmappedRows = result.Unmapped ?? new();
 
-    // 3. Source merken
-    currentSource = result.AppliedFormat.ToString();
+        // 3. Source merken
+        currentSource = result.AppliedFormat.ToString();
 
-    // --- FIX: Button aktivieren ---
-    // Wir aktivieren den Button, wenn entweder gemappte ODER ungemappte Teile gefunden wurden
-    fileReadyForUpload = uploadedItems.Any() || unmappedRows.Any();
+        // --- FIX: Button aktivieren ---
+        // Wir aktivieren den Button, wenn entweder gemappte ODER ungemappte Teile gefunden wurden
+        fileReadyForUpload = uploadedItems.Any() || unmappedRows.Any();
 
-    return Task.CompletedTask;
-}
+        return Task.CompletedTask;
+    }
     private async Task<ParseResult<MockItem>> ParseMocUploadAsync(string content, PartsUploadFormat format)
     {
         var (rows, invalidRows, invalidColorIdsFromFile) = format switch
@@ -371,12 +374,12 @@ private Task OnMocParsed(ParseResult<ParsedPart> result)
             using var scope = ServiceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
             var userUuid = await UserService.GetTokenAsync();
-            
+
             if (string.IsNullOrEmpty(userUuid)) {
                 NotificationService.Success("User not authenticated.");
                 return;
             }
-            
+
             var mock = new Mock { 
             Name = newMockName, 
             Comment = newMockComment, 
@@ -386,29 +389,84 @@ private Task OnMocParsed(ParseResult<ParsedPart> result)
             .Replace("csv", "")
             .Replace("xml", "")
             .Trim(),
-            // WICHTIG: Source speichern (musst du evtl. in Mock.cs Entity noch hinzufügen!)
-            // MockSource = currentSource 
+                // WICHTIG: Source speichern (musst du evtl. in Mock.cs Entity noch hinzufügen!)
+                // MockSource = currentSource 
         };
             db.Mocks.Add(mock);
             await db.SaveChangesAsync();
 
-           // 1. Mapped Items hinzufügen
-        foreach (var item in uploadedItems) {
-            item.MockId = mock.Id; // Wird von EF gehandelt
-            mock.Items.Add(item);
-        }
+            // 1. Mapped Items hinzufügen
+            foreach (var item in uploadedItems) {
+                item.MockId = mock.Id; // Wird von EF gehandelt
+                mock.Items.Add(item);
+            }
 
-        // 2. NEU: Missing Items transformieren und hinzufügen
-        if (unmappedRows.Any())
-        {
-            mock.MissingItems = unmappedRows
-                .GroupBy(u => new { u.PartNum, u.ColorId })
-                .Select(g => new MissingItem
+            // 2. NEU: Missing Items transformieren und hinzufügen
+            if (unmappedRows.Any())
+            {
+                // A) MissingItems für das Mock erstellen (für die UI Anzeige)
+                mock.MissingItems = unmappedRows
+                    .GroupBy(u => new { u.PartNum, u.ColorId })
+                    .Select(g => new MissingItem
+                    {
+                        ExternalPartNum = g.Key.PartNum,
+                        ExternalColorId = g.Key.ColorId,
+                        Quantity = g.Sum(x => x.Quantity)
+                    }).ToList();
+
+                // B) NewItemRequests & Bilder für Lego Teile erstellen
+                var distinctPartNums = unmappedRows
+                    .Where(r => !string.IsNullOrEmpty(r.PartNum))
+                    .Select(r => r.PartNum!)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var partNum in distinctPartNums)
                 {
-                    ExternalPartNum = g.Key.PartNum,
-                    ExternalColorId = g.Key.ColorId,
-                    Quantity = g.Sum(x => x.Quantity)
-                }).ToList();
+                    // Checken, ob wir für dieses Teil schon einen gültigen Request haben
+                    bool requestExists = await db.NewItemRequests
+                        .AnyAsync(r => r.PartNum == partNum
+                                    && r.Brand == "Lego"
+                                    && r.Status != NewItemRequestStatus.Rejected
+                                    && r.Status != NewItemRequestStatus.Pending);
+
+                    if (!requestExists)
+                    {
+                        // API fragen nach Name und Bild-URL (nutzt das neue DTO)
+                        var partInfo = await RebrickableApi.GetLegoItemNameByPartNumber(partNum);
+
+                        if (partInfo != null && !string.IsNullOrWhiteSpace(partInfo.Name))
+                        {
+                            var newRequestUuid = Guid.NewGuid().ToString();
+                            var newRequest = new NewItemRequest
+                                {
+                                    Uuid = newRequestUuid,
+                                    Brand = "Lego",
+                                    PartNum = partNum,
+                                    Name = partInfo.Name,
+                                    RequestedByUserId = userUuid,
+                                    CreatedAt = DateTime.UtcNow,
+                                    Status = NewItemRequestStatus.Pending
+                                };
+
+                            db.NewItemRequests.Add(newRequest);
+
+                            // Bild asynchron herunterladen und speichern
+                            if (!string.IsNullOrWhiteSpace(partInfo.ImageUrl))
+                            {
+                                // Wir warten hier kurz, damit das Bild beim nächsten Laden 
+                                // der Seite evtl. schon da ist.
+                                await ImageService.DownloadAndSaveItemImageAsync(
+                                    partInfo.ImageUrl,
+                                    "Lego",
+                                    partNum,
+                                    newRequestUuid);
+                            }
+
+                            _logger.LogInformation("✅ NewItemRequest via MOC-Upload für {PartNum} erstellt.", partNum);
+                        }
+                    }
+                }
         }
 
             if (uploadedImage != null) {

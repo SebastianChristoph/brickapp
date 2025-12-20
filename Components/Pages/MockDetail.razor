@@ -40,6 +40,30 @@ else if (_mock == null)
 }
 else
 {
+
+    @if (_resolvableMocItems != null && _resolvableMocItems.Any())
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4" Elevation="4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.body1"><b>Updates found!</b></MudText>
+                <MudText Typo="Typo.body2">
+                   <b> @_resolvableMocItems.Count </b>of the unmapped items have been mapped in the database since your last import.<br />
+                   You can now add them to your MOC by clicking the button below and make your MOC more accurate.
+                </MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                       Disabled="@_isResolving"
+                       OnClick="ResolveMissingMocItems">
+                Add parts to MOC
+            </MudButton>
+        </MudStack>
+    </MudAlert>
+}
+
+
     @* --- HEADER BEREICH --- *@
     <MudPaper Class="pa-4 mb-4">
         <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Start">
@@ -268,6 +292,8 @@ else
     private bool HasAll => TotalNeeded > 0 && TotalOwned == TotalNeeded;
     private int _itemsPage = 0;
     private int _itemsRowsPerPage = 25;
+    private List<MissingItem> _resolvableMocItems = new();
+private bool _isResolving = false;
 
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -315,6 +341,11 @@ else
             .Include(m => m.MissingItems)
             .FirstOrDefault(m => m.Id == mockId);
 
+            if (_mock != null && _mock.MissingItems.Any())
+                {
+                    await CheckForResolvableItems();
+                }
+
             _mockImageUrl = _mock != null
             ? ImageService.GetMockImagePath(_mock)
             : ImageService.GetPlaceHolder();
@@ -339,6 +370,94 @@ else
             _mock = null;
         }
     }
+
+   private async Task ResolveMissingMocItems()
+{
+    if (!_resolvableMocItems.Any() || _mock == null) return;
+
+    _isResolving = true;
+    try
+    {
+        using var scope = ServiceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<brickapp.Data.AppDbContext>();
+
+        // Den Mock inkl. beider Listen laden
+        var mockToUpdate = await db.Mocks
+            .Include(m => m.Items)
+            .Include(m => m.MissingItems)
+            .FirstOrDefaultAsync(m => m.Id == mockId);
+
+        if (mockToUpdate == null) return;
+
+        // Wir gehen die Liste der rettbaren Items durch
+        foreach (var resolvable in _resolvableMocItems)
+        {
+            // Entsprechenden Brick in DB finden
+            var brick = await db.MappedBricks
+                .FirstOrDefaultAsync(mb => mb.LegoPartNum == resolvable.ExternalPartNum);
+
+            if (brick != null)
+            {
+                // 1. Neues MockItem zur Items-Liste des Mocs hinzufügen
+                mockToUpdate.Items.Add(new MockItem
+                {
+                    MockId = mockId,
+                    MappedBrickId = brick.Id,
+                    BrickColorId = resolvable.ExternalColorId,
+                    Quantity = resolvable.Quantity,
+                    ExternalPartNum = resolvable.ExternalPartNum
+                });
+
+                // 2. Das MissingItem aus der MissingItems-Liste des Mocs entfernen
+                // Wir suchen das passende Objekt innerhalb der getrackten Liste von mockToUpdate
+                var toRemove = mockToUpdate.MissingItems
+                    .FirstOrDefault(mi => mi.Id == resolvable.Id);
+
+                if (toRemove != null)
+                {
+                    mockToUpdate.MissingItems.Remove(toRemove);
+                }
+            }
+        }
+
+        // Speichert die neuen MockItems UND löscht die entfernten MissingItems
+        await db.SaveChangesAsync();
+        
+        NotificationService.Success($"{_resolvableMocItems.Count} items were successfully updated.");
+        
+        _resolvableMocItems.Clear();
+        await LoadMockAsync(); 
+        UpdateTableItems();
+    }
+    catch (Exception ex)
+    {
+        NotificationService.Error("Failed to update MOC items.");
+        Console.WriteLine(ex.Message);
+    }
+    finally
+    {
+        _isResolving = false;
+        StateHasChanged();
+    }
+}
+
+    private async Task CheckForResolvableItems()
+{
+    using var scope = ServiceProvider.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<brickapp.Data.AppDbContext>();
+
+    var partNums = _mock.MissingItems.Select(m => m.ExternalPartNum).Distinct().ToList();
+
+    // Prüfen, welche PartNums jetzt gemappt sind
+    var foundPartNums = await db.MappedBricks
+        .Where(mb => mb.LegoPartNum != null && partNums.Contains(mb.LegoPartNum))
+        .Select(mb => mb.LegoPartNum)
+        .ToListAsync();
+
+    _resolvableMocItems = _mock.MissingItems
+        .Where(m => foundPartNums.Contains(m.ExternalPartNum))
+        .ToList();
+}
 
     private void UpdateTableItems()
     {
