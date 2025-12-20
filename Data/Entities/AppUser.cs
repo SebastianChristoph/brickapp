@@ -25,4 +25,7 @@ public class AppUser
     // Navigation: NewItemRequests, die dieser User genehmigt hat
     public ICollection<NewItemRequest> NewItemRequestsApproved { get; set; } = new List<NewItemRequest>();
 
+    // Navigation: Favorite Sets
+    public ICollection<UserSetFavorite> FavoriteSets { get; set; } = new List<UserSetFavorite>();
+
 }

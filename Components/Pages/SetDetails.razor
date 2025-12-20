@@ -18,6 +18,7 @@
 @inject brickapp.Data.Services.LoadingService LoadingService
 @inject brickapp.Data.Services.MappedBrickService BrickService
 @inject brickapp.Data.Services.RequestService RequestService
+@inject brickapp.Data.Services.SetFavoritesService SetFavoritesService
 
 <PageTitle>Set Details</PageTitle>
 
@@ -76,6 +77,9 @@ else
     <MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
         <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
         <MudSpacer />
+        
+      
+
         <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary"
             OnClick="@OpenAddSetDialog">
             Add Set items to Inventory
@@ -85,6 +89,21 @@ else
             OnClick="@OpenAddSetToWantedListDialog">
             Add Set items to Wanted List
         </MudButton>
+
+          @if (_isFavorite)
+        {
+            <MudButton StartIcon="@Icons.Material.Filled.StarOutline" Variant="Variant.Outlined" Color="Color.Warning"
+                OnClick="@ToggleFavorite">
+                Remove from favorites
+            </MudButton>
+        }
+        else
+        {
+            <MudButton StartIcon="@Icons.Material.Filled.Star" Variant="Variant.Outlined" Color="Color.Warning"
+                OnClick="@ToggleFavorite">
+                Add to favorites
+            </MudButton>
+        }
     </MudStack>
 
     <br />
@@ -381,6 +400,7 @@ else
     private int _itemsRowsPerPage = 25;
     private bool _loading = true;
     private bool _showOnlyMissing = false;
+    private bool _isFavorite = false;
 
     // Table state (force rebuild on filter changes)
     private Guid _tableKey = Guid.NewGuid();
@@ -451,6 +471,9 @@ else
             _itemSet = _userItemSet.ItemSet;
         else
             _itemSet = await ItemSetService.GetItemSetByIdAsync(itemSetId);
+
+        // Check if set is in favorites
+        _isFavorite = await SetFavoritesService.IsSetInUsersFavoritesAsync(itemSetId);
 
         var inventory = await InventoryService.GetCurrentUserInventoryAsync() ?? new List<InventoryItem>();
 
@@ -557,7 +580,7 @@ else
             parameters.Add(x => x.ItemCount, itemCount);
             parameters.Add(x => x.ItemSetId, itemSetId);
 
-            var dialog = await DialogService.ShowAsync<AddSetToInventoryDialog>("Set zum Inventar hinzufügen", parameters);
+            var dialog = await DialogService.ShowAsync<AddSetToInventoryDialog>("Add Set to Inventory", parameters);
             var result = await dialog.Result;
 
             if (result != null && !result.Canceled && result.Data is bool confirmed && confirmed)
@@ -570,7 +593,7 @@ else
                 _loading = false;
                 StateHasChanged();
 
-                NotificationService.Success("Items erfolgreich zum Inventar hinzugefügt.");
+                NotificationService.Success("Items were successfully added to the inventory.");
             }
         }
         catch (Exception ex)
@@ -621,15 +644,15 @@ else
         {
             var userId = await UserService.GetTokenAsync();
             if (userId is null)
-                throw new InvalidOperationException("User ist nicht eingeloggt (kein Token).");
+                throw new InvalidOperationException("User is not logged in (no token).");
 
             await RequestService.CreateMappingRequestAsync(brick.Id, brand, mappingName, mappingItemId, userId);
-            NotificationService.Success($"Mapping request für '{mappingName ?? mappingItemId}' ({brand}) wurde erfolgreich erstellt.");
+            NotificationService.Success($"Mapping request for '{mappingName ?? mappingItemId}' ({brand}) was successfully created.");
         }
         catch (Exception ex)
         {
             SetError(ex);
-            NotificationService.Error(_error ?? "Mapping Request konnte nicht erstellt werden.");
+            NotificationService.Error(_error ?? "Mapping request could not be created.");
         }
     }
 
@@ -648,6 +671,34 @@ else
         finally
         {
             _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleFavorite()
+    {
+        if (_itemSet == null) return;
+
+        try
+        {
+            var newFavoriteStatus = await SetFavoritesService.ToggleSetFavoriteAsync(itemSetId);
+            _isFavorite = newFavoriteStatus;
+
+            if (_isFavorite)
+            {
+                NotificationService?.Success($"'{_itemSet.Name}' was added to your favorites.");
+            }
+            else
+            {
+                NotificationService?.Success($"'{_itemSet.Name}' was removed from your favorites.");
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            SetError(ex);
+            NotificationService?.Error(_error ?? "Error updating favorites.");
             StateHasChanged();
         }
     }
