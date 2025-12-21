@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using brickapp.Data;
@@ -11,9 +12,11 @@ using brickapp.Data;
 namespace brickapp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251221192712_addNewItemImageReques")]
+    partial class addNewItemImageReques
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -201,9 +204,6 @@ namespace brickapp.Migrations
                     b.Property<int>("MappedBrickId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("PendingReason")
-                        .HasColumnType("text");
-
                     b.Property<string>("ReasonRejected")
                         .HasColumnType("text");
 
@@ -350,9 +350,6 @@ namespace brickapp.Migrations
 
                     b.Property<string>("MappingName")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PendingReason")
                         .HasColumnType("text");
 
                     b.Property<string>("ReasonRejected")
@@ -507,9 +504,6 @@ namespace brickapp.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("PendingReason")
-                        .HasColumnType("text");
-
                     b.Property<string>("ReasonRejected")
                         .HasColumnType("text");
 
@@ -547,9 +541,6 @@ namespace brickapp.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PendingReason")
-                        .HasColumnType("text");
 
                     b.Property<string>("ReasonRejected")
                         .HasColumnType("text");

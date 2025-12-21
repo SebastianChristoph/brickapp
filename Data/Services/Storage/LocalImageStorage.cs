@@ -39,4 +39,17 @@ public class LocalImageStorage : IImageStorage
     }
     return Task.FromResult(false);
 }
+
+    public Task<bool> CopyAsync(string sourceRelativePath, string targetRelativePath)
+    {
+        var sourcePath = Path.Combine(_basePath, sourceRelativePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+        var targetPath = Path.Combine(_basePath, targetRelativePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+        
+        if (!File.Exists(sourcePath))
+            return Task.FromResult(false);
+
+        Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+        File.Copy(sourcePath, targetPath, overwrite: true);
+        return Task.FromResult(true);
+    }
 }

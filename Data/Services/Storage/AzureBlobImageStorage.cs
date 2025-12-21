@@ -34,4 +34,17 @@ public class AzureBlobImageStorage : IImageStorage
     var blobClient = _blobServiceClient.GetBlobContainerClient(_containerName).GetBlobClient(relativePath);
     return await blobClient.DeleteIfExistsAsync();
 }
+
+    public async Task<bool> CopyAsync(string sourceRelativePath, string targetRelativePath)
+    {
+        var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
+        var sourceBlobClient = containerClient.GetBlobClient(sourceRelativePath);
+        var targetBlobClient = containerClient.GetBlobClient(targetRelativePath);
+
+        if (!await sourceBlobClient.ExistsAsync())
+            return false;
+
+        await targetBlobClient.StartCopyFromUriAsync(sourceBlobClient.Uri);
+        return true;
+    }
 }

@@ -1,30 +1,27 @@
 using System;
-using System.Collections.Generic;
 
 namespace brickapp.Data.Entities
 {
-    public class NewItemRequest
+    public class ItemImageRequest
     {
         public int Id { get; set; }
-        public string Uuid { get; set; } = string.Empty;
-        public string Brand { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string PartNum { get; set; } = string.Empty;
-
-        public string RequestedByUserId { get; set; } = string.Empty; // AppUser.Uuid
+        public int MappedBrickId { get; set; }
+        public string RequestedByUserId { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public NewItemRequestStatus Status { get; set; } = NewItemRequestStatus.Pending;
+        public ItemImageRequestStatus Status { get; set; } = ItemImageRequestStatus.Pending;
         public string? ReasonRejected { get; set; }
         public string? PendingReason { get; set; }
         public string? ApprovedByUserId { get; set; }
         public DateTime? ApprovedAt { get; set; }
+        public string TempImagePath { get; set; } = string.Empty; // Temporärer Pfad für das hochgeladene Bild
 
         // Navigation properties
+        public MappedBrick? MappedBrick { get; set; }
         public AppUser? RequestedByUser { get; set; }
         public AppUser? ApprovedByUser { get; set; }
     }
 
-    public enum NewItemRequestStatus
+    public enum ItemImageRequestStatus
     {
         Pending,
         Approved,

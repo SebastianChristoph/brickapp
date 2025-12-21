@@ -4,6 +4,7 @@
 @using brickapp.Helpers
 @using Microsoft.EntityFrameworkCore
 @using MudBlazor
+@using brickapp.Components.Dialogs
 
 @inject IServiceProvider ServiceProvider
 @inject NavigationManager Nav
@@ -48,8 +49,9 @@ else
             <MudStack Spacing="0">
                 <MudText Typo="Typo.body1"><b>Updates found!</b></MudText>
                 <MudText Typo="Typo.body2">
-                   <b> @_resolvableMocItems.Count </b>of the unmapped items have been mapped in the database since your last import.<br />
-                   You can now add them to your MOC by clicking the button below and make your MOC more accurate.
+                   <b> @_resolvableMocItems.Count </b> of the unmapped items have been mapped in the database since your last import. <b/>
+
+You can now add them to your MOC by clicking the button below to improve the visual accuracy.<b/> <b>Please note: This will not change the number of parts in your list; </b> it only ensures that items are correctly displayed and identified.
                 </MudText>
             </MudStack>
             <MudButton Variant="Variant.Filled" 
@@ -154,6 +156,7 @@ else
             <MudTh>Color</MudTh>
             <MudTh>Quantity</MudTh>
             <MudTh>Do you own?</MudTh>
+            <MudTh>Actions</MudTh>
         </HeaderContent>
 
         <RowTemplate>
@@ -191,6 +194,11 @@ else
                         <MudChip T="string" Size="Size.Small">None</MudChip>
                     }
                 }
+            </MudTd>
+
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" 
+                               OnClick="@(() => OpenEditItemDialog(context.Id, context.Quantity, context.BrickColorId ?? 0))" />
             </MudTd>
         </RowTemplate>
         <PagerContent>
@@ -526,5 +534,42 @@ private bool _isResolving = false;
     }
 
     private void GoBack() => Nav.NavigateTo("/mymocs");
+
+    private async Task OpenEditItemDialog(int mockItemId, int currentQuantity, int currentColorId)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                ["CurrentQuantity"] = currentQuantity,
+                ["CurrentColorId"] = currentColorId
+            };
+
+            var dialog = await DialogService.ShowAsync<EditItemDialog>("Edit MOC Item", parameters);
+            var result = await dialog.Result;
+
+            if (result != null && !result.Canceled && result.Data is EditItemDialogResult editResult)
+            {
+                using var scope = ServiceProvider.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
+
+                var mockItem = await db.MockItems.FindAsync(mockItemId);
+                if (mockItem != null)
+                {
+                    mockItem.Quantity = editResult.Quantity;
+                    mockItem.BrickColorId = editResult.ColorId;
+                    await db.SaveChangesAsync();
+
+                    NotificationService.Success("MOC item updated successfully.");
+                    await LoadMockAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            SetError(ex, "OpenEditItemDialog");
+            NotificationService.Error(_error ?? "An unknown error occurred");
+        }
+    }
 
 }

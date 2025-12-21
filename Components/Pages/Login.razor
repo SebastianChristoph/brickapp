@@ -8,6 +8,24 @@
 
 <PageTitle>Login</PageTitle>
 
+<!-- Mobile Warnung - nur auf Small und kleiner sichtbar -->
+<MudHidden Breakpoint="Breakpoint.MdAndUp">
+    <MudPaper Class="pa-6 mt-4" Elevation="2">
+        <MudText Typo="Typo.h5" GutterBottom="true" Align="Align.Center">
+            Mobile View Not Supported
+        </MudText>
+        <MudText Typo="Typo.body1" Align="Align.Center" Class="mt-4">
+            This site is not designed to fit on a mobile screen. 
+            Please consider switching to a tablet or PC for the best experience.
+        </MudText>
+        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2" Color="Color.Secondary">
+            📱 ➡️ 💻
+        </MudText>
+    </MudPaper>
+</MudHidden>
+
+<!-- Eigentlicher Content - nur ab Medium (Tablet) sichtbar -->
+<MudHidden Breakpoint="Breakpoint.SmAndDown">
 <MudStack Spacing="6" Row="true" StretchItems="StretchItems.All">
 <MudPaper Class="pa-6 mx-auto" Style="min-width: 30vw;">
     <MudText Typo="Typo.h4" GutterBottom="true">Login</MudText>
@@ -64,6 +82,7 @@
     </MudButton>
 </MudPaper>
 </MudStack>
+</MudHidden>
 
 @code {
     private string _token = string.Empty;

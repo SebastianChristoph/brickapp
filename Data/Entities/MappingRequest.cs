@@ -13,6 +13,7 @@ namespace brickapp.Data.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public MappingRequestStatus Status { get; set; } = MappingRequestStatus.Pending;
         public string? ReasonRejected { get; set; }
+        public string? PendingReason { get; set; }
         public string? ApprovedByUserId { get; set; }
         public DateTime? ApprovedAt { get; set; }
 

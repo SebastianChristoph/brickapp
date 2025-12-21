@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<NewItemRequest> NewItemRequests => Set<NewItemRequest>();
     public DbSet<NewSetRequest> NewSetRequests => Set<NewSetRequest>();
+    public DbSet<ItemImageRequest> ItemImageRequests => Set<ItemImageRequest>();
 
     public DbSet<Mock> Mocks => Set<Mock>();
     public DbSet<MockItem> MockItems => Set<MockItem>();
@@ -100,6 +101,29 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<MappingRequest>()
             .HasOne(mr => mr.ApprovedByUser)
             .WithMany(u => u.MappingRequestsApproved)
+            .HasPrincipalKey(u => u.Uuid)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // ItemImageRequest Tabelle und Beziehungen
+        modelBuilder.Entity<ItemImageRequest>().ToTable("itemImageRequests");
+
+        modelBuilder.Entity<ItemImageRequest>()
+            .HasOne(iir => iir.MappedBrick)
+            .WithMany()
+            .HasForeignKey(iir => iir.MappedBrickId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ItemImageRequest>()
+            .HasOne(iir => iir.RequestedByUser)
+            .WithMany()
+            .HasForeignKey(iir => iir.RequestedByUserId)
+            .HasPrincipalKey(u => u.Uuid)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ItemImageRequest>()
+            .HasOne(iir => iir.ApprovedByUser)
+            .WithMany()
+            .HasForeignKey(iir => iir.ApprovedByUserId)
             .HasPrincipalKey(u => u.Uuid)
             .OnDelete(DeleteBehavior.Restrict);
 
