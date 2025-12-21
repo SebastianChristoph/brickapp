@@ -1,0 +1,68 @@
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+
+<MudDialog>
+    <DialogContent>
+        <MudAlert Severity="Severity.Success" Class="mb-4">
+            <MudText Typo="Typo.h6">Account Created Successfully!</MudText>
+        </MudAlert>
+
+        <MudText Typo="Typo.body1" Class="mb-4">
+            Welcome <strong>@Username</strong>! Your account has been created.
+        </MudText>
+
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            <MudText Typo="Typo.body2" Class="mb-2">
+                <strong>IMPORTANT: Save your token immediately!</strong>
+            </MudText>
+            <MudText Typo="Typo.body2">
+                This token is your only way to access BrickIsBrick. There is no password reset or token recovery option. 
+                If you lose this token, you will lose access to your account permanently.
+            </MudText>
+        </MudAlert>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Your Access Token:</MudText>
+        <MudPaper Class="pa-3 mb-4 d-flex align-center justify-space-between" Elevation="0" Style="background-color: #f5f5f5;">
+            <MudText Typo="Typo.body1" Style="font-family: monospace; word-break: break-all; flex-grow: 1;">
+                @Token
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" 
+                          Color="Color.Primary" 
+                          Size="Size.Small"
+                          OnClick="CopyTokenToClipboard"
+                          Title="Copy to clipboard" />
+        </MudPaper>
+
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Copy this token and store it in a safe place. You'll need it to log in to your account.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CloseAndLogin">
+            I've Saved My Token - Continue
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public string Token { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Username { get; set; }
+
+    private async Task CopyTokenToClipboard()
+    {
+        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", Token);
+        Snackbar.Add("Token copied to clipboard!", Severity.Success);
+    }
+
+    private void CloseAndLogin()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+        Nav.NavigateTo("/login", true);
+    }
+}
