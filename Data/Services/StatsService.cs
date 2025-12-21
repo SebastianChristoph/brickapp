@@ -6,10 +6,12 @@ namespace brickapp.Data.Services
     public class StatsService
     {
         private readonly IDbContextFactory<AppDbContext> _contextFactory;
+        private readonly UserService _userService;
 
-        public StatsService(IDbContextFactory<AppDbContext> contextFactory)
+        public StatsService(IDbContextFactory<AppDbContext> contextFactory, UserService userService)
         {
             _contextFactory = contextFactory;
+            _userService = userService;
         }
 
         public async Task<BrickMappingStats> GetBrickMappingStatsAsync()
@@ -81,6 +83,112 @@ namespace brickapp.Data.Services
 
             return stats;
         }
+
+        public async Task<UserStats?> GetUserStatsAsync()
+        {
+            var user = await _userService.GetCurrentUserAsync();
+            if (user == null)
+                return null;
+
+            await using var context = await _contextFactory.CreateDbContextAsync();
+
+            var stats = new UserStats
+            {
+                TotalInventoryItems = await context.InventoryItems
+                    .Where(i => i.AppUserId == user.Id)
+                    .CountAsync(),
+                
+                TotalMocks = await context.Mocks
+                    .Where(m => m.UserUuid == user.Uuid)
+                    .CountAsync(),
+                
+                TotalWantedLists = await context.WantedLists
+                    .Where(w => w.AppUserId == user.Id.ToString())
+                    .CountAsync(),
+                
+                TotalFavoriteSets = await context.UserSetFavorites
+                    .Where(f => f.AppUserId == user.Id)
+                    .CountAsync(),
+                
+                TotalMappingRequests = await context.MappingRequests
+                    .Where(r => r.RequestedByUserId == user.Uuid)
+                    .CountAsync(),
+                
+                ApprovedMappingRequests = await context.MappingRequests
+                    .Where(r => r.RequestedByUserId == user.Uuid && r.Status == MappingRequestStatus.Approved)
+                    .CountAsync(),
+                
+                TotalNewItemRequests = await context.NewItemRequests
+                    .Where(r => r.RequestedByUserId == user.Uuid)
+                    .CountAsync(),
+                
+                ApprovedNewItemRequests = await context.NewItemRequests
+                    .Where(r => r.RequestedByUserId == user.Uuid && r.Status == NewItemRequestStatus.Approved)
+                    .CountAsync()
+            };
+
+            return stats;
+        }
+
+        public async Task<List<RecentActivityItem>> GetRecentActivityAsync(int count = 5)
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync();
+
+            var activities = new List<RecentActivityItem>();
+
+            // Neue Items (approved)
+            var newItems = await context.NewItemRequests
+                .Where(r => r.Status == NewItemRequestStatus.Approved)
+                .OrderByDescending(r => r.ApprovedAt)
+                .Take(count)
+                .Select(r => new RecentActivityItem
+                {
+                    Type = "New Item",
+                    Description = $"{r.Brand}: {r.Name}",
+                    Username = r.RequestedByUser != null ? r.RequestedByUser.Name : "Unknown",
+                    Timestamp = r.ApprovedAt ?? r.CreatedAt
+                })
+                .ToListAsync();
+
+            activities.AddRange(newItems);
+
+            // Mappings (approved)
+            var mappings = await context.MappingRequests
+                .Where(r => r.Status == MappingRequestStatus.Approved)
+                .OrderByDescending(r => r.ApprovedAt)
+                .Take(count)
+                .Select(r => new RecentActivityItem
+                {
+                    Type = "Mapping",
+                    Description = $"{r.Brand}: {r.MappingName}",
+                    Username = r.RequestedByUser != null ? r.RequestedByUser.Name : "Unknown",
+                    Timestamp = r.ApprovedAt ?? r.CreatedAt
+                })
+                .ToListAsync();
+
+            activities.AddRange(mappings);
+
+            // Neue Sets (approved)
+            var newSets = await context.NewSetRequests
+                .Where(r => r.Status == NewSetRequestStatus.Approved)
+                .OrderByDescending(r => r.CreatedAt)
+                .Take(count)
+                .Select(r => new RecentActivityItem
+                {
+                    Type = "New Set",
+                    Description = $"{r.Brand}: {r.SetName}",
+                    Username = r.UserId,
+                    Timestamp = r.CreatedAt
+                })
+                .ToListAsync();
+
+            activities.AddRange(newSets);
+
+            return activities
+                .OrderByDescending(a => a.Timestamp)
+                .Take(count)
+                .ToList();
+        }
     }
 
     public class BrickMappingStats
@@ -121,5 +229,25 @@ namespace brickapp.Data.Services
         public int TotalNewItemRequests { get; set; }
         public int TotalNewSetRequests { get; set; }
         public int TotalItemImageRequests { get; set; }
+    }
+
+    public class UserStats
+    {
+        public int TotalInventoryItems { get; set; }
+        public int TotalMocks { get; set; }
+        public int TotalWantedLists { get; set; }
+        public int TotalFavoriteSets { get; set; }
+        public int TotalMappingRequests { get; set; }
+        public int ApprovedMappingRequests { get; set; }
+        public int TotalNewItemRequests { get; set; }
+        public int ApprovedNewItemRequests { get; set; }
+    }
+
+    public class RecentActivityItem
+    {
+        public string Type { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
     }
 }

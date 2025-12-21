@@ -58,7 +58,7 @@
 <MudPaper Class="pa-6 mx-auto" >
     <MudText Typo="Typo.h4" GutterBottom="true">Sign Up</MudText>
     <MudAlert Severity="Severity.Info" Class="mb-4">
-        We don't want your email address, your data, or your password. Simply sign up here and receive your personal token. This token is your access to BrickIsBrick. Don't lose it – there's no option to reissue or change it.
+        Simply sign up here and receive your personal token. This token is your access to BrickIsBrick. Don't lose it – there's no option to reissue or change it.
     </MudAlert>
 
     <MudTextField @bind-Value="_newUsername"
@@ -73,15 +73,35 @@
         <MudText Color="Color.Error">@_signupError</MudText>
     }
 
+    <MudCheckBox @bind-Value="_acceptTerms" 
+                 Label="I accept the terms and conditions" 
+                 Class="mt-3" 
+                 Color="Color.Secondary" />
+
     <MudButton Class="mt-4"
                Variant="Variant.Filled"
                Color="Color.Secondary"
-               Disabled="@string.IsNullOrWhiteSpace(_newUsername)"
+               Disabled="@(string.IsNullOrWhiteSpace(_newUsername) || !_acceptTerms)"
                OnClick="SignUp">
         Sign Up
     </MudButton>
 </MudPaper>
 </MudStack>
+
+<!-- Terms and Conditions Info -->
+<MudPaper Class="pa-4 mt-4" Elevation="0" Style="background-color: #f5f5f5;">
+    <MudText Typo="Typo.h6" GutterBottom="true" Align="Align.Center">
+        🔒 Privacy & Terms of Service
+    </MudText>
+    <MudText Typo="Typo.body2" Align="Align.Center" Style="max-width: 800px; margin: 0 auto;">
+        <strong>We're not interested in your data!</strong> We don't want your email or password. 
+        We don't store any personal data and don't create any cookies. 
+        We only store your token in your browser's local storage so this app can function.
+    </MudText>
+    <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2" Color="Color.Secondary" Style="max-width: 800px; margin: 0 auto;">
+        ✓ No email required &nbsp; ✓ No password &nbsp; ✓ No cookies &nbsp; ✓ No tracking tools
+    </MudText>
+</MudPaper>
 </MudHidden>
 
 @code {
@@ -89,6 +109,7 @@
     private string? _error;
     private string _newUsername = string.Empty;
     private string? _signupError;
+    private bool _acceptTerms = false;
 
         private readonly DialogOptions dialogOptions = new()
     {
