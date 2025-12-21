@@ -19,6 +19,7 @@
 
 <MudText Typo="Typo.h4" GutterBottom="true">All Bricks</MudText>
 
+
 @if (!string.IsNullOrWhiteSpace(_pageError))
 {
     <MudAlert Severity="Severity.Error" ShowCloseIcon="true"
@@ -436,6 +437,9 @@ else if (_showMappedOnly)
         </PagerContent>
     </MudTable>
 }
+
+<RebrickableThankYou />
+
 @code {
     private bool _showMappedOnly = false;
 private async Task ShowMappedItems()
