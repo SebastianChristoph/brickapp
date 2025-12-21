@@ -3,6 +3,7 @@
 @inject IDialogService DialogService
 @inject brickapp.Data.Services.ImageService ImageService
 @inject brickapp.Data.Services.MappedBrickService BrickService
+@inject brickapp.Data.Services.TrackingService TrackingService
 @inject brickapp.Data.Services.NotificationService NotificationService
 <MudDialog>
     <DialogContent>
@@ -87,6 +88,9 @@ private int _legoPreviewRequestId = 0;
     private List<MappedBrick> _legoPreviewBricks = new();
     protected override async Task OnInitializedAsync()
     {
+        // Track dialog opening
+        await TrackingService.TrackAsync("OpenHelpMappingDialog", $"Brick: {Brick?.Name}, Brand: {Brand}", null);
+        
         // Load all mapped bricks for duplicate check
         _allBricks = await BrickService.GetAllMappedBricksAsync();
         _legoPreviewBricks = new List<MappedBrick>();

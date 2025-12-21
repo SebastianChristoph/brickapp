@@ -3,8 +3,10 @@
 @inject brickapp.Data.Services.ItemSetExportService SetExport
 @inject brickapp.Data.Services.UserService UserService
 @inject brickapp.Data.Services.StatsService StatsService
+@inject brickapp.Data.Services.TrackingService TrackingService
 
 <MudText Typo="Typo.h4" GutterBottom="true">Admin Panel</MudText>
+
 
 @if (_loading)
 {
@@ -227,13 +229,78 @@ else if (_stats != null)
 <div>@createUserMessage</div>
 
 <div>@statusMessage</div>
+   
+
+    <MudTabPanel Text="User Tracking" Icon="@Icons.Material.Filled.Timeline">
+        @if (_loadingTracking)
+        {
+            <MudProgressCircular Indeterminate="true" Class="mb-4" />
+        }
+        else if (_trackingByUser != null)
+        {
+            <MudText Typo="Typo.h5" Class="mb-4">User Activity Tracking</MudText>
+            
+            @if (!_trackingByUser.Any())
+            {
+                <MudAlert Severity="Severity.Info">No tracking data available yet.</MudAlert>
+            }
+            else
+            {
+                @foreach (var userGroup in _trackingByUser.OrderByDescending(kvp => kvp.Value.Count))
+                {
+                    var userName = userGroup.Value.FirstOrDefault()?.AppUser?.Name ?? "Unknown";
+                    var userUuid = userGroup.Key;
+                    
+                    <MudExpansionPanels Class="mb-3">
+                        <MudExpansionPanel>
+                            <TitleContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                    <MudIcon Icon="@Icons.Material.Filled.Person" />
+                                    <div>
+                                        <MudText Typo="Typo.body1"><b>@userName</b></MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">UUID: @userUuid</MudText>
+                                    </div>
+                                    <MudSpacer />
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@userGroup.Value.Count actions</MudChip>
+                                </MudStack>
+                            </TitleContent>
+                            <ChildContent>
+                                <MudTable Items="@userGroup.Value" Dense="true" Hover="true">
+                                    <HeaderContent>
+                                        <MudTh>Time</MudTh>
+                                        <MudTh>Action</MudTh>
+                                        <MudTh>Page</MudTh>
+                                        <MudTh>Details</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd>@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                                        <MudTd><MudChip T="string" Size="Size.Small">@context.Action</MudChip></MudTd>
+                                        <MudTd>@context.PageUrl</MudTd>
+                                        <MudTd>
+                                            @if (!string.IsNullOrWhiteSpace(context.Details))
+                                            {
+                                                <MudText Typo="Typo.caption">@context.Details</MudText>
+                                            }
+                                        </MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
+            }
+        }
+    </MudTabPanel>
+
 
 @code {
     private string statusMessage = "";
     private string newUserName = string.Empty;
     private string createUserMessage = string.Empty;
     private bool _loading = true;
+    private bool _loadingTracking = true;
     private brickapp.Data.Services.AdminStats? _stats;
+    private Dictionary<string, List<brickapp.Data.Entities.TrackingInfo>>? _trackingByUser;
 
     protected override async Task OnInitializedAsync()
     {
@@ -248,6 +315,20 @@ else if (_stats != null)
         finally
         {
             _loading = false;
+        }
+
+        // Load tracking data
+        try
+        {
+            _trackingByUser = await TrackingService.GetTrackingInfosGroupedByUserAsync();
+        }
+        catch (Exception ex)
+        {
+            statusMessage += $" Error loading tracking: {ex.Message}";
+        }
+        finally
+        {
+            _loadingTracking = false;
         }
     }
 

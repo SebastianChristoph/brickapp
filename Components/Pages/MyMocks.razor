@@ -13,6 +13,7 @@
 @inject IServiceProvider ServiceProvider
 @inject brickapp.Data.Services.ImageService ImageService
 @inject brickapp.Data.Services.UserService UserService
+@inject brickapp.Data.Services.TrackingService TrackingService
 @inject brickapp.Data.Services.LoadingService LoadingService
 @inject brickapp.Data.Services.NotificationService NotificationService
 @inject brickapp.Data.Services.RebrickableApiService RebrickableApi
@@ -205,6 +206,9 @@
         var userUuid = await UserService.GetTokenAsync();
         if (string.IsNullOrEmpty(userUuid)) return;
         userMocks = await db.Mocks.Where(m => m.UserUuid == userUuid).Include(m => m.Items).ToListAsync();
+        
+        // Track page visit
+        await TrackingService.TrackAsync("ViewMyMocks", $"Mocks: {userMocks?.Count ?? 0}", "/mymocs");
     }
 
     private Task OnMocParsed(ParseResult<ParsedPart> result)

@@ -4,6 +4,7 @@
 @inject NavigationManager Nav
 @inject UserService UserService
 @inject brickapp.Data.Services.UserNotificationService NotificationService
+@inject brickapp.Data.Services.TrackingService TrackingService
 
 @implements IDisposable
 
@@ -143,6 +144,7 @@
 
 private async Task Logout()
 {
+    await TrackingService.TrackAsync("UserLogout", null, null);
     await UserService.LogoutAsync();
     _username = null;
     Nav.NavigateTo("/login", forceLoad: true);
