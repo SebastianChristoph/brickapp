@@ -416,6 +416,25 @@ public Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
             return await db.NewSetRequests.AnyAsync(r => r.SetNo == setNo && r.Brand == brand && r.Status == NewSetRequestStatus.Pending);
         }
 
+        public async Task<bool> DoesSetExistAsync(string brand, string setNo, string setName)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            
+            // 1. Prüfe in veröffentlichten Sets (ItemSets)
+            var existsInItemSets = await db.ItemSets.AnyAsync(s => 
+                s.Brand == brand && (s.SetNum == setNo || s.Name == setName));
+            
+            if (existsInItemSets) return true;
+
+            // 2. Prüfe in offenen/pending Requests (NewSetRequests)
+            var existsInRequests = await db.NewSetRequests.AnyAsync(r => 
+                r.Brand == brand && 
+                (r.SetNo == setNo || r.SetName == setName) && 
+                r.Status == NewSetRequestStatus.Pending);
+
+            return existsInRequests;
+        }
+
         // --- Mapping Requests Methoden ---
         public async Task<List<MappingRequest>> GetMappingRequestsByUserAsync(string userId)
         {
@@ -523,6 +542,38 @@ public Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
             return await db.MappingRequests.AnyAsync(mr => mr.BrickId == brickId && mr.Brand == brand && mr.Status == MappingRequestStatus.Pending);
+        }
+
+        public async Task<bool> DoesItemExistAsync(string brand, string? partNum, string name)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var brandLower = brand?.Trim().ToLower();
+
+            // Wenn PartNum vorhanden ist, prüfe nach PartNum (hat Priorität)
+            if (!string.IsNullOrWhiteSpace(partNum))
+            {
+                var existsByPartNum = brandLower switch
+                {
+                    "lego" => await db.MappedBricks.AnyAsync(m => m.LegoPartNum == partNum),
+                    "bluebrixx" => await db.MappedBricks.AnyAsync(m => m.BluebrixxPartNum == partNum),
+                    "cada" => await db.MappedBricks.AnyAsync(m => m.CadaPartNum == partNum),
+                    "pantasy" => await db.MappedBricks.AnyAsync(m => m.PantasyPartNum == partNum),
+                    "mould king" or "mouldking" => await db.MappedBricks.AnyAsync(m => m.MouldKingPartNum == partNum),
+                    _ => await db.MappedBricks.AnyAsync(m => m.UnknownPartNum == partNum)
+                };
+                if (existsByPartNum) return true;
+            }
+
+            // Falls keine PartNum oder nicht gefunden, prüfe nach Name
+            return brandLower switch
+            {
+                "lego" => await db.MappedBricks.AnyAsync(m => m.LegoName == name),
+                "bluebrixx" => await db.MappedBricks.AnyAsync(m => m.BluebrixxName == name),
+                "cada" => await db.MappedBricks.AnyAsync(m => m.CadaName == name),
+                "pantasy" => await db.MappedBricks.AnyAsync(m => m.PantasyName == name),
+                "mould king" or "mouldking" => await db.MappedBricks.AnyAsync(m => m.MouldKingName == name),
+                _ => await db.MappedBricks.AnyAsync(m => m.UnknownName == name)
+            };
         }
     }
 }

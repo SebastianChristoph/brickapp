@@ -668,18 +668,26 @@ foreach (var brick in brickSearchResults)
 
     try 
     {
-        // 1. NUR prüfen, ob die Nummer schon von einem VERÖFFENTLICHTEN Set belegt ist
-        // Wenn du nur einen Draft bearbeitest, ist das hier normalerweise kein Problem.
-        var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-        bool setExistsReally = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && s.SetNum == newSetModel.SetNo);
-
-        if (setExistsReally && !editingDraftId.HasValue) 
+        // Validierung
+        if (string.IsNullOrWhiteSpace(newSetModel.Brand) || string.IsNullOrWhiteSpace(newSetModel.SetNo) || string.IsNullOrWhiteSpace(newSetModel.SetName))
         {
-            errorMessage = "This Set-Number is already a finished set in the database.";
-            return; 
+            errorMessage = "Brand, Set Number and Set Name are required.";
+            return;
         }
 
-        // 2. BILD-LOGIK: Beim Zwischenspeichern (Draft) drücken wir ein Auge zu
+        // Prüfe, ob das Set bereits existiert (in veröffentlichten Sets oder pending Requests)
+        // ABER: Wenn wir einen Draft bearbeiten, dürfen wir den eigenen Draft ignorieren
+        if (!editingDraftId.HasValue)
+        {
+            var setExists = await RequestService.DoesSetExistAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName);
+            if (setExists)
+            {
+                errorMessage = $"A set with Brand '{newSetModel.Brand}' and Set Number '{newSetModel.SetNo}' or Name '{newSetModel.SetName}' already exists or has a pending request.";
+                return;
+            }
+        }
+
+        // BILD-LOGIK: Beim Zwischenspeichern (Draft) drücken wir ein Auge zu
         string? imagePath = null;
         if (uploadedImageFile != null)
         {
@@ -687,7 +695,7 @@ foreach (var brick in brickSearchResults)
         }
        
 
-        // 3. SPEICHERN / UPDATE
+        // SPEICHERN / UPDATE
         var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem {
             ItemIdOrName = b.BrickId != 0 ? b.BrickId.ToString() : b.BrickName,
             Quantity = b.Quantity,
@@ -710,7 +718,7 @@ foreach (var brick in brickSearchResults)
             NotificationService.Success("Draft created.");
         }
 
-        // 4. ALLES RESETTEN für die nächste Eingabe
+        // ALLES RESETTEN für die nächste Eingabe
         await LoadDraftsAndData();
         newSetModel = new();
         editingDraftId = null;
@@ -737,12 +745,19 @@ foreach (var brick in brickSearchResults)
         var user = await UserService.GetCurrentUserAsync();
         if (user == null) return;
 
-        // Check for duplicates
-        var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-        var exists = itemSets.Items.Any(s => s.Brand == newSetModel.Brand && (s.Name == newSetModel.SetName || s.SetNum == newSetModel.SetNo));
-        if (exists)
+        // Validierung
+        if (string.IsNullOrWhiteSpace(newSetModel.Brand) || string.IsNullOrWhiteSpace(newSetModel.SetNo) || string.IsNullOrWhiteSpace(newSetModel.SetName))
         {
-            errorMessage = "A set with this brand and name or set ID already exists.";
+            errorMessage = "Brand, Set Number and Set Name are required.";
+            StateHasChanged();
+            return;
+        }
+
+        // Prüfe ob das Set bereits existiert (in veröffentlichten Sets oder pending Requests)
+        var setExists = await RequestService.DoesSetExistAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName);
+        if (setExists)
+        {
+            errorMessage = $"A set with Brand '{newSetModel.Brand}' and Set Number '{newSetModel.SetNo}' or Name '{newSetModel.SetName}' already exists or has a pending request.";
             StateHasChanged();
             return;
         }
