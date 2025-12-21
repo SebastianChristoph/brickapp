@@ -128,4 +128,16 @@ public class TrackingService
         db.TrackingInfos.RemoveRange(oldTracking);
         await db.SaveChangesAsync();
     }
+
+    /// <summary>
+    /// Deletes all tracking infos
+    /// </summary>
+    public async Task DeleteAllTrackingsAsync()
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+
+        var allTracking = await db.TrackingInfos.ToListAsync();
+        db.TrackingInfos.RemoveRange(allTracking);
+        await db.SaveChangesAsync();
+    }
 }

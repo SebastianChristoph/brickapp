@@ -229,8 +229,10 @@ else if (_stats != null)
 <div>@createUserMessage</div>
 
 <div>@statusMessage</div>
-   
 
+<MudDivider Class="my-6" />
+
+<MudTabs Elevation="4" Rounded="true" Color="Color.Primary">
     <MudTabPanel Text="User Tracking" Icon="@Icons.Material.Filled.Timeline">
         @if (_loadingTracking)
         {
@@ -238,7 +240,10 @@ else if (_stats != null)
         }
         else if (_trackingByUser != null)
         {
-            <MudText Typo="Typo.h5" Class="mb-4">User Activity Tracking</MudText>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+                <MudText Typo="Typo.h5">User Activity Tracking</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteForever" OnClick="DeleteAllTrackings">Delete All Trackings</MudButton>
+            </MudStack>
             
             @if (!_trackingByUser.Any())
             {
@@ -291,6 +296,7 @@ else if (_stats != null)
             }
         }
     </MudTabPanel>
+</MudTabs>
 
 
 @code {
@@ -329,6 +335,20 @@ else if (_stats != null)
         finally
         {
             _loadingTracking = false;
+        }
+    }
+
+    private async Task DeleteAllTrackings()
+    {
+        try
+        {
+            await TrackingService.DeleteAllTrackingsAsync();
+            _trackingByUser = new Dictionary<string, List<brickapp.Data.Entities.TrackingInfo>>();
+            statusMessage = "All tracking data deleted successfully.";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error deleting tracking data: {ex.Message}";
         }
     }
 
