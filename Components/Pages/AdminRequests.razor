@@ -176,7 +176,11 @@
                     </MudTd>
                     <MudTd DataLabel="Brand">@context.Brand</MudTd>
                     <MudTd DataLabel="Set No">@context.SetNo</MudTd>
-                    <MudTd DataLabel="Set Name">@context.SetName</MudTd>
+                    <MudTd DataLabel="Set Name">
+                        <MudLink Href="@($"/preview-set-request/{context.Id}")" Color="Color.Primary">
+                            @context.SetName
+                        </MudLink>
+                    </MudTd>
 
                     <MudTd DataLabel="Requested By">@context.UserId</MudTd>
                     <MudTd DataLabel="Created At">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
