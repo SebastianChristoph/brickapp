@@ -1,4 +1,6 @@
 @page "/privacypolicy"
+@inject brickapp.Data.Services.TrackingService TrackingService
+
 <MudPaper Class="pa-4 mt-4" Style="max-width:700px;margin:auto;">
     <MudText Typo="Typo.h4" GutterBottom="true">Privacy Policy</MudText>
     <MudDivider Class="mb-4" />
@@ -21,3 +23,11 @@
         If you have any questions about this privacy policy, please contact us at info@brickisbrick.com.
     </MudText>
 </MudPaper>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await TrackingService.TrackAsync("ViewPrivacyPolicy", null, "/privacypolicy");
+    }
+}

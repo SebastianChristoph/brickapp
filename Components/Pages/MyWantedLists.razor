@@ -11,6 +11,7 @@
 @inject brickapp.Data.Services.WantedListService WantedListService
 @inject brickapp.Data.Services.MappedBrickService MappedBrickService
 @inject brickapp.Data.Services.ImageService ImageService
+@inject brickapp.Data.Services.TrackingService TrackingService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 @inject brickapp.Data.Services.LoadingService LoadingService
@@ -354,6 +355,9 @@ else
 
             _wantedListSummaries = await wantedTask;
             brickColors = await colorsTask;
+
+            // Track page visit
+            await TrackingService.TrackAsync("ViewMyWantedLists", $"Lists: {_wantedListSummaries?.Count ?? 0}", "/mywantedlists");
 
             // WICHTIG: _allBricks NICHT hier laden -> Performance!
         }

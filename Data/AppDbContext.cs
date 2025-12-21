@@ -37,6 +37,9 @@ public class AppDbContext : DbContext
     // Set Favorites
     public DbSet<UserSetFavorite> UserSetFavorites => Set<UserSetFavorite>();
 
+    // Tracking
+    public DbSet<TrackingInfo> TrackingInfos => Set<TrackingInfo>();
+
 
     // --- Model-Konfiguration ---------------------------------------
 

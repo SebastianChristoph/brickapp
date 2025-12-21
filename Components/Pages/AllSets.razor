@@ -5,6 +5,7 @@
 @inject brickapp.Data.Services.UserService UserService
 @inject brickapp.Data.Services.ItemSetService SetService
 @inject brickapp.Data.Services.SetFavoritesService SetFavoritesService
+@inject brickapp.Data.Services.TrackingService TrackingService
 @inject NavigationManager NavigationManager
 
 <PageTitle>All Sets</PageTitle>
@@ -206,6 +207,9 @@ private async Task OnSearchChanged(string value)
         // Load favorite sets
         _favoriteSets = await SetFavoritesService.GetUserFavoriteSetListAsync();
         _loadingFavorites = false;
+        
+        // Track page visit
+        await TrackingService.TrackAsync("ViewAllSets", $"Total Sets: {sets?.Count ?? 0}, Favorites: {_favoriteSets?.Count ?? 0}", "/allsets");
         
         StateHasChanged();
     }

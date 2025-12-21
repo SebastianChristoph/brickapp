@@ -1,4 +1,6 @@
 @page "/imprint"
+@inject brickapp.Data.Services.TrackingService TrackingService
+
 <MudPaper Class="pa-4 mt-4" Style="max-width:700px;margin:auto;">
     <MudText Typo="Typo.h4" GutterBottom="true">Imprint</MudText>
     <MudDivider Class="mb-4" />
@@ -27,3 +29,11 @@
         All content and works on these pages created by the site operators are subject to German copyright law. Duplication, processing, distribution, or any form of commercialization of such material beyond the scope of the copyright law shall require the prior written consent of its respective author or creator.
     </MudText>
 </MudPaper>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await TrackingService.TrackAsync("ViewImprint", null, "/imprint");
+    }
+}

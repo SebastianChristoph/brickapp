@@ -8,6 +8,7 @@
 
 @inject brickapp.Data.Services.UserService UserService
 @inject brickapp.Data.Services.InventoryService InventoryService
+@inject brickapp.Data.Services.TrackingService TrackingService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 @inject brickapp.Data.Services.ImageService ImageService
@@ -296,6 +297,9 @@ else
 
         _username = await UserService.GetUsernameAsync();
         items = await InventoryService.GetCurrentUserInventoryAsync();
+
+        // Track page visit
+        await TrackingService.TrackAsync("ViewMyInventory", $"Items: {items?.Count ?? 0}", "/myinventory");
 
         var user = await UserService.GetCurrentUserAsync();
         if (user != null)

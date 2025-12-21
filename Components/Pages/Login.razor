@@ -3,6 +3,7 @@
 @using brickapp.Data.Services
 @using brickapp.Components.Dialogs
 @inject brickapp.Data.Services.UserService UserService
+@inject brickapp.Data.Services.TrackingService TrackingService
 @inject NavigationManager Nav
 @inject IDialogService DialogService
 
@@ -130,6 +131,9 @@
             return;
         }
 
+        // Track login
+        await TrackingService.TrackAsync("UserLogin", null, "/login");
+
         // After successful login, navigate somewhere
         Nav.NavigateTo("/", true); // forceLoad: true
     }
@@ -151,6 +155,9 @@
             _signupError = "Error creating user. Please try again.";
             return;
         }
+
+        // Track signup (will use the new user's token)
+        await TrackingService.TrackAsync("UserSignup", $"Username: {user.Name}", "/login");
 
         // Show dialog with token
         var parameters = new DialogParameters
