@@ -18,4 +18,10 @@ namespace brickapp.Components.Dialogs
         Reject,
         RejectToPending
     }
+
+    public class EditItemDialogResult
+    {
+        public int Quantity { get; set; }
+        public int ColorId { get; set; }
+    }
 }

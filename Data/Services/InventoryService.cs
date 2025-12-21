@@ -92,7 +92,7 @@ public class InventoryService
             .FirstOrDefaultAsync(i => i.Id == itemId && i.AppUserId == user.Id);
     }
 
-    public async Task<bool> UpdateInventoryItemAsync(int itemId, int newQuantity)
+    public async Task<bool> UpdateInventoryItemAsync(int itemId, int newQuantity, int? newColorId = null)
     {
         var user = await _userService.GetCurrentUserAsync();
         if (user == null || newQuantity <= 0)
@@ -107,6 +107,13 @@ public class InventoryService
             return false;
 
         item.Quantity = newQuantity;
+        
+        // Wenn eine neue ColorId übergeben wurde, aktualisiere sie
+        if (newColorId.HasValue && newColorId.Value > 0)
+        {
+            item.BrickColorId = newColorId.Value;
+        }
+
         await db.SaveChangesAsync();
         return true;
     }

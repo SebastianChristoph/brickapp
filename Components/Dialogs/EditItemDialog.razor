@@ -1,0 +1,86 @@
+@using brickapp.Data.Services
+@using brickapp.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<brickapp.Data.AppDbContext> DbFactory
+
+<MudDialog>
+    <DialogContent>
+        <MudNumericField @bind-Value="_quantity" 
+                         Label="Quantity" 
+                         Min="1" 
+                         Variant="Variant.Outlined"
+                         Class="mb-3" />
+
+        <MudSelect @bind-Value="_selectedColorId"
+                   Label="Color"
+                   Variant="Variant.Outlined"
+                   T="int"
+                   Required="true"
+                   AnchorOrigin="Origin.BottomCenter">
+            @if (_colors != null)
+            {
+                @foreach (var color in _colors.OrderBy(c => c.Name))
+                {
+                    <MudSelectItem Value="@color.Id">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 20px; height: 20px; background-color: #@color.Rgb; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            <span>@color.Name</span>
+                        </div>
+                    </MudSelectItem>
+                }
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton StartIcon="@Icons.Material.Filled.Save" 
+                   Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   OnClick="Save"
+                   Disabled="@(_quantity < 1 || _selectedColorId == 0)">
+            Update
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public int CurrentQuantity { get; set; }
+
+    [Parameter]
+    public int CurrentColorId { get; set; }
+
+    private int _quantity = 1;
+    private int _selectedColorId = 0;
+    private List<BrickColor>? _colors;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _quantity = CurrentQuantity;
+        _selectedColorId = CurrentColorId;
+
+        // Lade alle verfügbaren Farben
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _colors = await db.BrickColors
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private void Save()
+    {
+        var result = new EditItemDialogResult
+        {
+            Quantity = _quantity,
+            ColorId = _selectedColorId
+        };
+        MudDialog?.Close(result);
+    }
+}
