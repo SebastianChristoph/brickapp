@@ -186,6 +186,12 @@ public class InventoryService
 
         await using var db = await _dbFactory.CreateDbContextAsync();
 
+        var itemSet = await db.ItemSets
+            .FirstOrDefaultAsync(s => s.Id == itemSetId);
+
+        if (itemSet == null)
+            return false;
+
         var setBricks = await db.ItemSetBricks
             .Where(sb => sb.ItemSetId == itemSetId)
             .ToListAsync();
@@ -195,7 +201,7 @@ public class InventoryService
 
         foreach (var setBrick in setBricks)
         {
-            var success = await AddInventoryItemAsync(setBrick.MappedBrickId, setBrick.BrickColorId, "Lego", setBrick.Quantity);
+            var success = await AddInventoryItemAsync(setBrick.MappedBrickId, setBrick.BrickColorId, itemSet.Brand, setBrick.Quantity);
             if (!success)
                 return false;
         }
