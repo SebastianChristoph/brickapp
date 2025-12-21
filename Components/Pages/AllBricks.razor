@@ -111,6 +111,18 @@
                                         {
                                             <MudText Typo="Typo.body2">(<b>@_randomBrick.LegoPartNum</b>)</MudText>
                                         }
+                                        else
+                                        {
+                                            var legoPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Lego" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                                            if (legoPartReq != null)
+                                            {
+                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "Lego"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
+                                            }
+                                        }
                                     }
                                     else
                                     {
@@ -138,6 +150,18 @@
                                         @if (!string.IsNullOrWhiteSpace(_randomBrick.BluebrixxPartNum))
                                         {
                                             <MudText Typo="Typo.caption">(@_randomBrick.BluebrixxPartNum)</MudText>
+                                        }
+                                        else
+                                        {
+                                            var bbPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "BlueBrixx" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                                            if (bbPartReq != null)
+                                            {
+                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "BlueBrixx"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
+                                            }
                                         }
                                     }
                                     else
@@ -167,6 +191,18 @@
                                         {
                                             <MudText Typo="Typo.caption">(@_randomBrick.CadaPartNum)</MudText>
                                         }
+                                        else
+                                        {
+                                            var cadaPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Cada" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                                            if (cadaPartReq != null)
+                                            {
+                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "Cada"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
+                                            }
+                                        }
                                     }
                                     else
                                     {
@@ -183,7 +219,19 @@
                                             </MudButton>
                                         }
                                     }
-                                </td>
+                                </td    else
+                                        {
+                                            var pantasyPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                                            if (pantasyPartReq != null)
+                                            {
+                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "Pantasy"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
+                                            }
+                                        }
+                                    >
                             </tr>
                             <tr>
                                 <td style="font-weight:bold;">Pantasy</td>
@@ -211,7 +259,19 @@
                                             </MudButton>
                                         }
                                     }
-                                </td>
+                                </td    else
+                                        {
+                                            var mkPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                                            if (mkPartReq != null)
+                                            {
+                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "Mould King"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
+                                            }
+                                        }
+                                    >
                             </tr>
                             <tr>
                                 <td style="font-weight:bold;">Mould King</td>
@@ -239,7 +299,19 @@
                                             </MudButton>
                                         }
                                     }
-                                </td>
+                                </td    else
+                                        {
+                                            var unknownPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                                            if (unknownPartReq != null)
+                                            {
+                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "Unknown"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
+                                            }
+                                        }
+                                    >
                             </tr>
                             <tr>
                                 <td style="font-weight:bold;">Unknown</td>
@@ -317,6 +389,18 @@
                     {
                         <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.LegoPartNum]</MudText>
                     }
+                    else
+                    {
+                        var legoPartRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Lego" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                        if (legoPartRequest != null)
+                        {
+                            <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                        }
+                        else
+                        {
+                            <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(context, "Lego"))" Typo="Typo.caption" Color="Color.Info">(Help mapping the part number)</MudLink>
+                        }
+                    }
                 }
                 else
                 {
@@ -339,6 +423,18 @@
                     @context.BluebrixxName@if (!string.IsNullOrWhiteSpace(context.BluebrixxPartNum))
                     {
                         <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.BluebrixxPartNum]</MudText>
+                    }
+                    else
+                    {
+                        var bbPartRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "BlueBrixx" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                        if (bbPartRequest != null)
+                        {
+                            <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                        }
+                        else
+                        {
+                            <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(context, "BlueBrixx"))" Typo="Typo.caption" Color="Color.Info">(Help mapping the part number)</MudLink>
+                        }
                     }
                 }
                 @if (string.IsNullOrWhiteSpace(context.BluebrixxName))
@@ -364,6 +460,18 @@
                     {
                         <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.CadaPartNum]</MudText>
                     }
+                    else
+                    {
+                        var cadaPartRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Cada" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                        if (cadaPartRequest != null)
+                        {
+                            <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                        }
+                        else
+                        {
+                            <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(context, "Cada"))" Typo="Typo.caption" Color="Color.Info">(Help mapping the part number)</MudLink>
+                        }
+                    }
                 }
                 @if (string.IsNullOrWhiteSpace(context.CadaName))
                 {
@@ -387,6 +495,18 @@
                     @context.PantasyName@if (!string.IsNullOrWhiteSpace(context.PantasyPartNum))
                     {
                         <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.PantasyPartNum]</MudText>
+                    }
+                    else
+                    {
+                        var pantasyPartRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                        if (pantasyPartRequest != null)
+                        {
+                            <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                        }
+                        else
+                        {
+                            <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(context, "Pantasy"))" Typo="Typo.caption" Color="Color.Info">(Help mapping the part number)</MudLink>
+                        }
                     }
                 }
                 @if (string.IsNullOrWhiteSpace(context.PantasyName))
@@ -413,6 +533,18 @@
                     {
                         <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.MouldKingPartNum]</MudText>
                     }
+                    else
+                    {
+                        var mkPartRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                        if (mkPartRequest != null)
+                        {
+                            <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                        }
+                        else
+                        {
+                            <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(context, "Mould King"))" Typo="Typo.caption" Color="Color.Info">(Help mapping the part number)</MudLink>
+                        }
+                    }
                 }
                 @if (string.IsNullOrWhiteSpace(context.MouldKingName))
                 {
@@ -435,6 +567,18 @@
                     @context.UnknownName@if (!string.IsNullOrWhiteSpace(context.UnknownPartNum))
                     {
                         <MudText Typo="Typo.caption" Color="Color.Secondary"><br />[@context.UnknownPartNum]</MudText>
+                    }
+                    else
+                    {
+                        var unknownPartRequest = context.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                        if (unknownPartRequest != null)
+                        {
+                            <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                        }
+                        else
+                        {
+                            <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(context, "Unknown"))" Typo="Typo.caption" Color="Color.Info">(Help mapping the part number)</MudLink>
+                        }
                     }
                 }
                 @if (string.IsNullOrWhiteSpace(context.UnknownName))
@@ -878,6 +1022,21 @@ private async Task OnRowsPerPageChanged(int size)
         parameters.Add("Brick", brick);
         parameters.Add("Brand", brand);
         var dialog = await DialogService.ShowAsync<HelpMappingDialog>("Help with mapping", parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled && result.Data is ValueTuple<string, string, string> tuple)
+        {
+            await UpdateMappingAsync(brick, tuple.Item1, tuple.Item2, tuple.Item3);
+            await RefreshBricks();
+        }
+    }
+
+    private async Task OpenHelpMappingDialogForPartNumber(MappedBrick brick, string brand)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("Brick", brick);
+        parameters.Add("Brand", brand);
+        parameters.Add("PartNumberOnlyMode", true);
+        var dialog = await DialogService.ShowAsync<HelpMappingDialog>("Help mapping the part number", parameters);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled && result.Data is ValueTuple<string, string, string> tuple)
         {

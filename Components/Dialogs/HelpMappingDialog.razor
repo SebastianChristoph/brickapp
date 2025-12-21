@@ -25,7 +25,7 @@
 
        
 
-        <MudTextField @bind-Value="MappingName" Label="Item name for this brand" Disabled="@(Brand == "Lego")" />
+        <MudTextField @bind-Value="MappingName" Label="Item name for this brand" Disabled="@(Brand == "Lego" || PartNumberOnlyMode)" />
 
           @if(Brand != null && Brand.ToLower() =="bluebrixx" && !string.IsNullOrWhiteSpace(Brick?.LegoPartNum))
         {
@@ -77,6 +77,7 @@
 @code {
     [Parameter] public MappedBrick? Brick { get; set; }
     [Parameter] public string? Brand { get; set; }
+    [Parameter] public bool PartNumberOnlyMode { get; set; } = false;
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
     private bool _searchingLegoPreview = false;
@@ -89,6 +90,21 @@ private int _legoPreviewRequestId = 0;
         // Load all mapped bricks for duplicate check
         _allBricks = await BrickService.GetAllMappedBricksAsync();
         _legoPreviewBricks = new List<MappedBrick>();
+        
+        // Wenn PartNumberOnlyMode aktiv ist, setze den Namen entsprechend der Brand
+        if (PartNumberOnlyMode && Brick != null && !string.IsNullOrWhiteSpace(Brand))
+        {
+            MappingName = Brand switch
+            {
+                "Lego" => Brick.LegoName ?? string.Empty,
+                "BlueBrixx" => Brick.BluebrixxName ?? string.Empty,
+                "Cada" => Brick.CadaName ?? string.Empty,
+                "Pantasy" => Brick.PantasyName ?? string.Empty,
+                "Mould King" => Brick.MouldKingName ?? string.Empty,
+                "Unknown" => Brick.UnknownName ?? string.Empty,
+                _ => string.Empty
+            };
+        }
     }
         private async void OnMappingItemIdChanged(string value)
 {
@@ -152,11 +168,25 @@ private int _legoPreviewRequestId = 0;
     {
         _errorMessage = string.Empty;
         if (Brick == null) return;
-        if (string.IsNullOrWhiteSpace(MappingName) && string.IsNullOrWhiteSpace(MappingItemId))
+        
+        // Im PartNumberOnlyMode muss nur die ItemId angegeben werden
+        if (PartNumberOnlyMode)
         {
-            _errorMessage = "Please enter a mapping name or item ID.";
-            return;
+            if (string.IsNullOrWhiteSpace(MappingItemId))
+            {
+                _errorMessage = "Please enter an item part number.";
+                return;
+            }
         }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(MappingName) && string.IsNullOrWhiteSpace(MappingItemId))
+            {
+                _errorMessage = "Please enter a mapping name or item ID.";
+                return;
+            }
+        }
+        
         // Check for duplicate mapping for this brand and item ID or name
         if (!string.IsNullOrWhiteSpace(Brand))
         {
@@ -166,12 +196,16 @@ private int _legoPreviewRequestId = 0;
                 || Brand == "Pantasy" && b.PantasyPartNum == MappingItemId
                 || Brand == "Mould King" && b.MouldKingPartNum == MappingItemId
                 || Brand == "Unknown" && b.UnknownPartNum == MappingItemId));
-            bool nameExists = !string.IsNullOrWhiteSpace(MappingName) && _allBricks.Any(b => b.Id != Brick.Id &&
+            
+            // Im PartNumberOnlyMode prüfen wir NICHT ob der Name bereits existiert,
+            // da wir ja bewusst eine PartNumber für einen existierenden Namen nachtragen
+            bool nameExists = !PartNumberOnlyMode && !string.IsNullOrWhiteSpace(MappingName) && _allBricks.Any(b => b.Id != Brick.Id &&
                 (Brand == "BlueBrixx" && b.BluebrixxName == MappingName
                 || Brand == "Cada" && b.CadaName == MappingName
                 || Brand == "Pantasy" && b.PantasyName == MappingName
                 || Brand == "Mould King" && b.MouldKingName == MappingName
                 || Brand == "Unknown" && b.UnknownName == MappingName));
+            
             if (idExists)
             {
                 _errorMessage = $"The item ID '{MappingItemId}' is already mapped for brand '{Brand}'. Please choose a different ID.";
@@ -183,7 +217,7 @@ private int _legoPreviewRequestId = 0;
                 return;
             }
         }
-        NotificationService.Success($"Mapping-Request für '{MappingName ?? MappingItemId}' ({Brand}) wurde erfolgreich erstellt und muss nun von einem Admin genehmigt werden.");
+        NotificationService.Success($"Mapping-Request was successfully created for '{MappingName ?? MappingItemId}' ({Brand}) and now needs to be approved by an admin.");
         MudDialog?.Close(DialogResult.Ok((Brand, MappingName, MappingItemId)));
     }
 
