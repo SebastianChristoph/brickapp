@@ -1,5 +1,6 @@
 using brickapp.Data;
 using brickapp.Data.Entities;
+using brickapp.Data.Services.Storage;
 using Microsoft.EntityFrameworkCore;
 
 namespace brickapp.Data.Services
@@ -7,10 +8,12 @@ namespace brickapp.Data.Services
     public class MappedBrickService
     {
         private readonly IDbContextFactory<AppDbContext> _dbFactory;
+        private readonly IImageStorage _storage;
 
-        public MappedBrickService(IDbContextFactory<AppDbContext> dbFactory)
+        public MappedBrickService(IDbContextFactory<AppDbContext> dbFactory, IImageStorage storage)
         {
             _dbFactory = dbFactory;
+            _storage = storage;
         }
 
         public async Task UpdateMappingAsync(int brickId, string brand, string mappingName, string mappingItemId)
@@ -133,6 +136,62 @@ namespace brickapp.Data.Services
                 .AsNoTracking()
                 .OrderBy(c => c.Name)
                 .ToListAsync();
+        }
+
+        public async Task<MappedBrick?> GetRandomMappedBrickAsync()
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var count = await db.MappedBricks.CountAsync();
+            if (count == 0) return null;
+
+            // Hole mehrere zufällige Bricks und prüfe, welcher ein Bild hat
+            var random = new Random();
+            const int maxAttempts = 20; // Versuche max 20 mal
+
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                var skip = random.Next(0, count);
+                var brick = await db.MappedBricks
+                    .Include(b => b.MappingRequests)
+                    .AsNoTracking()
+                    .Skip(skip)
+                    .FirstOrDefaultAsync();
+
+                if (brick != null && HasImage(brick))
+                    return brick;
+            }
+
+            // Fallback: Gib irgendeinen Brick zurück (falls keiner mit Bild gefunden wurde)
+            var skip2 = random.Next(0, count);
+            return await db.MappedBricks
+                .Include(b => b.MappingRequests)
+                .AsNoTracking()
+                .Skip(skip2)
+                .FirstOrDefaultAsync();
+        }
+
+        private bool HasImage(MappedBrick brick)
+        {
+            // Prüfe ob Bild existiert (gleiche Logik wie ImageService.GetMappedBrickImagePath)
+            
+            // 1) part_images/<legoPartNum>.png
+            if (!string.IsNullOrWhiteSpace(brick.LegoPartNum))
+            {
+                var rel = $"part_images/{brick.LegoPartNum}.png";
+                if (_storage.Exists(rel))
+                    return true;
+            }
+
+            // 2) part_images/new/<uuid>.png
+            if (!string.IsNullOrWhiteSpace(brick.Uuid))
+            {
+                var rel = $"part_images/new/{brick.Uuid}.png";
+                if (_storage.Exists(rel))
+                    return true;
+            }
+
+            return false;
         }
     }
 }

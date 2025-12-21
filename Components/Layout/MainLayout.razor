@@ -27,18 +27,21 @@
         <MudAvatar Class="mr-2" Size="Size.Medium" Color="Color.Secondary" Style="font-weight:bold;">
             @_username.Substring(0,1).ToUpper()
         </MudAvatar>
-    }
-
- <MudBadge Content="@_newNotificationCount" Color="Color.Error" Overlap="true" Class="mr-2">
-
- <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Email" Size="Size.Small"  OnClick="@GoToNotifications" Class="mr-2"/>
-   
-    </MudBadge>
-
-    <MudFab StartIcon="@Icons.Material.Filled.ExitToApp"
+        <MudBadge Content="@_newNotificationCount" Color="Color.Error" Overlap="true" Class="mr-2">
+        <MudFab Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Email" Size="Size.Small"  OnClick="@GoToNotifications" Class="mr-2"/>
+          </MudBadge>
+     <MudFab StartIcon="@Icons.Material.Filled.ExitToApp"
                    Color="Color.Secondary"
                    Size="Size.Small" 
                    OnClick="@Logout" />
+    }
+
+ 
+
+   
+  
+
+   
 </MudAppBar>
 
 
@@ -46,18 +49,11 @@
         <NavMenu />
     </MudDrawer>
     <MudMainContent>
-    <MudContainer Fixed="true" Class="mt-8 px-8 mb-9">
+    <MudContainer Fixed="true" Class="mt-8 px-8">
         @Body
         </MudContainer>
         <GlobalLoading />
     </MudMainContent>
-        <MudSpacer />
-        <footer style="width:100vw;background:#b3b3b3;color:#fff;padding:8px 0 4px 0;text-align:center;font-size:0.65em;position:fixed;left:0;bottom:0;z-index:100;">
-            <span>&copy; 2025 BrickIsBrick &nbsp;|&nbsp;
-                <a href="/imprint" style="color:#fff;text-decoration:underline;">Imprint</a> &nbsp;|&nbsp;
-                <a href="/privacypolicy" style="color:#fff;text-decoration:underline;">Privacy Policy</a>
-            </span>
-        </footer>
 </MudLayout>
 
 

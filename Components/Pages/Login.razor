@@ -1,12 +1,15 @@
 @page "/login"
 
 @using brickapp.Data.Services
+@using brickapp.Components.Dialogs
 @inject brickapp.Data.Services.UserService UserService
 @inject NavigationManager Nav
+@inject IDialogService DialogService
 
 <PageTitle>Login</PageTitle>
 
-<MudPaper Class="pa-6 mx-auto" MaxWidth="400px">
+<MudStack Spacing="6" Row="true" StretchItems="StretchItems.All">
+<MudPaper Class="pa-6 mx-auto" Style="min-width: 30vw;">
     <MudText Typo="Typo.h4" GutterBottom="true">Login</MudText>
     <MudText Typo="Typo.body2" GutterBottom="true">
         Please enter your token.
@@ -33,9 +36,47 @@
     </MudButton>
 </MudPaper>
 
+
+<MudPaper Class="pa-6 mx-auto" >
+    <MudText Typo="Typo.h4" GutterBottom="true">Sign Up</MudText>
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        We don't want your email address, your data, or your password. Simply sign up here and receive your personal token. This token is your access to BrickIsBrick. Don't lose it – there's no option to reissue or change it.
+    </MudAlert>
+
+    <MudTextField @bind-Value="_newUsername"
+                  Label="Username"
+                  Required="true"
+                  For="@(() => _newUsername)"
+                  Margin="Margin.Dense"
+                  FullWidth="true" />
+
+    @if (!string.IsNullOrWhiteSpace(_signupError))
+    {
+        <MudText Color="Color.Error">@_signupError</MudText>
+    }
+
+    <MudButton Class="mt-4"
+               Variant="Variant.Filled"
+               Color="Color.Secondary"
+               Disabled="@string.IsNullOrWhiteSpace(_newUsername)"
+               OnClick="SignUp">
+        Sign Up
+    </MudButton>
+</MudPaper>
+</MudStack>
+
 @code {
     private string _token = string.Empty;
     private string? _error;
+    private string _newUsername = string.Empty;
+    private string? _signupError;
+
+        private readonly DialogOptions dialogOptions = new()
+    {
+        BackdropClick = false,
+        CloseButton = true,
+        CloseOnEscapeKey = true
+    };
 
     private async Task LoginWithToken()
     {
@@ -51,5 +92,39 @@
 
         // After successful login, navigate somewhere
         Nav.NavigateTo("/", true); // forceLoad: true
+    }
+
+    private async Task SignUp()
+    {
+        _signupError = null;
+
+        if (string.IsNullOrWhiteSpace(_newUsername))
+        {
+            _signupError = "Please enter a username.";
+            return;
+        }
+
+        var user = await UserService.AddUserAsync(_newUsername);
+
+        if (user == null)
+        {
+            _signupError = "Error creating user. Please try again.";
+            return;
+        }
+
+        // Show dialog with token
+        var parameters = new DialogParameters
+        {
+            { "Token", user.Uuid },
+            { "Username", user.Name }
+        };
+
+       
+    
+
+        await DialogService.ShowAsync<TokenDisplayDialog>("Your Access Token", parameters, dialogOptions);
+
+        // Clear form
+        _newUsername = string.Empty;
     }
 }
