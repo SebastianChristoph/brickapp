@@ -575,5 +575,144 @@ public Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
                 _ => await db.MappedBricks.AnyAsync(m => m.UnknownName == name)
             };
         }
+
+        // --- ITEM IMAGE REQUESTS ---
+        public async Task<ItemImageRequest> CreateItemImageRequestAsync(int mappedBrickId, string userId, IBrowserFile imageFile)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var brick = await db.MappedBricks.FindAsync(mappedBrickId);
+            if (brick == null)
+                throw new ArgumentException("MappedBrick not found");
+
+            // Falls keine UUID vorhanden, generieren und speichern
+            if (string.IsNullOrWhiteSpace(brick.Uuid))
+            {
+                brick.Uuid = Guid.NewGuid().ToString();
+                await db.SaveChangesAsync();
+                _logger.LogInformation("Generated UUID {Uuid} for MappedBrick {BrickId}", brick.Uuid, brick.Id);
+            }
+
+            // Bild in pending/ speichern
+            var pendingImagePath = await _imageService.SaveResizedItemImageAsync(imageFile, "pending", null, brick.Uuid);
+
+            if (string.IsNullOrWhiteSpace(pendingImagePath))
+                throw new InvalidOperationException("Failed to save image");
+
+            var request = new ItemImageRequest
+            {
+                MappedBrickId = mappedBrickId,
+                RequestedByUserId = userId,
+                CreatedAt = DateTime.UtcNow,
+                Status = ItemImageRequestStatus.Pending,
+                TempImagePath = pendingImagePath
+            };
+
+            db.ItemImageRequests.Add(request);
+            await db.SaveChangesAsync();
+
+            _logger.LogInformation("ItemImageRequest created with Id={Id} for MappedBrick={BrickId}, image stored at {Path}", request.Id, mappedBrickId, pendingImagePath);
+            return request;
+        }
+
+        public async Task<List<ItemImageRequest>> GetOpenItemImageRequestsAsync()
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.ItemImageRequests
+                .Include(r => r.MappedBrick)
+                .Include(r => r.RequestedByUser)
+                .Where(r => r.Status == ItemImageRequestStatus.Pending)
+                .OrderBy(r => r.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<List<ItemImageRequest>> GetItemImageRequestsByUserAsync(string userId)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            return await db.ItemImageRequests
+                .Include(r => r.MappedBrick)
+                .Include(r => r.ApprovedByUser)
+                .Where(r => r.RequestedByUserId == userId)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task ApproveItemImageRequestAsync(int requestId, string adminUserId)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var request = await db.ItemImageRequests
+                .Include(r => r.MappedBrick)
+                .FirstOrDefaultAsync(r => r.Id == requestId);
+
+            if (request == null || request.Status != ItemImageRequestStatus.Pending)
+                return;
+
+            var brick = request.MappedBrick;
+            if (brick == null || string.IsNullOrWhiteSpace(brick.Uuid))
+            {
+                _logger.LogError("ItemImageRequest {RequestId} has no valid brick or UUID", requestId);
+                return;
+            }
+
+            // Bild von pending/ nach new/ verschieben
+            var finalPath = await _imageService.MoveImageAsync(request.TempImagePath, "new", null, brick.Uuid);
+
+            if (string.IsNullOrWhiteSpace(finalPath))
+            {
+                _logger.LogError("Failed to move image for ItemImageRequest {RequestId}", requestId);
+                return;
+            }
+
+            request.Status = ItemImageRequestStatus.Approved;
+            request.ApprovedByUserId = adminUserId;
+            request.ApprovedAt = DateTime.UtcNow;
+
+            await db.SaveChangesAsync();
+
+            await _notificationService.AddNotificationAsync(
+                request.RequestedByUserId,
+                "Item Image Approved",
+                $"Your image for '{brick.Name}' has been approved!",
+                "ItemImageRequest",
+                request.Id
+            );
+
+            _logger.LogInformation("ItemImageRequest {RequestId} approved and image moved from pending to new: {FinalPath}", requestId, finalPath);
+        }
+
+        public async Task RejectItemImageRequestAsync(int requestId, string adminUserId, string reason)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var request = await db.ItemImageRequests
+                .Include(r => r.MappedBrick)
+                .FirstOrDefaultAsync(r => r.Id == requestId);
+
+            if (request == null || request.Status != ItemImageRequestStatus.Pending)
+                return;
+
+            // Pending-Bild löschen
+            if (!string.IsNullOrWhiteSpace(request.TempImagePath))
+            {
+                await _imageService.DeleteImageAsync(request.TempImagePath);
+                _logger.LogInformation("Deleted pending image at {Path} for rejected request {RequestId}", request.TempImagePath, requestId);
+            }
+
+            request.Status = ItemImageRequestStatus.Rejected;
+            request.ReasonRejected = reason;
+
+            await db.SaveChangesAsync();
+
+            await _notificationService.AddNotificationAsync(
+                request.RequestedByUserId,
+                "Item Image Rejected",
+                $"Your image request was rejected: {reason}",
+                "ItemImageRequest",
+                request.Id
+            );
+
+            _logger.LogInformation("ItemImageRequest {RequestId} rejected", requestId);
+        }
     }
 }

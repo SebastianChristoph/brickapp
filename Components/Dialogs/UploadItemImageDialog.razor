@@ -1,0 +1,167 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using brickapp.Data.Entities
+@using brickapp.Data.Services
+@inject brickapp.Data.Services.RequestService RequestService
+@inject brickapp.Data.Services.UserService UserService
+@inject brickapp.Data.Services.NotificationService NotificationService
+@inject brickapp.Data.Services.LoadingService LoadingService
+@inject ILogger<UploadItemImageDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" GutterBottom="true">
+            Upload an image for: <strong>@Brick?.Name</strong> <br/>
+            @if (!string.IsNullOrWhiteSpace(Brick?.LegoPartNum))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Lego Part #: @Brick.LegoPartNum</MudText>
+            }
+            else if (!string.IsNullOrWhiteSpace(Brick?.BluebrixxPartNum))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">BlueBrixx Part #: @Brick.BluebrixxPartNum</MudText>
+            }
+            else if (!string.IsNullOrWhiteSpace(Brick?.CadaPartNum))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Cada Part #: @Brick.CadaPartNum</MudText>
+            }
+            else if (!string.IsNullOrWhiteSpace(Brick?.PantasyPartNum))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Pantasy Part #: @Brick.PantasyPartNum</MudText>
+            }
+            else if (!string.IsNullOrWhiteSpace(Brick?.MouldKingPartNum))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Mould King Part #: @Brick.MouldKingPartNum</MudText>
+            }
+        </MudText>
+        
+        <MudDivider Class="my-3" />
+        
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            <MudText Typo="Typo.caption">
+                <strong>Please note:</strong> By uploading an image, you confirm that you have the necessary rights to use it 
+                and that it does not violate any copyrights or contain prohibited content (e.g., illegal, offensive, or inappropriate material).
+            </MudText>
+        </MudAlert>
+        
+        <InputFile OnChange="OnInputFileChange" accept="image/*" />
+        
+        @if (!string.IsNullOrWhiteSpace(_imagePreviewUrl))
+        {
+            <MudPaper Class="mt-3 pa-2" Elevation="1">
+                <MudText Typo="Typo.caption" GutterBottom="true">Preview:</MudText>
+                <img src="@_imagePreviewUrl" style="max-width:100%;max-height:300px;border-radius:4px;" />
+            </MudPaper>
+        }
+        
+        @if (!string.IsNullOrWhiteSpace(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_errorMessage</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Secondary" Disabled="_loading">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.Upload"
+                   OnClick="OnSave"
+                   Color="Color.Primary"
+                   Disabled="@(_loading || _file == null)">
+            Upload
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudBlazor.IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public MappedBrick? Brick { get; set; }
+    
+    private IBrowserFile? _file;
+    private string? _imagePreviewUrl;
+    private string _errorMessage = string.Empty;
+    private bool _loading = false;
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        _file = e.File;
+        _errorMessage = string.Empty;
+        
+        if (_file != null)
+        {
+            // Validierung
+            if (_file.Size > 10 * 1024 * 1024) // 10MB
+            {
+                _errorMessage = "Image file is too large. Maximum size is 10MB.";
+                _file = null;
+                return;
+            }
+            
+            if (!_file.ContentType.StartsWith("image/"))
+            {
+                _errorMessage = "Please select a valid image file.";
+                _file = null;
+                return;
+            }
+            
+            // Preview generieren
+            try
+            {
+                using var stream = _file.OpenReadStream(10 * 1024 * 1024);
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                var buffer = memoryStream.ToArray();
+                _imagePreviewUrl = $"data:{_file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error generating image preview");
+                _errorMessage = "Could not generate image preview.";
+            }
+        }
+        else
+        {
+            _imagePreviewUrl = null;
+        }
+    }
+
+    private async Task OnSave()
+    {
+        if (_loading || _file == null || Brick == null) return;
+
+        _errorMessage = string.Empty;
+        _loading = true;
+        LoadingService.Show();
+
+        try
+        {
+            var userId = await UserService.GetTokenAsync();
+            if (userId == null)
+            {
+                _errorMessage = "User not authenticated.";
+                return;
+            }
+
+            await RequestService.CreateItemImageRequestAsync(Brick.Id, userId, _file);
+
+            NotificationService.Success(
+                $"Image uploaded successfully! An admin will review it shortly. You will be notified once it's approved."
+            );
+
+            MudDialog?.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading item image");
+            _errorMessage = $"Failed to upload image: {ex.Message}";
+        }
+        finally
+        {
+            LoadingService.Hide();
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void Cancel()
+    {
+        if (_loading) return;
+        MudDialog?.Cancel();
+    }
+}

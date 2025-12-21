@@ -87,14 +87,26 @@
             <MudDivider />
 
             <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Start">
-                <div style="flex-shrink:0;">
+                <MudStack Spacing="1" Style="flex-shrink:0;">
                     @{
                         var randomImageUrl = ImageService.GetMappedBrickImagePath(_randomBrick);
+                        var isPlaceholder = randomImageUrl == "/placeholder-image.png";
+                    }
+                    @if (isPlaceholder)
+                    {
+                        <MudButton Size="Size.Small" 
+                                   Variant="Variant.Text" 
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.Upload"
+                                   OnClick="@(() => OpenUploadImageDialog(_randomBrick))"
+                                   Style="font-size:0.7rem;padding:2px 8px;">
+                            Upload image
+                        </MudButton>
                     }
                     <img src="@randomImageUrl" alt="" 
                          style="max-width:120px;max-height:120px;border-radius:8px;border:2px solid #ccc;"
                          onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
-                </div>
+                </MudStack>
 
                 <MudStack Spacing="2" Style="flex-grow:1;">
                     <MudText Typo="Typo.h6">@_randomBrick.Name</MudText>
@@ -219,19 +231,7 @@
                                             </MudButton>
                                         }
                                     }
-                                </td    else
-                                        {
-                                            var pantasyPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
-                                            if (pantasyPartReq != null)
-                                            {
-                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
-                                            }
-                                            else
-                                            {
-                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "Pantasy"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
-                                            }
-                                        }
-                                    >
+                                </td>
                             </tr>
                             <tr>
                                 <td style="font-weight:bold;">Pantasy</td>
@@ -242,6 +242,18 @@
                                         @if (!string.IsNullOrWhiteSpace(_randomBrick.PantasyPartNum))
                                         {
                                             <MudText Typo="Typo.caption">(@_randomBrick.PantasyPartNum)</MudText>
+                                        }
+                                        else
+                                        {
+                                            var pantasyPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                                            if (pantasyPartReq != null)
+                                            {
+                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "Pantasy"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
+                                            }
                                         }
                                     }
                                     else
@@ -259,19 +271,7 @@
                                             </MudButton>
                                         }
                                     }
-                                </td    else
-                                        {
-                                            var mkPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
-                                            if (mkPartReq != null)
-                                            {
-                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
-                                            }
-                                            else
-                                            {
-                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "Mould King"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
-                                            }
-                                        }
-                                    >
+                                </td>
                             </tr>
                             <tr>
                                 <td style="font-weight:bold;">Mould King</td>
@@ -282,6 +282,18 @@
                                         @if (!string.IsNullOrWhiteSpace(_randomBrick.MouldKingPartNum))
                                         {
                                             <MudText Typo="Typo.caption">(@_randomBrick.MouldKingPartNum)</MudText>
+                                        }
+                                        else
+                                        {
+                                            var mkPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                                            if (mkPartReq != null)
+                                            {
+                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "Mould King"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
+                                            }
                                         }
                                     }
                                     else
@@ -299,19 +311,7 @@
                                             </MudButton>
                                         }
                                     }
-                                </td    else
-                                        {
-                                            var unknownPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
-                                            if (unknownPartReq != null)
-                                            {
-                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
-                                            }
-                                            else
-                                            {
-                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "Unknown"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
-                                            }
-                                        }
-                                    >
+                                </td>
                             </tr>
                             <tr>
                                 <td style="font-weight:bold;">Unknown</td>
@@ -322,6 +322,18 @@
                                         @if (!string.IsNullOrWhiteSpace(_randomBrick.UnknownPartNum))
                                         {
                                             <MudText Typo="Typo.caption">(@_randomBrick.UnknownPartNum)</MudText>
+                                        }
+                                        else
+                                        {
+                                            var unknownPartReq = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status == MappingRequestStatus.Pending && !string.IsNullOrWhiteSpace(r.MappingItemId));
+                                            if (unknownPartReq != null)
+                                            {
+                                                <br /><MudChip T="string" Size="Size.Small" Color="Color.Warning">Part# pending</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <br /><MudLink OnClick="@(() => OpenHelpMappingDialogForPartNumber(_randomBrick, "Unknown"))" Typo="Typo.caption" Color="Color.Primary">(Help mapping the part number)</MudLink>
+                                            }
                                         }
                                     }
                                     else
@@ -374,9 +386,23 @@
             <MudTd DataLabel="Image">
                 @{
                     var imageUrl = ImageService.GetMappedBrickImagePath(context);
+                    var isPlaceholder = imageUrl == "/placeholder-image.png";
                 }
-                <img src="@imageUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
-                    onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                    @if (isPlaceholder)
+                    {
+                        <MudButton Size="Size.Small" 
+                                   Variant="Variant.Text" 
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.Upload"
+                                   OnClick="@(() => OpenUploadImageDialog(context))"
+                                   Style="font-size:0.65rem;padding:2px 4px;">
+                            Upload
+                        </MudButton>
+                    }
+                    <img src="@imageUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
+                        onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                </MudStack>
             </MudTd>
             <MudTd DataLabel="Item Name">
                 @context.Name
@@ -629,9 +655,23 @@ else if (_showMappedOnly)
             <MudTd DataLabel="Image">
                 @{
                     var imageUrl = ImageService.GetMappedBrickImagePath(context);
+                    var isPlaceholder = imageUrl == "/placeholder-image.png";
                 }
-                <img src="@imageUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
-                    onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                    @if (isPlaceholder)
+                    {
+                        <MudButton Size="Size.Small" 
+                                   Variant="Variant.Text" 
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.Upload"
+                                   OnClick="@(() => OpenUploadImageDialog(context))"
+                                   Style="font-size:0.65rem;padding:2px 4px;">
+                            Upload
+                        </MudButton>
+                    }
+                    <img src="@imageUrl" alt="" style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;"
+                        onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                </MudStack>
             </MudTd>
             <MudTd DataLabel="Item Name">
                 @context.Name
@@ -1041,6 +1081,18 @@ private async Task OnRowsPerPageChanged(int size)
         if (result is not null && !result.Canceled && result.Data is ValueTuple<string, string, string> tuple)
         {
             await UpdateMappingAsync(brick, tuple.Item1, tuple.Item2, tuple.Item3);
+            await RefreshBricks();
+        }
+    }
+
+    private async Task OpenUploadImageDialog(MappedBrick brick)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("Brick", brick);
+        var dialog = await DialogService.ShowAsync<UploadItemImageDialog>("Upload Item Image", parameters, dialogOptions);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
             await RefreshBricks();
         }
     }

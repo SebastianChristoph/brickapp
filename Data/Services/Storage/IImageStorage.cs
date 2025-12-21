@@ -10,5 +10,6 @@ public interface IImageStorage
     );
 
     bool Exists(string relativePath);
-    Task<bool> DeleteAsync(string relativePath); // Neu
+    Task<bool> DeleteAsync(string relativePath);
+    Task<bool> CopyAsync(string sourceRelativePath, string targetRelativePath);
 }

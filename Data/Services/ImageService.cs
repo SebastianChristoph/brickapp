@@ -37,18 +37,28 @@ namespace brickapp.Data.Services
 
             if (brand.Trim().ToLower() == "lego" && !string.IsNullOrWhiteSpace(legoPartNum))
             {
-                // LEGO: part_images/<legoPartNum>.png
+                // LEGO: part_images/<legoPartNum>.png (nur für Seeding)
                 var safeLegoPartNum = legoPartNum.Trim();
                 relativePath = $"part_images/{safeLegoPartNum}.png";
             }
+            else if (brand.Trim().ToLower() == "pending" && !string.IsNullOrWhiteSpace(uuid))
+            {
+                // Pending Images: part_images/pending/<uuid>.png
+                relativePath = $"part_images/pending/{uuid}.png";
+            }
+            else if (brand.Trim().ToLower() == "new" && !string.IsNullOrWhiteSpace(uuid))
+            {
+                // Approved user images: part_images/new/<uuid>.png
+                relativePath = $"part_images/new/{uuid}.png";
+            }
             else if (!string.IsNullOrWhiteSpace(uuid))
             {
-                // Andere Brands: part_images/new/<uuid>.png
+                // Fallback: part_images/new/<uuid>.png
                 relativePath = $"part_images/new/{uuid}.png";
             }
             else
             {
-                // Fallback
+                // Fallback ohne UUID
                 var randomName = Guid.NewGuid().ToString();
                 relativePath = $"part_images/new/{randomName}.png";
             }
@@ -74,6 +84,54 @@ namespace brickapp.Data.Services
             _notificationService.Success($"Item image saved at {webPath}");
             _logger.LogInformation($"🟢 [ImageService] Image saved at {webPath}");
             return webPath;
+        }
+
+        public async Task<string?> MoveImageAsync(string currentWebPath, string targetFolder, string? legoPartNum, string? uuid)
+        {
+            try
+            {
+                // Extrahiere den relativen Pfad aus dem WebPath
+                var baseUrl = _storage.BaseUrl ?? "/";
+                var relativePath = currentWebPath.Replace(baseUrl, "").TrimStart('/');
+
+                if (!_storage.Exists(relativePath))
+                {
+                    _logger.LogWarning($"[ImageService] Source image not found: {relativePath}");
+                    return null;
+                }
+
+                // Bestimme den Zielpfad basierend auf targetFolder
+                string targetRelativePath;
+                if (targetFolder.ToLower() == "new" && !string.IsNullOrWhiteSpace(uuid))
+                {
+                    // pending → new: part_images/new/{uuid}.png
+                    targetRelativePath = $"part_images/new/{uuid}.png";
+                }
+                else if (targetFolder.ToLower() == "lego" && !string.IsNullOrWhiteSpace(legoPartNum))
+                {
+                    // Seeding Lego: part_images/{legoPartNum}.png
+                    targetRelativePath = $"part_images/{legoPartNum.Trim()}.png";
+                }
+                else
+                {
+                    _logger.LogWarning($"[ImageService] Cannot determine target path for folder={targetFolder}, legoPartNum={legoPartNum}, uuid={uuid}");
+                    return null;
+                }
+
+                // Kopiere die Datei an den neuen Ort
+                await _storage.CopyAsync(relativePath, targetRelativePath);
+
+                // Lösche die alte Datei
+                await _storage.DeleteAsync(relativePath);
+
+                _logger.LogInformation($"[ImageService] Image moved from {relativePath} to {targetRelativePath}");
+                return BuildWebPath(targetRelativePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"[ImageService] Error moving image from {currentWebPath}");
+                return null;
+            }
         }
         
         public async Task<string?> DownloadAndSaveItemImageAsync(string imageUrl, string brand, string? legoPartNum, string? uuid)
@@ -264,7 +322,30 @@ namespace brickapp.Data.Services
 
             return BuildWebPath(relativePath);
         }
-
+        public async Task<bool> DeleteImageAsync(string webPath)
+        {
+            try
+            {
+                var baseUrl = _storage.BaseUrl ?? "/";
+                var relativePath = webPath.Replace(baseUrl, "").TrimStart('/');
+                
+                var deleted = await _storage.DeleteAsync(relativePath);
+                if (deleted)
+                {
+                    _logger.LogInformation($"[ImageService] Deleted image at {relativePath}");
+                }
+                else
+                {
+                    _logger.LogWarning($"[ImageService] Image not found or already deleted: {relativePath}");
+                }
+                return deleted;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"[ImageService] Error deleting image at {webPath}");
+                return false;
+            }
+        }
        public async Task DeleteMockImageAsync(Mock mock)
 {
     if (mock == null || string.IsNullOrWhiteSpace(mock.UserUuid)) return;

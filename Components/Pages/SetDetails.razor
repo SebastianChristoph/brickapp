@@ -185,33 +185,48 @@ else
                     : "/placeholder-image.png";
 
                     var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
+                    var isPlaceholder = imgUrl == "/placeholder-image.png";
                 }
 
-                <div style="position:relative;display:inline-block;min-width:48px;min-height:48px;">
-                    @if (!string.IsNullOrWhiteSpace(imgUrl) && imgUrl != "/placeholder-image.png")
+                <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                    @if (isPlaceholder && context.MappedBrick != null)
                     {
-                        if (overlay != null)
+                        <MudButton Size="Size.Small" 
+                                   Variant="Variant.Text" 
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.Upload"
+                                   OnClick="@(() => OpenUploadImageDialog(context.MappedBrick))"
+                                   Style="font-size:0.65rem;padding:2px 4px;">
+                            Upload
+                        </MudButton>
+                    }
+                    
+                    <div style="position:relative;display:inline-block;min-width:48px;min-height:48px;">
+                        @if (!isPlaceholder)
                         {
-                            <div class="brick" style="--brick-color:@overlay">
-                                <img src="@imgUrl" alt="" class="brick-img"
+                            if (overlay != null)
+                            {
+                                <div class="brick" style="--brick-color:@overlay">
+                                    <img src="@imgUrl" alt="" class="brick-img"
+                                        onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                                </div>
+                            }
+                            else
+                            {
+                                <img src="@imgUrl" alt=""
+                                    style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
                                     onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
-                            </div>
+                            }
                         }
                         else
                         {
-                            <img src="@imgUrl" alt=""
-                                style="max-width:48px;max-height:48px;border-radius:4px;border:1px solid #ccc;z-index:1;"
-                                onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                            <span
+                                style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">
+                                No image
+                            </span>
                         }
-                    }
-                    else
-                    {
-                        <span
-                            style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">
-                            No image
-                        </span>
-                    }
-                </div>
+                    </div>
+                </MudStack>
             </MudTd>
 
             <MudTd DataLabel="Standard Name">@context.MappedBrick?.Name</MudTd>
@@ -709,6 +724,19 @@ else
         if (result is not null && !result.Canceled && result.Data is ValueTuple<string, string, string> tuple)
         {
             await UpdateMappingAsync(brick, tuple.Item1, tuple.Item2, tuple.Item3);
+            await RefreshSetData();
+        }
+    }
+
+    private async Task OpenUploadImageDialog(MappedBrick brick)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("Brick", brick);
+        var dialogOptions = new DialogOptions { BackdropClick = false, CloseButton = true, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<UploadItemImageDialog>("Upload Item Image", parameters, dialogOptions);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+        {
             await RefreshSetData();
         }
     }
