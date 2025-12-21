@@ -197,6 +197,76 @@
             </MudTable>
         }
     </MudTabPanel>
+
+    <MudTabPanel Text="@(openImageRequests == null ? "Image Requests" : $"Image Requests ({openImageRequests.Count})")">
+        @if (openImageRequests == null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else if (!openImageRequests.Any())
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-4">No open image upload requests found.</MudAlert>
+        }
+        else
+        {
+            <MudTable Items="openImageRequests" Hover="true">
+                <HeaderContent>
+                    <MudTh>Current Image</MudTh>
+                    <MudTh>Uploaded Image</MudTh>
+                    <MudTh>Item Name</MudTh>
+                    <MudTh>Lego Part#</MudTh>
+                    <MudTh>Requested By</MudTh>
+                    <MudTh>Created At</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Current Image">
+                        @if (context.MappedBrick != null)
+                        {
+                            <img src="@ImageService.GetMappedBrickImagePath(context.MappedBrick)" 
+                                 alt="Current" 
+                                 style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;opacity:0.5;" />
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Uploaded Image">
+                        @if (!string.IsNullOrWhiteSpace(context.TempImagePath))
+                        {
+                            <img src="@context.TempImagePath" 
+                                 alt="Uploaded" 
+                                 style="max-width:80px;max-height:80px;border:2px solid #4CAF50;padding:2px;cursor:pointer;"
+                                 @onclick="() => ShowImagePreview(context.TempImagePath)" />
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Item Name">
+                        <strong>@context.MappedBrick?.Name</strong>
+                    </MudTd>
+                    <MudTd DataLabel="Lego Part#">
+                        @(context.MappedBrick?.LegoPartNum ?? "-")
+                    </MudTd>
+                    <MudTd DataLabel="Requested By">
+                        @context.RequestedByUser?.Name
+                    </MudTd>
+                    <MudTd DataLabel="Created At">
+                        @context.CreatedAt.ToLocalTime().ToString("g")
+                    </MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Success"
+                                   Size="Size.Small"
+                                   OnClick="() => ApproveImageRequest(context.Id)">
+                            Approve
+                        </MudButton>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   OnClick="() => RejectImageRequestWithDialog(context.Id)">
+                            Reject
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudTabPanel>
 </MudTabs>
 
 @code {
@@ -216,6 +286,7 @@
     private List<Data.Entities.MappingRequest>? openMappingRequests;
     private List<Data.Entities.NewItemRequest>? openItemRequests;
     private List<Data.Entities.NewSetRequest>? openSetRequests;
+    private List<Data.Entities.ItemImageRequest>? openImageRequests;
 
     protected override async Task OnInitializedAsync()
     {
@@ -227,6 +298,7 @@
         openMappingRequests = await RequestService.GetOpenMappingRequestsAsync();
         openItemRequests = await RequestService.GetOpenNewItemRequestsAsync();
         openSetRequests = await RequestService.GetOpenNewSetRequestsAsync();
+        openImageRequests = await RequestService.GetOpenItemImageRequestsAsync();
         StateHasChanged();
     }
 
@@ -565,5 +637,63 @@ private async Task RejectNewItemRequest(int requestId, string reason)
         {
             NotificationService.Error($"Fehler beim Ablehnen: {ex.Message}");
         }
+    }
+
+    private async Task ApproveImageRequest(int requestId)
+    {
+        try
+        {
+            var token = await UserService.GetTokenAsync();
+            if (token == null)
+            {
+                NotificationService.Error("User token not found.");
+                return;
+            }
+            await RequestService.ApproveItemImageRequestAsync(requestId, token);
+            NotificationService.Success("Image request approved successfully!");
+            openImageRequests = await RequestService.GetOpenItemImageRequestsAsync();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Error($"Error approving image request: {ex.Message}");
+        }
+    }
+
+    private async Task RejectImageRequestWithDialog(int requestId)
+    {
+        var reason = await OpenRejectReasonDialogAsync();
+        if (string.IsNullOrWhiteSpace(reason)) return;
+
+        try
+        {
+            var token = await UserService.GetTokenAsync();
+            if (token == null)
+            {
+                NotificationService.Error("User token not found.");
+                return;
+            }
+            await RequestService.RejectItemImageRequestAsync(requestId, token, reason);
+            NotificationService.Success("Image request rejected.");
+            openImageRequests = await RequestService.GetOpenItemImageRequestsAsync();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Error($"Error rejecting image request: {ex.Message}");
+        }
+    }
+
+    private async Task ShowImagePreview(string imageUrl)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ImageUrl"] = imageUrl
+        };
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            CloseButton = true,
+            CloseOnEscapeKey = true
+        };
+        await DialogService.ShowAsync<ImagePreviewDialog>("Image Preview", parameters, options);
     }
 }
