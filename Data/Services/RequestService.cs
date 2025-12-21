@@ -96,7 +96,8 @@ namespace brickapp.Data.Services
     public async Task ApproveNewItemRequestAsync(
     int requestId,
     string adminUserId,
-    string? overrideName)
+    string? overrideName,
+    bool nameChanged = false)
 {
     await using var db = await _dbFactory.CreateDbContextAsync();
 
@@ -163,10 +164,14 @@ else
 
         await db.SaveChangesAsync();
 
+        var notificationMessage = nameChanged 
+            ? $"Your request for {request.Brand} ({partNum}) was approved. The admin changed the name to '{finalName}'. The item already exists in our database."
+            : $"Your request for {request.Brand} ({partNum}) was approved because it already exists in our database.";
+
         await _notificationService.AddNotificationAsync(
             request.RequestedByUserId,
             "Item already exists",
-            $"Your request for {request.Brand} ({partNum}) was approved because it already exists in our database.",
+            notificationMessage,
             "NewItemRequest",
             request.Id
         );
@@ -218,10 +223,14 @@ else
     db.MappedBricks.Add(mappedBrick);
     await db.SaveChangesAsync();
 
+    var successMessage = nameChanged
+        ? $"Your request for {request.Brand} has been approved. The admin changed the name from '{request.Name}' to '{finalName}'."
+        : $"Your request for {request.Brand} ({finalName}) has been approved.";
+
     await _notificationService.AddNotificationAsync(
         request.RequestedByUserId,
         "New Item Approved",
-        $"Your request for {request.Brand} ({finalName}) has been approved.",
+        successMessage,
         "NewItemRequest",
         request.Id
     );
@@ -229,7 +238,7 @@ else
 
 public Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
 {
-    return ApproveNewItemRequestAsync(requestId, adminUserId, null);
+    return ApproveNewItemRequestAsync(requestId, adminUserId, null, false);
 }
         public async Task RejectNewItemRequestAsync(int requestId, string adminUserId, string reason)
         {
@@ -249,6 +258,28 @@ public Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
                 request.RequestedByUserId,
                 "New Item Rejected",
                 $"Your request for {request.Brand} ({request.Name}) has been rejected: {reason}",
+                "NewItemRequest",
+                request.Id
+            );
+        }
+
+        public async Task RejectNewItemRequestToPendingAsync(int requestId, string adminUserId, string reason)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var request = await db.NewItemRequests.FindAsync(requestId);
+            if (request == null || request.Status != NewItemRequestStatus.Pending) return;
+
+            request.Status = NewItemRequestStatus.Pending;
+            request.PendingReason = reason;
+            request.ReasonRejected = null;
+
+            await db.SaveChangesAsync();
+
+            await _notificationService.AddNotificationAsync(
+                request.RequestedByUserId,
+                "New Item needs revision",
+                $"Your request for {request.Brand} ({request.Name}) requires changes: {reason}",
                 "NewItemRequest",
                 request.Id
             );
@@ -410,6 +441,28 @@ public Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
             );
         }
 
+        public async Task RejectNewSetRequestToPendingAsync(int requestId, string reason)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var request = await db.NewSetRequests.FindAsync(requestId);
+            if (request == null || request.Status != NewSetRequestStatus.Pending) return;
+
+            request.Status = NewSetRequestStatus.Pending;
+            request.PendingReason = reason;
+            request.ReasonRejected = null;
+
+            await db.SaveChangesAsync();
+
+            await _notificationService.AddNotificationAsync(
+                request.UserId,
+                "New Set needs revision",
+                $"Your request for Set {request.SetNo} ({request.SetName}) requires changes: {reason}",
+                "NewSetRequest",
+                request.Id
+            );
+        }
+
         public async Task<bool> IsNewSetRequestBlockedAsync(string setNo, string brand)
         {
             await using var db = await _dbFactory.CreateDbContextAsync();
@@ -533,6 +586,28 @@ public Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
                 request.RequestedByUserId,
                 "Mapping Rejected",
                 $"Your mapping request for {request.Brand} ({request.MappingName}) has been rejected: {reason}",
+                "MappingRequest",
+                request.Id
+            );
+        }
+
+        public async Task RejectMappingRequestToPendingAsync(int requestId, string adminUserId, string reason)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var request = await db.MappingRequests.FindAsync(requestId);
+            if (request == null || request.Status != MappingRequestStatus.Pending) return;
+
+            request.Status = MappingRequestStatus.Pending;
+            request.PendingReason = reason;
+            request.ReasonRejected = null;
+
+            await db.SaveChangesAsync();
+
+            await _notificationService.AddNotificationAsync(
+                request.RequestedByUserId,
+                "Mapping needs revision",
+                $"Your mapping request for {request.Brand} ({request.MappingName}) requires changes: {reason}",
                 "MappingRequest",
                 request.Id
             );
@@ -713,6 +788,35 @@ public Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
             );
 
             _logger.LogInformation("ItemImageRequest {RequestId} rejected", requestId);
+        }
+
+        public async Task RejectItemImageRequestToPendingAsync(int requestId, string adminUserId, string reason)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var request = await db.ItemImageRequests
+                .Include(r => r.MappedBrick)
+                .FirstOrDefaultAsync(r => r.Id == requestId);
+
+            if (request == null || request.Status != ItemImageRequestStatus.Pending)
+                return;
+
+            // Bild bleibt in pending/, User kann es weiter bearbeiten
+            request.Status = ItemImageRequestStatus.Pending;
+            request.PendingReason = reason;
+            request.ReasonRejected = null;
+
+            await db.SaveChangesAsync();
+
+            await _notificationService.AddNotificationAsync(
+                request.RequestedByUserId,
+                "Item Image needs revision",
+                $"Your image request requires changes: {reason}",
+                "ItemImageRequest",
+                request.Id
+            );
+
+            _logger.LogInformation("ItemImageRequest {RequestId} set back to pending with reason", requestId);
         }
     }
 }

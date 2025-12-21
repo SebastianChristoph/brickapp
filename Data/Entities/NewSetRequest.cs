@@ -14,6 +14,7 @@ namespace brickapp.Data.Entities
         public NewSetRequestStatus Status { get; set; } = NewSetRequestStatus.Draft;
         public bool IsDraft => Status == NewSetRequestStatus.Draft;
         public string? ReasonRejected { get; set; }
+        public string? PendingReason { get; set; }
         public string UserId { get; set; }
         public List<NewSetRequestItem> Items { get; set; } = new();
     }
