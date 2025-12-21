@@ -124,6 +124,12 @@ namespace brickapp.Data.Services
             return isAuth ? _currentUser?.Uuid : null;
         }
 
+        public async Task<bool> IsAdminAsync()
+        {
+            var user = await GetCurrentUserAsync();
+            return user?.IsAdmin ?? false;
+        }
+
         public async Task LogoutAsync()
         {
             _currentUser = null;
