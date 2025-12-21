@@ -10,6 +10,7 @@ namespace brickapp.Data.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public ItemImageRequestStatus Status { get; set; } = ItemImageRequestStatus.Pending;
         public string? ReasonRejected { get; set; }
+        public string? PendingReason { get; set; }
         public string? ApprovedByUserId { get; set; }
         public DateTime? ApprovedAt { get; set; }
         public string TempImagePath { get; set; } = string.Empty; // Temporärer Pfad für das hochgeladene Bild

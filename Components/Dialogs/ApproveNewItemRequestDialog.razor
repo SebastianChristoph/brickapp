@@ -2,13 +2,28 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.h6" Class="mb-2">Approve Item Request</MudText>
+        <MudText Typo="Typo.h6" Class="mb-3">Approve Item Request</MudText>
+
+        <MudText Typo="Typo.body2" Class="mb-2" Color="Color.Default">
+            <strong>User's suggested name:</strong>
+        </MudText>
+        <MudPaper Class="pa-3 mb-3" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+            <MudText Typo="Typo.body1">@CurrentName</MudText>
+        </MudPaper>
 
         <MudTextField @bind-Value="_name"
-                      Label="Name"
+                      Label="Final Name"
                       Variant="Variant.Outlined"
                       Required="true"
-                      Immediate="true" />
+                      Immediate="true"
+                      HelperText="Edit the name if needed" />
+
+        @if (_nameChanged)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-2" Dense="true">
+                The user will be notified that the name was changed by admin.
+            </MudAlert>
+        }
     </DialogContent>
 
     <DialogActions>
@@ -20,7 +35,7 @@
                    Color="Color.Success"
                    Disabled="@string.IsNullOrWhiteSpace(_name)"
                    OnClick="Approve">
-            Approve
+            @(_nameChanged ? "Approve with Name Change" : "Approve")
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -31,13 +46,29 @@
     [Parameter] public string? CurrentName { get; set; }
 
     private string _name = "";
+    private string _originalName = "";
+    private bool _nameChanged => !string.IsNullOrWhiteSpace(_name) && 
+                                  !string.IsNullOrWhiteSpace(_originalName) && 
+                                  _name.Trim() != _originalName.Trim();
 
     protected override void OnInitialized()
-        => _name = CurrentName ?? "";
+    {
+        _name = CurrentName ?? "";
+        _originalName = CurrentName ?? "";
+    }
 
     private void Cancel()
         => MudDialog?.Close(DialogResult.Cancel());
 
     private void Approve()
-        => MudDialog?.Close(DialogResult.Ok(_name.Trim()));
+    {
+        var result = new ApproveItemDialogResult
+        {
+            Name = _name.Trim(),
+            NameChanged = _nameChanged,
+            OriginalName = _originalName.Trim()
+        };
+        MudDialog?.Close(DialogResult.Ok(result));
+    }
 }
+
