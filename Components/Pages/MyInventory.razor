@@ -198,7 +198,7 @@ else
                             <MudButton Size="Size.Small"
                                        Variant="Variant.Outlined"
                                        Color="Color.Primary"
-                                       OnClick="@((MouseEventArgs e) => OpenEditDialog(context.Id, context.Quantity))">
+                                       OnClick="@(() => OpenEditDialog(context.Id, context.Quantity, context.BrickColorId))">
                                 Edit
                             </MudButton>
                             <MudButton Size="Size.Small"
@@ -306,21 +306,31 @@ else
         StateHasChanged();
     }
 
-    private async Task OpenEditDialog(int itemId, int currentQuantity)
+    private async Task OpenEditDialog(int itemId, int currentQuantity, int currentColorId)
     {
-        var parameters = new DialogParameters<EditInventoryDialog>
+        var parameters = new DialogParameters<EditItemDialog>
         {
-            { x => x.ItemId, itemId },
-            { x => x.CurrentQuantity, currentQuantity }
+            { x => x.CurrentQuantity, currentQuantity },
+            { x => x.CurrentColorId, currentColorId }
         };
 
-        var dialog = await DialogService.ShowAsync<EditInventoryDialog>("Edit quantity", parameters);
+        var dialog = await DialogService.ShowAsync<EditItemDialog>("Edit item", parameters);
         var result = await dialog.Result;
 
-        if (result is not null && !result.Canceled)
+        if (result is not null && !result.Canceled && result.Data is EditItemDialogResult editResult)
         {
-            items = await InventoryService.GetCurrentUserInventoryAsync();
-            StateHasChanged();
+            // Update mit neuer Quantity und ColorId
+            var success = await InventoryService.UpdateInventoryItemAsync(itemId, editResult.Quantity, editResult.ColorId);
+            if (success)
+            {
+                items = await InventoryService.GetCurrentUserInventoryAsync();
+                NotificationService.Success("Item updated successfully.");
+                StateHasChanged();
+            }
+            else
+            {
+                NotificationService.Error("Failed to update item.");
+            }
         }
     }
 

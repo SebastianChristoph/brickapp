@@ -2,10 +2,12 @@
 @using brickapp.Data.Entities
 @using brickapp.Data.Services
 @using brickapp.Helpers
+@using brickapp.Components.Dialogs
 @using MudBlazor
 
 @inject brickapp.Data.Services.WantedListService WantedListService
 @inject brickapp.Data.Services.InventoryService InventoryService
+@inject IDialogService DialogService
 @inject NavigationManager Nav
 @inject brickapp.Data.Services.ImageService ImageService
 @inject brickapp.Data.Services.NotificationService NotificationService
@@ -35,8 +37,9 @@ else
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
             <MudText>
                    <MudText Typo="Typo.body2">
-                   <b>@_resolvableItems.Count </b>of the unmapped items have been mapped in the database since your last import.<br />
-                   You can now add them to your Wanted List by clicking the button below and make your Wanted List more accurate.
+                   <b>@_resolvableItems.Count</b> of the unmapped items have been mapped in the database since your last import. <b/>
+
+You can now add them to your MOC by clicking the button below to improve the visual accuracy.<b/> <b>Please note: This will not change the number of parts in your list; </b> it only ensures that items are correctly displa
                 </MudText>
 
             </MudText>
@@ -175,6 +178,10 @@ else
                 }
             </MudTd>
             <MudTd>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                    OnClick="@(() => OpenEditItemDialog(context.Id, context.Quantity, context.BrickColorId))" Class="mr-2">
+                    Edit
+                </MudButton>
                 <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
                     OnClick="@(() => DeleteItem(context.Id))">Delete</MudButton>
             </MudTd>
@@ -312,6 +319,34 @@ else
         _itemsPage = 0; // <-- wichtig
         _wantedList = await WantedListService.GetWantedListByIdAsync(wantedListId);
     }
+
+    private async Task OpenEditItemDialog(int itemId, int currentQuantity, int currentColorId)
+    {
+        var parameters = new DialogParameters<EditItemDialog>
+        {
+            { x => x.CurrentQuantity, currentQuantity },
+            { x => x.CurrentColorId, currentColorId }
+        };
+
+        var dialog = await DialogService.ShowAsync<EditItemDialog>("Edit item", parameters);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled && result.Data is EditItemDialogResult editResult)
+        {
+            var success = await WantedListService.UpdateWantedListItemAsync(itemId, editResult.Quantity, editResult.ColorId);
+            if (success)
+            {
+                NotificationService.Success("Item updated successfully.");
+                await LoadData();
+                StateHasChanged();
+            }
+            else
+            {
+                NotificationService.Error("Failed to update item.");
+            }
+        }
+    }
+
     protected int TotalNeeded => _wantedList?.Items?.Sum(b => b.Quantity) ?? 0;
     protected int TotalOwned => _wantedList?.Items?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
     private int GetOwnedQuantity(WantedListItem item) => _ownedByBrand.TryGetValue((item.MappedBrickId, item.BrickColorId),

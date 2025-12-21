@@ -5,11 +5,13 @@
 @using brickapp.Data.DTOs
 @using brickapp.Helpers
 @using brickapp.Components.Shared.PartsListUpload
+@using brickapp.Components.Dialogs
 @using static brickapp.Data.Services.WantedListService
 
 @inject brickapp.Data.Services.WantedListService WantedListService
 @inject brickapp.Data.Services.MappedBrickService MappedBrickService
 @inject brickapp.Data.Services.ImageService ImageService
+@inject IDialogService DialogService
 @inject NavigationManager Nav
 @inject brickapp.Data.Services.LoadingService LoadingService
 @inject brickapp.Data.Services.NotificationService NotificationService
@@ -235,10 +237,16 @@
                     <MudTd DataLabel="Quantity">@item.Quantity</MudTd>
                     <MudTd>
                         <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   OnClick="@(() => OpenEditItemDialog(item))"
+                                   Class="mr-2">
+                            Edit
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
                                    Color="Color.Error"
                                    Size="Size.Small"
-                                   OnClick="@(() => RemoveItem(item))"
-                                   Class="ml-2">
+                                   OnClick="@(() => RemoveItem(item))">
                             Remove
                         </MudButton>
                     </MudTd>
@@ -500,6 +508,28 @@ else
         newListModel.Items.Remove(item);
         _itemsPage = 0;
         StateHasChanged();
+    }
+
+    private async Task OpenEditItemDialog(NewWantedListItemModel item)
+    {
+        var parameters = new DialogParameters<EditItemDialog>
+        {
+            { x => x.CurrentQuantity, item.Quantity },
+            { x => x.CurrentColorId, item.ColorId }
+        };
+
+        var dialog = await DialogService.ShowAsync<EditItemDialog>("Edit item", parameters);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled && result.Data is EditItemDialogResult editResult)
+        {
+            // Update das Item in der Liste
+            item.Quantity = editResult.Quantity;
+            item.ColorId = editResult.ColorId;
+            
+            NotificationService.Success("Item updated.");
+            StateHasChanged();
+        }
     }
 
     private async Task HandleCreateWantedList()

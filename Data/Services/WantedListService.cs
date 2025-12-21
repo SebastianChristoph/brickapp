@@ -403,6 +403,35 @@ namespace brickapp.Data.Services
             return true;
         }
 
+        public async Task<bool> UpdateWantedListItemAsync(int wantedListItemId, int newQuantity, int? newColorId = null)
+        {
+            var user = await _userService.GetCurrentUserAsync();
+            if (user == null || newQuantity <= 0)
+                return false;
+
+            await using var db = await _factory.CreateDbContextAsync();
+
+            var item = await db.WantedListItems
+                .Include(i => i.WantedList)
+                .FirstOrDefaultAsync(i =>
+                    i.Id == wantedListItemId &&
+                    i.WantedList != null &&
+                    i.WantedList.AppUserId == user.Id.ToString());
+
+            if (item == null)
+                return false;
+
+            item.Quantity = newQuantity;
+
+            if (newColorId.HasValue && newColorId.Value > 0)
+            {
+                item.BrickColorId = newColorId.Value;
+            }
+
+            await db.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<WantedList?> GetWantedListByIdAsync(int wantedListId)
         {
             await using var db = await _factory.CreateDbContextAsync();
