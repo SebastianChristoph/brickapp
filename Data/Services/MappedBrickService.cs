@@ -134,5 +134,21 @@ namespace brickapp.Data.Services
                 .OrderBy(c => c.Name)
                 .ToListAsync();
         }
+
+        public async Task<MappedBrick?> GetRandomMappedBrickAsync()
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            // Get a random brick that has at least one mapping
+            var count = await db.MappedBricks.CountAsync();
+            if (count == 0) return null;
+
+            var skip = new Random().Next(0, count);
+            return await db.MappedBricks
+                .Include(b => b.MappingRequests)
+                .AsNoTracking()
+                .Skip(skip)
+                .FirstOrDefaultAsync();
+        }
     }
 }

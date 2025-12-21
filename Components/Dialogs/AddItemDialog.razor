@@ -92,21 +92,22 @@
         return;
     }
 
-    // Duplicate-Check (kann dauern). Wenn du auch hier Spinner willst:
-    // -> diesen Block in den Spinner-Teil schieben. Wenn nicht, lass ihn hier.
-    var allBricks = await BrickService.GetAllMappedBricksAsync();
-    bool exists = allBricks.Any(b =>
-        (Brand == "Lego" && b.LegoName == Name)
-        || (Brand == "BlueBrixx" && b.BluebrixxName == Name)
-        || (Brand == "Cada" && b.CadaName == Name)
-        || (Brand == "Pantasy" && b.PantasyName == Name)
-        || (Brand == "Mould King" && b.MouldKingName == Name)
-        || (Brand == "Unknown" && b.UnknownName == Name)
-    );
-    if (exists)
+    // Prüfe ob Item bereits existiert (mit effizienter DB-Abfrage)
+    var itemExists = await RequestService.DoesItemExistAsync(Brand, PartNum, Name);
+    if (itemExists)
     {
-        _errorMessage = $"An item with the name '{Name}' already exists for brand '{Brand}'.";
-        Logger.LogWarning("🟡 [AddItemDialog] Duplicate item: Brand={Brand}, Name={Name}", Brand, Name);
+        var identifier = !string.IsNullOrWhiteSpace(PartNum) ? $"Part Number '{PartNum}'" : $"Name '{Name}'";
+        _errorMessage = $"An item with {identifier} already exists for brand '{Brand}'. This item is already in our database.";
+        Logger.LogWarning("🟡 [AddItemDialog] Duplicate item: Brand={Brand}, Name={Name}, PartNum={PartNum}", Brand, Name, PartNum);
+        return;
+    }
+
+    // Prüfe ob es bereits einen offenen Request für dieses Item gibt
+    var requestBlocked = await RequestService.IsNewItemRequestBlockedAsync(Name, Brand);
+    if (requestBlocked)
+    {
+        _errorMessage = $"There is already a pending request for this item. Please wait for the admin to review it.";
+        Logger.LogWarning("🟡 [AddItemDialog] Request already pending: Brand={Brand}, Name={Name}", Brand, Name);
         return;
     }
 

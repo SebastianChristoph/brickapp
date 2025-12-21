@@ -71,6 +71,212 @@
     </MudStack>
 }
 
+@if (string.IsNullOrWhiteSpace(_searchText) && !_showMappedOnly && _randomBrick != null)
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudStack Spacing="3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudText Typo="Typo.h6">Map this random item!</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
+                               Color="Color.Primary" 
+                               Size="Size.Small"
+                               OnClick="LoadRandomBrick" 
+                               Title="Get another random brick" />
+            </MudStack>
+
+            <MudDivider />
+
+            <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Start">
+                <div style="flex-shrink:0;">
+                    @{
+                        var randomImageUrl = ImageService.GetMappedBrickImagePath(_randomBrick);
+                    }
+                    <img src="@randomImageUrl" alt="" 
+                         style="max-width:120px;max-height:120px;border-radius:8px;border:2px solid #ccc;"
+                         onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                </div>
+
+                <MudStack Spacing="2" Style="flex-grow:1;">
+                    <MudText Typo="Typo.h6">@_randomBrick.Name</MudText>
+                    
+                    <MudSimpleTable Dense="true" Style="max-width:600px;">
+                        <tbody>
+                            <tr>
+                                <td style="font-weight:bold;width:120px;">Lego</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(_randomBrick.LegoName))
+                                    {
+                                        <span>@_randomBrick.LegoName</span>
+                                        @if (!string.IsNullOrWhiteSpace(_randomBrick.LegoPartNum))
+                                        {
+                                            <MudText Typo="Typo.caption">(@_randomBrick.LegoPartNum)</MudText>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var legoRequest = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Lego" && r.Status == MappingRequestStatus.Pending);
+                                        if (legoRequest != null)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Pending</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                                       OnClick="@(() => OpenHelpMappingDialog(_randomBrick, "Lego"))">
+                                                Help mapping
+                                            </MudButton>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight:bold;">BlueBrixx</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(_randomBrick.BluebrixxName))
+                                    {
+                                        <span>@_randomBrick.BluebrixxName</span>
+                                        @if (!string.IsNullOrWhiteSpace(_randomBrick.BluebrixxPartNum))
+                                        {
+                                            <MudText Typo="Typo.caption">(@_randomBrick.BluebrixxPartNum)</MudText>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var bluebrixxRequest = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "BlueBrixx" && r.Status == MappingRequestStatus.Pending);
+                                        if (bluebrixxRequest != null)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Pending</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                                       OnClick="@(() => OpenHelpMappingDialog(_randomBrick, "BlueBrixx"))">
+                                                Help mapping
+                                            </MudButton>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight:bold;">Cada</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(_randomBrick.CadaName))
+                                    {
+                                        <span>@_randomBrick.CadaName</span>
+                                        @if (!string.IsNullOrWhiteSpace(_randomBrick.CadaPartNum))
+                                        {
+                                            <MudText Typo="Typo.caption">(@_randomBrick.CadaPartNum)</MudText>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var cadaRequest = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Cada" && r.Status == MappingRequestStatus.Pending);
+                                        if (cadaRequest != null)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Pending</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                                       OnClick="@(() => OpenHelpMappingDialog(_randomBrick, "Cada"))">
+                                                Help mapping
+                                            </MudButton>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight:bold;">Pantasy</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(_randomBrick.PantasyName))
+                                    {
+                                        <span>@_randomBrick.PantasyName</span>
+                                        @if (!string.IsNullOrWhiteSpace(_randomBrick.PantasyPartNum))
+                                        {
+                                            <MudText Typo="Typo.caption">(@_randomBrick.PantasyPartNum)</MudText>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var pantasyRequest = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Pantasy" && r.Status == MappingRequestStatus.Pending);
+                                        if (pantasyRequest != null)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Pending</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                                       OnClick="@(() => OpenHelpMappingDialog(_randomBrick, "Pantasy"))">
+                                                Help mapping
+                                            </MudButton>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight:bold;">Mould King</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(_randomBrick.MouldKingName))
+                                    {
+                                        <span>@_randomBrick.MouldKingName</span>
+                                        @if (!string.IsNullOrWhiteSpace(_randomBrick.MouldKingPartNum))
+                                        {
+                                            <MudText Typo="Typo.caption">(@_randomBrick.MouldKingPartNum)</MudText>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var mkRequest = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Mould King" && r.Status == MappingRequestStatus.Pending);
+                                        if (mkRequest != null)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Pending</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                                       OnClick="@(() => OpenHelpMappingDialog(_randomBrick, "Mould King"))">
+                                                Help mapping
+                                            </MudButton>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight:bold;">Unknown</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(_randomBrick.UnknownName))
+                                    {
+                                        <span>@_randomBrick.UnknownName</span>
+                                        @if (!string.IsNullOrWhiteSpace(_randomBrick.UnknownPartNum))
+                                        {
+                                            <MudText Typo="Typo.caption">(@_randomBrick.UnknownPartNum)</MudText>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var unknownRequest = _randomBrick.MappingRequests?.FirstOrDefault(r => r.Brand == "Unknown" && r.Status == MappingRequestStatus.Pending);
+                                        if (unknownRequest != null)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Pending</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                                       OnClick="@(() => OpenHelpMappingDialog(_randomBrick, "Unknown"))">
+                                                Help mapping
+                                            </MudButton>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudStack>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+}
+
 @if (!string.IsNullOrWhiteSpace(_searchText) && _searchText.Length >= 3)
 {
     <MudTable Items="bricks" Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize"
@@ -442,6 +648,8 @@ else if (_showMappedOnly)
 
 @code {
     private bool _showMappedOnly = false;
+    private MappedBrick? _randomBrick;
+
 private async Task ShowMappedItems()
 {
     ClearError();
@@ -468,6 +676,19 @@ private async Task ShowMappedItems()
     finally
     {
         await InvokeAsync(StateHasChanged);
+    }
+}
+
+private async Task LoadRandomBrick()
+{
+    try
+    {
+        _randomBrick = await BrickService.GetRandomMappedBrickAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+    catch (Exception ex)
+    {
+        SetError(ex, "Konnte zufälliges Item nicht laden");
     }
 }
 
@@ -566,6 +787,7 @@ private void ClearError() => _pageError = null;
     try
     {
         _username = await UserService.GetUsernameAsync();
+        await LoadRandomBrick();
         await LoadBricksAsync();
     }
     catch (Exception ex)
