@@ -14,9 +14,12 @@
 }
 else if (_stats != null)
 {
-    <MudText Typo="Typo.h5" Class="mb-4">System Statistics</MudText>
-    
-    <MudGrid>
+   
+
+    <MudTabs Elevation="4" Rounded="true" Color="Color.Primary">
+    <MudTabPanel Text="Statistics" Icon="@Icons.Material.Filled.BarChart">
+        
+    <MudGrid Class="mt-4" GutterSize="3">
         <!-- Users & Content -->
         <MudItem xs="12" sm="6" md="4">
             <MudCard Elevation="4">
@@ -213,11 +216,9 @@ else if (_stats != null)
         </MudItem>
     </MudGrid>
 
-    <MudDivider Class="my-6" />
-}
-
-<MudText Typo="Typo.h5" Class="mb-4">Admin Actions</MudText>
-
+    </MudTabPanel>
+    <MudTabPanel Text="Admin Actions" Icon="@Icons.Material.Filled.AdminPanelSettings">
+     <MudSpacer Height="10px" />
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportMappings">Export Mappings</MudButton>
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportSets">Export Sets</MudButton>
@@ -230,9 +231,7 @@ else if (_stats != null)
 
 <div>@statusMessage</div>
 
-<MudDivider Class="my-6" />
-
-<MudTabs Elevation="4" Rounded="true" Color="Color.Primary">
+    </MudTabPanel>
     <MudTabPanel Text="User Tracking" Icon="@Icons.Material.Filled.Timeline">
         @if (_loadingTracking)
         {
@@ -240,7 +239,7 @@ else if (_stats != null)
         }
         else if (_trackingByUser != null)
         {
-            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 mt-4">
                 <MudText Typo="Typo.h5">User Activity Tracking</MudText>
                 <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteForever" OnClick="DeleteAllTrackings">Delete All Trackings</MudButton>
             </MudStack>
@@ -296,7 +295,11 @@ else if (_stats != null)
             }
         }
     </MudTabPanel>
+    
 </MudTabs>
+
+}
+
 
 
 @code {

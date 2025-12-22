@@ -82,7 +82,13 @@ else
                     </MudStack>
                     
                     <MudStack Spacing="1" Style="flex-grow:1;">
-                        <MudText Typo="Typo.h6">@_randomBrick.Name</MudText>
+                        <MudText Typo="Typo.h6">
+                            @_randomBrick.Name
+                            @if (!string.IsNullOrWhiteSpace(_randomBrick.LegoPartNum))
+                            {
+                                <span style="font-weight:normal; font-size:0.9em; opacity:0.85;"> (Lego PartNum.: @_randomBrick.LegoPartNum)</span>
+                            }
+                        </MudText>
                         <MudText Typo="Typo.body2" Style="opacity:0.9;">
                             Choose a brand on the right side to help map this item!
                         </MudText>
@@ -95,7 +101,7 @@ else
                                    StartIcon="@Icons.Material.Filled.Link"
                                    OnClick='() => OpenHelpMappingDialog("BlueBrixx")'
                                    Style="background-color: white; color: #667eea;">
-                            Map BlueBrixx
+                            Map Item to BlueBrixx
                         </MudButton>
                         <MudButton Variant="Variant.Filled" 
                                    Color="Color.Default" 
@@ -103,7 +109,7 @@ else
                                    StartIcon="@Icons.Material.Filled.Link"
                                    OnClick='() => OpenHelpMappingDialog("Cada")'
                                    Style="background-color: white; color: #667eea;">
-                            Map Cada
+                            Map Item to Cada
                         </MudButton>
                         
                     </MudStack>
