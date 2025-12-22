@@ -301,62 +301,53 @@ namespace brickapp.Data.Services
             .Distinct()
             .ToList();
 
+        // WICHTIG: Alle existierenden Requests EINMAL laden (Performance + Race Condition Vermeidung)
+        var existingRequestPartNums = await db.NewItemRequests
+            .Where(r => r.Brand == "Lego" 
+                     && distinctPartNums.Contains(r.PartNum)
+                     && (r.Status == NewItemRequestStatus.Pending || r.Status == NewItemRequestStatus.Approved))
+            .Select(r => r.PartNum)
+            .ToListAsync();
+
         foreach (var partNum in distinctPartNums)
         {
-            // Datenbank-Check: Existiert bereits ein Request für dieses LEGO Teil?
-            // Wir ignorieren Rejected Requests, damit ein neuer Versuch gestartet werden kann.
-            bool requestExists = await db.NewItemRequests
-                .AnyAsync(r => r.PartNum == partNum 
-                            && r.Brand == "Lego" 
-                            && r.Status != NewItemRequestStatus.Rejected
-                            && r.Status != NewItemRequestStatus.Pending);
-
-            if (!requestExists)
+            // Prüfen ob Request bereits existiert (Pending oder Approved)
+            if (existingRequestPartNums.Contains(partNum))
             {
-                // Hier greift nun die verbesserte API-Logik (Direkt-Check -> Suche)
-                // Beispiel: User sendet "3068", API findet "3068b" und liefert den Namen
-                // Im WantedListService.cs Konstruktor den ImageService hinzufügen
-                // private readonly ImageService _imageService;
+                _logger.LogInformation("ℹ️ NewItemRequest für {PartNum} existiert bereits (Pending/Approved) - wird übersprungen.", partNum);
+                continue;
+            }
 
-                // Innerhalb von CreateWantedListAndReturnIdAsync (Punkt 5.A):
+            // API Call um Name und Bild zu holen
+            var partInfo = await _rebrickableApi.GetLegoItemNameByPartNumber(partNum);
 
-                // API Call liefert nun das DTO
-                var partInfo = await _rebrickableApi.GetLegoItemNameByPartNumber(partNum);
-
-                if (partInfo != null && !string.IsNullOrWhiteSpace(partInfo.Name))
+            if (partInfo != null && !string.IsNullOrWhiteSpace(partInfo.Name))
+            {
+                var newUuid = Guid.NewGuid().ToString();
+                var newRequest = new NewItemRequest
                 {
-                    var newUuid = Guid.NewGuid().ToString();
-                    var newRequest = new NewItemRequest
-                    {
-                        Uuid = newUuid,
-                        Brand = "Lego",
-                        PartNum = partNum,
-                        Name = partInfo.Name,
-                        RequestedByUserId = user.Uuid,
-                        CreatedAt = DateTime.UtcNow,
-                        Status = NewItemRequestStatus.Pending
-                    };
+                    Uuid = newUuid,
+                    Brand = "Lego",
+                    PartNum = partNum,
+                    Name = partInfo.Name,
+                    RequestedByUserId = user.Uuid,
+                    CreatedAt = DateTime.UtcNow,
+                    Status = NewItemRequestStatus.Pending
+                };
 
-                    db.NewItemRequests.Add(newRequest);
+                db.NewItemRequests.Add(newRequest);
 
-                    // BILD SPEICHERN
-                    if (!string.IsNullOrWhiteSpace(partInfo.ImageUrl))
-                    {
-                        // Wir starten das Speichern asynchron, warten aber darauf, 
-                        // damit die Datei sicher existiert bevor der User die Liste sieht
-                        await _imageService.DownloadAndSaveItemImageAsync(
-                            partInfo.ImageUrl, 
-                            "Lego", 
-                            partNum, 
-                            newUuid);
-                    }
-
-                    _logger.LogInformation("✅ NewItemRequest und Bild für {PartNum} erstellt.", partNum);
+                // BILD SPEICHERN
+                if (!string.IsNullOrWhiteSpace(partInfo.ImageUrl))
+                {
+                    await _imageService.DownloadAndSaveItemImageAsync(
+                        partInfo.ImageUrl, 
+                        "Lego", 
+                        partNum, 
+                        newUuid);
                 }
-                            }
-            else 
-            {
-                _logger.LogInformation("ℹ️ Mapping-Request für {PartNum} existiert bereits oder ist genehmigt.", partNum);
+
+                _logger.LogInformation("✅ NewItemRequest und Bild für {PartNum} erstellt.", partNum);
             }
         }
 

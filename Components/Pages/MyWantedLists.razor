@@ -5,6 +5,7 @@
 @using brickapp.Data.DTOs
 @using brickapp.Helpers
 @using brickapp.Components.Shared.PartsListUpload
+@using brickapp.Components.Shared
 @using brickapp.Components.Dialogs
 @using static brickapp.Data.Services.WantedListService
 
@@ -87,98 +88,11 @@
 
             <MudTabPanel Text="Add items manually">
                 <MudText Typo="Typo.h6" GutterBottom="true">Add items manually</MudText>
-
-                <MudTextField T="string"
-                              Value="@brickSearchText"
-                              ValueChanged="OnBrickSearchChanged"
-                              Immediate="true"
-                              Label="Search brick"
-                              Class="mb-2" />
-
-                @if (_searching)
-                {
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
-                        <MudText Typo="Typo.body2">Searching…</MudText>
-                    </MudStack>
-                }
-
-                @if (brickSearchResults.Any())
-                {
-                    <MudList T="MappedBrick">
-                        @foreach (var brick in brickSearchResults)
-                        {
-                            <MudListItem T="MappedBrick"
-                                         Style="cursor:pointer;display:flex;align-items:center;"
-                                         OnClick="@(() => SelectBrick(brick))">
-                                <img src="@ImageService.GetMappedBrickImagePath(brick)" alt=""
-                                     style="width:32px;height:32px;object-fit:contain;margin-right:8px;vertical-align:middle;border-radius:4px;border:1px solid #ccc;" />
-                                @brick.Name (@brick.LegoPartNum)
-                            </MudListItem>
-                        }
-                    </MudList>
-                }
-
-                @if (selectedBrick != null)
-                {
-                    <div style="margin-bottom:8px;display:flex;align-items:center;">
-                        @{
-                            var selectedColorName = selectedColorId.HasValue
-                                ? brickColors.FirstOrDefault(c => c.Id == selectedColorId.Value)?.Name
-                                : null;
-
-                            var overlay = BrickColorHelper.GetHexForColor(selectedColorName);
-                            var overlayCss = overlay ?? "transparent";
-
-                            var url = ImageService.GetMappedBrickImagePath(selectedBrick);
-                            var hasImage = !string.IsNullOrWhiteSpace(url) && url != "/placeholder-image.png";
-                        }
-
-                        <div class="brick"
-                             style="--brick-color:@overlayCss; width:48px; height:48px; min-width:48px; min-height:48px; margin-right:8px;">
-                            <img src="@(hasImage ? url : "/placeholder-image.png")"
-                                 alt=""
-                                 class="brick-img"
-                                 style="border-width:1px;@(hasImage ? "" : "opacity:0.5;")"
-                                 onerror="if(this.src!=='/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
-                        </div>
-
-                        <span style="font-weight:500;">
-                            @selectedBrick.Name
-                            @if (!string.IsNullOrWhiteSpace(selectedBrick.LegoPartNum))
-                            {
-                                <span style="color:#888;">(@selectedBrick.LegoPartNum)</span>
-                            }
-                        </span>
-                    </div>
-
-                    <MudSelect T="int?" @bind-Value="selectedColorId"
-                               Label="Color"
-                               Placeholder="Please select a color"
-                               Variant="Variant.Text"
-                               Dense="true"
-                               Class="mb-2"
-                               Style="max-width:300px;">
-                        @foreach (var color in brickColors)
-                        {
-                            <MudSelectItem T="int?" Value="@color.Id">@color.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-
-                    <MudNumericField T="int" @bind-Value="brickQuantity"
-                                     Label="Quantity" Min="1" Max="999"
-                                     Variant="Variant.Text" Dense="true"
-                                     Class="mb-2" Style="max-width:300px;" />
-
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               OnClick="AddBrickToList"
-                               Disabled="@(selectedColorId is null)"
-                               Class="mb-2">
-                        Add item
-                    </MudButton>
-                    <br />
-                }
+                <BrickPicker OnBrickAdded="HandleBrickAdded" 
+                             Label="Search for a brick" 
+                             Placeholder="Enter part number or name..."
+                             AddButtonText="Add item to list"
+                             ShowQuickColorPicker="true" />
             </MudTabPanel>
         </MudTabs>
 
@@ -316,10 +230,6 @@ else
         _errorDetails = ex.ToString();
     }
 
-    // Search UX
-    private int _searchRequestId = 0;
-    private bool _searching = false;
-
     // Save UX
     private bool _saving = false;
 
@@ -330,12 +240,7 @@ else
     private readonly Dictionary<int, MappedBrick> _brickById = new();
 
     private NewWantedListModel newListModel = new();
-    private string brickSearchText = "";
-    private List<MappedBrick> brickSearchResults = new();
-    private MappedBrick? selectedBrick;
     private List<BrickColor> brickColors = new();
-    private int? selectedColorId = null;
-    private int brickQuantity = 1;
 
     // Lazy cache – wird erst geladen, wenn der User wirklich sucht
     private List<MappedBrick> _allBricks = new();
@@ -422,88 +327,20 @@ else
         }
     }
 
-    private async Task OnBrickSearchChanged(string value)
+    private void HandleBrickAdded(BrickSelectionDto selection)
     {
-        brickSearchText = value ?? "";
-        var reqId = ++_searchRequestId;
-
-        if (brickSearchText.Length < 2)
-        {
-            brickSearchResults.Clear();
-            _searching = false;
-            await InvokeAsync(StateHasChanged);
-            return;
-        }
-
-        _searching = true;
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            // Lazy load – erst jetzt
-            await EnsureAllBricksLoadedAsync();
-
-            if (reqId != _searchRequestId) return;
-
-            brickSearchResults = _allBricks
-                .Where(b =>
-                    (b.LegoPartNum?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (b.LegoName?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (b.Name?.Contains(brickSearchText, StringComparison.OrdinalIgnoreCase) ?? false))
-                .Take(10)
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            SetError(ex, "OnBrickSearchChanged");
-        }
-        finally
-        {
-            if (reqId == _searchRequestId)
-            {
-                _searching = false;
-                await InvokeAsync(StateHasChanged);
-            }
-        }
-    }
-
-    private void SelectBrick(MappedBrick brick)
-    {
-        _searchRequestId++;
-
-        selectedBrick = brick;
-        selectedColorId = null;
-        brickQuantity = 1;
-
-        brickSearchResults.Clear();
-        brickSearchText = brick.LegoPartNum ?? brick.Name ?? "";
-
-        _searching = false;
-        StateHasChanged();
-    }
-
-    private void AddBrickToList()
-    {
-        if (selectedBrick == null || selectedColorId == null || brickQuantity < 1)
-            return;
-
-        _brickById[selectedBrick.Id] = selectedBrick;
+        _brickById[selection.Brick.Id] = selection.Brick;
 
         AddOrMergeItem(newListModel.Items, new NewWantedListItemModel
         {
-            MappedBrickId = selectedBrick.Id,
-            BrickName = selectedBrick.Name,
-            ColorId = selectedColorId.Value,
-            Quantity = brickQuantity
+            MappedBrickId = selection.Brick.Id,
+            BrickName = selection.Brick.Name,
+            ColorId = selection.BrickColorId,
+            Quantity = selection.Quantity
         });
 
-        // reset inputs
-        selectedBrick = null;
-        selectedColorId = null;
-        brickQuantity = 1;
-        brickSearchText = "";
-
         _itemsPage = 0;
+        NotificationService.Success("Item added to list.");
         StateHasChanged();
     }
 
