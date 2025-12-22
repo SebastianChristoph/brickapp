@@ -1,7 +1,9 @@
 @page "/add-new-set"
 @using brickapp.Data.Entities
 @using brickapp.Data.Services
+@using brickapp.Data.DTOs
 @using brickapp.Helpers
+@using brickapp.Components.Shared
 
 @inject brickapp.Data.Services.RequestService RequestService
 @inject brickapp.Data.Services.UserService UserService
@@ -163,103 +165,11 @@ else
                 Add set items
             </MudText>
 
-            <div class="mb-2">
-                <MudTextField T="string" Value="@brickSearchText" ValueChanged="OnBrickSearchChanged" Immediate="true"
-                              Label="Search Item by Name or PartNumber (e.g. Lego or Bluebrixx part numbers)" Variant="Variant.Text" Style="max-width:1200px;" />
-                @if (_searchingBricks)
-{
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
-        <MudText Typo="Typo.body2">Grabbing all items</MudText>
-    </MudStack>
-}
-
-                @if (brickSearchResults.Any())
-                {
-                    <ul class="list-group mt-1">
-                        @foreach (var brick in brickSearchResults)
-                        {
-                            <li class="list-group-item list-group-item-action"
-                                style="cursor:pointer; display:flex; align-items:center; gap:8px;"
-                                @onclick="() => SelectBrick(brick)">
-
-                                @{
-                                    var overlay = !string.IsNullOrWhiteSpace(selectedColor)
-                                        ? BrickColorHelper.GetHexForColor(selectedColor)
-                                        : null;
-                                    var overlayCss = overlay ?? "transparent";
-                                }
-
-                                <div class="brick"
-                                     style="--brick-color:@overlayCss; width:40px; height:40px; min-width:40px; min-height:40px;">
-                                    <img src="@GetBrickImageUrl(brick)" alt=""
-                                         class="brick-img"
-                                         style="border-width:1px;" />
-                                </div>
-
-                               <span>@(brick.LegoPartNum ?? brick.BluebrixxPartNum ?? brick.CadaPartNum ?? "No ID") - @(brick.LegoName ?? brick.BluebrixxName ?? brick.CadaName ?? "Unknown Name")</span>
-                            </li>
-                        }
-                    </ul>
-                }
-            </div>
-
-            @if (selectedBrick != null)
-            {
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-                    @{
-                        var overlay = !string.IsNullOrWhiteSpace(selectedColor)
-                            ? BrickColorHelper.GetHexForColor(selectedColor)
-                            : null;
-                        var overlayCss = overlay ?? "transparent";
-
-                        var url = ImageService.GetMappedBrickImagePath(selectedBrick);
-                        var has = !string.IsNullOrWhiteSpace(url) && url != "/placeholder-image.png";
-                    }
-
-                    <div class="brick" style="--brick-color:@overlayCss; width:40px; height:40px; min-width:40px; min-height:40px;">
-                        <img src="@(has ? url : "/placeholder-image.png")" alt="Brick image"
-                             class="brick-img"
-                             style="border-width:1px;@(has ? "" : "opacity:0.5;")" />
-                    </div>
-
-                 <span style="font-size:1.1em;">
-    @(selectedBrick.LegoPartNum ?? selectedBrick.BluebrixxPartNum ?? selectedBrick.CadaPartNum ?? "No ID") - 
-    @(selectedBrick.LegoName ?? selectedBrick.BluebrixxName ?? selectedBrick.CadaName ?? "Unknown Name")
-</span>       </div>
-
-                @* --- NEU: QUICK COLOR CHIPS --- *@
-                <MudText Typo="Typo.caption" Class="mb-1">Quick Color Select:</MudText>
-                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
-                    @foreach (var quickColor in new[] { "Black", "White", "Blue", "Red", "Green", "Tan", "Dark Tan", "Light Bluish Gray", "Dark Bluish Gray", "Reddish Brown", "Medium Azure", "Dark Green"})
-                    {
-                        var hex = BrickColorHelper.GetHexForColor(quickColor);
-                        <MudChip T="string"
-                                Variant="Variant.Outlined"
-                                OnClick="@(() => selectedColor = quickColor)"
-                                Class="@(selectedColor == quickColor ? "color-chip-active color-chip-select" : "color-chip-select")"
-                                Style="@($"background-color:{hex}; color:{(quickColor == "Black" || quickColor == "Blue" ? "white" : "black")};")">
-                            @quickColor
-                        </MudChip>
-                    }
-                </div>
-
-                <MudSelect T="string" @bind-Value="selectedColor" Label="Color" Placeholder="Please select"
-                           Style="max-width:400px;">
-                    @foreach (var color in brickColors)
-                    {
-                        <MudSelectItem Value="@color.Name">@color.Name</MudSelectItem>
-                    }
-                </MudSelect>
-
-                <MudNumericField @bind-Value="brickQuantity" Label="Quantity" Variant="Variant.Text" Min="1" />
-
-                <br />
-                <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary"
-                           OnClick="@AddBrickToSet" Class="mb-4">
-                    Add item to new set
-                </MudButton>
-            }
+            <BrickPicker OnBrickAdded="HandleBrickAdded" 
+                         Label="Search Item by Name or PartNumber" 
+                         Placeholder="Enter part number or name (e.g. Lego or Bluebrixx part numbers)..."
+                         AddButtonText="Add item to new set"
+                         ShowQuickColorPicker="true" />
         </div>
 
         <br />
@@ -315,8 +225,6 @@ else
                             var mb = new MappedBrick 
                             { 
                                 LegoPartNum = brick.LegoPartNum, 
-                                // Wir brauchen hier auch die anderen IDs, damit der ImageService weiß, wonach er suchen soll
-                                BluebrixxPartNum = (selectedBrick?.Id == brick.BrickId) ? selectedBrick.BluebrixxPartNum : null,
                                 Uuid = brick.Uuid ?? string.Empty 
                             };
                             var url = ImageService.GetMappedBrickImagePath(mb);
@@ -351,8 +259,6 @@ else
 
 @code {
     private string? imagePreviewUrl;
-    private bool _searchingBricks = false;
-private int _brickSearchRequestId = 0;
     private string? imageError;
     private IBrowserFile? uploadedImageFile;
     private bool _loading = false;
@@ -412,25 +318,10 @@ private int _brickSearchRequestId = 0;
     private int? editingDraftId = null;
     private string? errorMessage;
 
-    // Brick hinzufügen
-    private string brickSearchText = "";
-    private List<MappedBrick> brickSearchResults = new();
-    private MappedBrick? selectedBrick;
+    private List<MappedBrick>? _allBricksCache;
     private List<BrickColor> brickColors = new();
-    private string selectedColor = "";
-    private int brickQuantity = 1;
+    private Dictionary<int, MappedBrick> _brickCache = new();
 
-    private string GetBrickImageUrlFromId(int brickId)
-    {
-        var brick = brickSearchResults.FirstOrDefault(b => b.Id == brickId);
-        if (brick != null)
-        {
-            var partNum = brick.LegoPartNum;
-            if (!string.IsNullOrWhiteSpace(partNum) && _brickImageCache.TryGetValue(partNum, out var url))
-                return url;
-        }
-        return "/part_images/placeholder.png";
-    }
 
     private async Task EditDraftAsync(int draftId)
     {
@@ -513,144 +404,35 @@ private int _brickSearchRequestId = 0;
         StateHasChanged();
     }
 
-    private List<MappedBrick>? _allBricksCache; // Der lokale Speicher
-
-    private Dictionary<string, string> _brickImageCache = new();
-
-    private string GetBrickImageUrl(MappedBrick brick)
+    private void HandleBrickAdded(BrickSelectionDto selection)
     {
-       return ImageService.GetMappedBrickImagePath(brick);
-    }
+        if (selection?.Brick == null) return;
 
-private async Task OnBrickSearchChanged(string value)
-{
-    brickSearchText = value ?? "";
-    var reqId = ++_brickSearchRequestId;
+        // Cache für spätere Verwendung
+        _brickCache[selection.Brick.Id] = selection.Brick;
 
-    if (brickSearchText.Length < 2)
-    {
-        brickSearchResults.Clear();
-        _searchingBricks = false;
-        return;
-    }
+        // Hole Farbnamen
+        var colorName = brickColors.FirstOrDefault(c => c.Id == selection.BrickColorId)?.Name ?? "Unknown";
 
-    _searchingBricks = true;
-    StateHasChanged();
+        string displayName = selection.Brick.LegoName 
+                             ?? selection.Brick.BluebrixxName 
+                             ?? selection.Brick.CadaName 
+                             ?? selection.Brick.Name
+                             ?? "Unknown Item";
 
-    try
-    {
-        // 1. Kurze Pause, falls der User noch weitertippt
-        await Task.Delay(300); 
-        if (reqId != _brickSearchRequestId) return;
-
-        // 2. Sicherheitscheck: Falls der Cache noch lädt, kurz warten
-        if (_allBricksCache == null)
+        newSetModel.Bricks.Add(new NewSetBrickModel
         {
-             _allBricksCache = await MappedBrickService.GetAllMappedBricksAsync();
-        }
-        var normalizedSearch = brickSearchText.Replace(" ", "").ToLower();
-        // 3. Im lokalen Speicher filtern und sortieren (blitzschnell)
-        brickSearchResults = _allBricksCache
-    .Where(b =>
-    {
-        // Alle Nummern normalisieren und in eine Liste packen
-        var partNums = new[] { 
-            b.LegoPartNum, b.BluebrixxPartNum, b.CadaPartNum, 
-            b.PantasyPartNum, b.MouldKingPartNum, b.UnknownPartNum 
-        };
-        
-        // Alle Namen normalisieren und in eine Liste packen
-        var names = new[] { 
-            b.LegoName, b.BluebrixxName, b.CadaName, 
-            b.PantasyName, b.MouldKingName, b.UnknownName,
-            b.Name // Falls es ein allgemeines Namensfeld gibt
-        };
+            BrickId = selection.Brick.Id,
+            BrickName = displayName,
+            LegoPartNum = selection.Brick.LegoPartNum,
+            Uuid = selection.Brick.Uuid,
+            Color = colorName,
+            Quantity = selection.Quantity
+        });
 
-        // Prüfen, ob irgendeine Nummer den Suchbegriff enthält
-        bool matchNum = partNums.Any(p => 
-            p?.Replace(" ", "").Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ?? false);
-            
-        // Prüfen, ob irgendein Name den Suchbegriff enthält
-        bool matchName = names.Any(n => 
-            n?.Replace(" ", "").Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ?? false);
-
-        return matchNum || matchName;
-    })
-    // Sortierung: Exakte Treffer bei IRGENDEINER PartNum nach oben
-    .OrderByDescending(b => 
-        (b.LegoPartNum?.Replace(" ", "").ToLower() == normalizedSearch) ||
-        (b.BluebrixxPartNum?.Replace(" ", "").ToLower() == normalizedSearch))
-    .ThenBy(b => b.LegoPartNum?.Length ?? 999) 
-    .Take(10)
-    .ToList();
-
-        // Bilder-Cache für die 10 Ergebnisse vorbereiten
-        // Bilder-Cache für die 10 Ergebnisse vorbereiten
-foreach (var brick in brickSearchResults)
-{
-    // Nutze die Nummer, die gerade verfügbar ist (Coalesce)
-    var displayPartNum = brick.LegoPartNum ?? brick.BluebrixxPartNum ?? brick.UnknownPartNum ?? "no-id";
-    
-    if (!_brickImageCache.ContainsKey(displayPartNum))
-    {
-        var url = ImageService.GetMappedBrickImagePath(brick);
-        _brickImageCache[displayPartNum] = string.IsNullOrWhiteSpace(url) ? "/part_images/placeholder.png" : url;
+        NotificationService.Success("Item added to the set.");
+        StateHasChanged();
     }
-}
-    }
-    finally
-    {
-        if (reqId == _brickSearchRequestId)
-        {
-            _searchingBricks = false;
-            StateHasChanged();
-        }
-    }
-}
-
-   private void SelectBrick(MappedBrick brick)
-{
-    // laufende/ausstehende Suche ungültig machen
-    _brickSearchRequestId++;
-    _searchingBricks = false;
-
-    selectedBrick = brick;
-    selectedColor = "";
-    brickQuantity = 1;
-    brickSearchResults.Clear();
-    brickSearchText = brick.LegoPartNum ?? brick.LegoName ?? "";
-    StateHasChanged();
-}
-
-   private void AddBrickToSet()
-{
-    if (selectedBrick == null || string.IsNullOrEmpty(selectedColor) || brickQuantity < 1)
-        return;
-
-    // Korrektur: Wir prüfen der Reihe nach, welcher Name verfügbar ist
-    string displayName = selectedBrick.LegoName 
-                         ?? selectedBrick.BluebrixxName 
-                         ?? selectedBrick.CadaName 
-                         ?? selectedBrick.Name // Fallback auf das allgemeine Feld
-                         ?? "Unknown Item";
-
-    newSetModel.Bricks.Add(new NewSetBrickModel
-    {
-        BrickId = selectedBrick.Id,
-        BrickName = displayName, // Hier den ermittelten Namen nutzen
-        LegoPartNum = selectedBrick.LegoPartNum,
-        Uuid = selectedBrick.Uuid,
-        Color = selectedColor,
-        Quantity = brickQuantity
-    });
-
-    selectedBrick = null;
-    selectedColor = "";
-    brickQuantity = 1;
-    brickSearchText = "";
-    NotificationService.Success("Item added to the set.");
-    StateHasChanged();
-}
 
     private async Task<List<string>> GetAllBrandsAsync()
     {
@@ -713,6 +495,11 @@ foreach (var brick in brickSearchResults)
         {
             // Neuen Draft anlegen
             var user = await UserService.GetCurrentUserAsync();
+            if (user == null)
+            {
+                errorMessage = "User not found.";
+                return;
+            }
             await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath,
                 user.Uuid, items, Data.Entities.NewSetRequestStatus.Draft);
             NotificationService.Success("Draft created.");

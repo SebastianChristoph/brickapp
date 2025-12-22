@@ -60,7 +60,7 @@
 }
 
 <MudTextField Value="_searchText" ValueChanged="@(async (string e) => await OnSearchTextChanged(e))"
-    Label="Search by name or ID" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true"
+    Label="Search by name or part number" HelperText="e.g., 3001 or 'Brick 2x2' - searches all brands" Variant="Variant.Outlined" Margin="Margin.Normal" Immediate="true"
     Placeholder="At least 3 characters..." Class="mb-4" />
 
 @if (_searchingBricks)
@@ -378,10 +378,12 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                    OnClick="@(() => OpenAddInventoryDialog(context))">
-                    <MudIcon Icon="@Icons.Material.Filled.Add" />
-                </MudButton>
+                <MudTooltip Text="Add to Inventory">
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                        OnClick="@(() => OpenAddInventoryDialog(context))">
+                        <MudIcon Icon="@Icons.Material.Filled.Add" />
+                    </MudButton>
+                </MudTooltip>
             </MudTd>
             <MudTd DataLabel="Image">
                 @{
@@ -647,10 +649,12 @@ else if (_showMappedOnly)
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                    OnClick="@(() => OpenAddInventoryDialog(context))">
-                    <MudIcon Icon="@Icons.Material.Filled.Add" />
-                </MudButton>
+                <MudTooltip Text="Add to Inventory">
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                        OnClick="@(() => OpenAddInventoryDialog(context))">
+                        <MudIcon Icon="@Icons.Material.Filled.Add" />
+                    </MudButton>
+                </MudTooltip>
             </MudTd>
             <MudTd DataLabel="Image">
                 @{
@@ -906,13 +910,13 @@ private async Task LoadRandomBrick()
     private async Task OpenAddInventoryDialog(MappedBrick brick)
     {
         var parameters = new DialogParameters<AddInventoryItemDialog>();
-        parameters.Add(x => x.SelectedBrick, brick);
+        parameters.Add(x => x.PreselectedBrick, brick);
         var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>("Add item to inventory", parameters, dialogOptions);
         var result = await dialog.Result;
-        if (result is not null && result.Data is bool b && b)
+        /* if (result is not null && result.Data is bool b && b)
         {
-            NotificationService.Success("Item erfolgreich dem Inventar hinzugefügt!");
-        }
+            NotificationService.Success("Item added to inventory!");
+        } */
     }
 
     private void SetError(Exception ex, string context)
