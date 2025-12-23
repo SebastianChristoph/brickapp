@@ -66,3 +66,5 @@ wwwroot/part_images/new
 appsettings.Development.json
 mappedData
 launchSettings.json
+launchSettings.json.user
+launchsettings.json
