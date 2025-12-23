@@ -76,6 +76,9 @@
         <MudTd DataLabel="Created">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
         <MudTd DataLabel="Approved By">@context.ApprovedByUser?.Name</MudTd>
     </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+    </PagerContent>
 </MudTable>
         }
     </MudTabPanel>
@@ -135,6 +138,9 @@
                         }
                     </MudTd>
                 </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                </PagerContent>
             </MudTable>
         }
     </MudTabPanel>
@@ -187,6 +193,9 @@
                         }
                     </MudTd>
                 </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                </PagerContent>
             </MudTable>
         }
     </MudTabPanel>
