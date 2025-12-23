@@ -1,9 +1,15 @@
 @page "/admin-panel"
+@using brickapp.Data.Entities
+@using brickapp.Data.DTOs
+@using brickapp.Components.Dialogs
 @inject brickapp.Data.Services.MappedBrickExportService MappedExport
 @inject brickapp.Data.Services.ItemSetExportService SetExport
 @inject brickapp.Data.Services.UserService UserService
 @inject brickapp.Data.Services.StatsService StatsService
 @inject brickapp.Data.Services.TrackingService TrackingService
+@inject brickapp.Data.Services.MappedBrickService MappedBrickService
+@inject brickapp.Data.Services.NotificationService NotificationService
+@inject IDialogService DialogService
 
 <MudText Typo="Typo.h4" GutterBottom="true">Admin Panel</MudText>
 
@@ -295,6 +301,28 @@ else if (_stats != null)
             }
         }
     </MudTabPanel>
+    <MudTabPanel Text="Delete Items" Icon="@Icons.Material.Filled.Delete">
+        <MudPaper Class="pa-4 mt-4" Elevation="2">
+            <MudText Typo="Typo.h6" GutterBottom="true">Delete Mapped Brick</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Warning" Class="mb-4">
+                <strong>Warning:</strong> Deleting a brick will permanently remove it from the database along with all its mapping requests.
+            </MudText>
+
+            <BrickPicker Label="Search for brick to delete"
+                         Placeholder="Enter part number or name..."
+                         AddButtonText="Delete This Brick"
+                         ShowQuickColorPicker="false"
+                         ShowBrandSelector="false"
+                         OnBrickAdded="HandleDeleteBrick" />
+
+            @if (!string.IsNullOrWhiteSpace(_deleteMessage))
+            {
+                <MudAlert Severity="_deleteSuccess ? Severity.Success : Severity.Error" Class="mt-4">
+                    @_deleteMessage
+                </MudAlert>
+            }
+        </MudPaper>
+    </MudTabPanel>
     
 </MudTabs>
 
@@ -310,6 +338,8 @@ else if (_stats != null)
     private bool _loadingTracking = true;
     private brickapp.Data.Services.AdminStats? _stats;
     private Dictionary<string, List<brickapp.Data.Entities.TrackingInfo>>? _trackingByUser;
+    private string _deleteMessage = string.Empty;
+    private bool _deleteSuccess = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -402,5 +432,57 @@ else if (_stats != null)
         {
             statusMessage = $"Error during sets export: {ex.Message}";
         }
+    }
+
+    private async Task HandleDeleteBrick(BrickSelectionDto selection)
+    {
+        if (selection?.Brick == null)
+            return;
+
+        var brick = selection.Brick;
+        var brickName = brick.Name ?? brick.LegoName ?? "Unknown";
+        var brickPartNum = brick.LegoPartNum ?? brick.BluebrixxPartNum ?? "Unknown";
+
+        var message = $"Are you sure you want to permanently delete brick '{brickName}' (Part# {brickPartNum})? This action cannot be undone and will also delete all related mapping requests.";
+
+        var parameters = new DialogParameters
+        {
+            ["Message"] = message
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
+        var dialog = await DialogService.ShowAsync<DeleteBrickConfirmDialog>("Confirm Deletion", parameters, options);
+        var result = await dialog.Result;
+
+        if (result == null || result.Canceled)
+            return;
+
+        try
+        {
+            var success = await MappedBrickService.DeleteMappedBrickAsync(brick.Id);
+            if (success)
+            {
+                _deleteSuccess = true;
+                _deleteMessage = $"Successfully deleted brick '{brickName}' (Part# {brickPartNum})";
+                NotificationService.Success($"Brick deleted: {brickName}");
+                
+                // Refresh stats
+                _stats = await StatsService.GetAdminStatsAsync();
+            }
+            else
+            {
+                _deleteSuccess = false;
+                _deleteMessage = $"Failed to delete brick. It may not exist in the database.";
+                NotificationService.Error("Delete failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            _deleteSuccess = false;
+            _deleteMessage = $"Error deleting brick: {ex.Message}";
+            NotificationService.Error($"Error: {ex.Message}");
+        }
+
+        StateHasChanged();
     }
 }
