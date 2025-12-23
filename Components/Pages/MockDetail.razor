@@ -59,7 +59,7 @@ You can now add them to your MOC by clicking the button below to improve the vis
                        StartIcon="@Icons.Material.Filled.AutoFixHigh"
                        Disabled="@_isResolving"
                        OnClick="ResolveMissingMocItems">
-                Add parts to MOC
+                Update MOC list
             </MudButton>
         </MudStack>
     </MudAlert>
@@ -149,12 +149,32 @@ You can now add them to your MOC by clicking the button below to improve the vis
     </style>
 
     <MudTable @key="_tableKey" Items="@_tableItems" Hover="true" Dense="true" Page="_itemsPage"
-        RowsPerPage="_itemsRowsPerPage" OnPageChanged="OnItemsPageChanged" OnRowsPerPageChanged="OnItemsRowsPerPageChanged">
+        RowsPerPage="_itemsRowsPerPage" OnPageChanged="OnItemsPageChanged" OnRowsPerPageChanged="OnItemsRowsPerPageChanged"
+        Sortable="true" T="MockItem">
         <HeaderContent>
             <MudTh>Image</MudTh>
-            <MudTh>Name</MudTh>
-            <MudTh>Color</MudTh>
-            <MudTh>Quantity</MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="MockItem"
+                                   SortBy="@(x => x.MappedBrick?.Name ?? string.Empty)">
+                    Name
+                </MudTableSortLabel>
+            </MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="MockItem"
+                                   SortBy="@(x => x.BrickColor?.Name ?? string.Empty)">
+                    Color
+                </MudTableSortLabel>
+            </MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="MockItem"
+                                   SortBy="@(x => x.Quantity)">
+                    Quantity
+                </MudTableSortLabel>
+            </MudTh>
+            
             <MudTh>Do you own?</MudTh>
             <MudTh>Actions</MudTh>
         </HeaderContent>
