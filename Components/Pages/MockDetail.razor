@@ -197,8 +197,24 @@ You can now add them to your MOC by clicking the button below to improve the vis
             </MudTd>
 
             <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" 
-                               OnClick="@(() => OpenEditItemDialog(context.Id, context.Quantity, context.BrickColorId ?? 0))" />
+                <MudStack Row="true" Spacing="1">
+                    <MudTooltip Text="Add to Inventory">
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                            OnClick="@(() => OpenAddInventoryDialog(context.MappedBrick))">
+                            <MudIcon Icon="@Icons.Material.Filled.Add" />
+                        </MudButton>
+                    </MudTooltip>
+                    <MudTooltip Text="Add to Wanted List">
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                            OnClick="@(() => OpenAddToWantedListDialog(context.MappedBrick))">
+                            <MudIcon Icon="@Icons.Material.Filled.PlaylistAdd" />
+                        </MudButton>
+                    </MudTooltip>
+                    <MudTooltip Text="Edit Item">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" 
+                                   OnClick="@(() => OpenEditItemDialog(context.Id, context.Quantity, context.BrickColorId ?? 0))" />
+                    </MudTooltip>
+                </MudStack>
             </MudTd>
         </RowTemplate>
         <PagerContent>
@@ -570,6 +586,26 @@ private bool _isResolving = false;
             SetError(ex, "OpenEditItemDialog");
             NotificationService.Error(_error ?? "An unknown error occurred");
         }
+    }
+
+    private async Task OpenAddInventoryDialog(MappedBrick? brick)
+    {
+        if (brick == null) return;
+
+        var parameters = new DialogParameters<AddInventoryItemDialog>();
+        parameters.Add(x => x.PreselectedBrick, brick);
+        var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>("Add item to inventory", parameters);
+        var result = await dialog.Result;
+    }
+
+    private async Task OpenAddToWantedListDialog(MappedBrick? brick)
+    {
+        if (brick == null) return;
+
+        var parameters = new DialogParameters<AddToWantedListDialog>();
+        parameters.Add(x => x.PreselectedBrick, brick);
+        var dialog = await DialogService.ShowAsync<AddToWantedListDialog>("Add item to wanted list", parameters);
+        var result = await dialog.Result;
     }
 
 }

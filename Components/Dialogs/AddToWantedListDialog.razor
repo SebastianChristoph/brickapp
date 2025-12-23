@@ -1,0 +1,229 @@
+@using MudBlazor
+@using brickapp.Data.Services
+@using brickapp.Data.Entities
+@using brickapp.Data.DTOs
+@using brickapp.Components.Shared
+@inject brickapp.Data.Services.MappedBrickService BrickService
+@inject brickapp.Data.Services.WantedListService WantedListService
+@inject brickapp.Data.Services.ImageService ImageService
+@inject brickapp.Data.Services.NotificationService NotificationService
+@inject brickapp.Data.Services.LoadingService LoadingService
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" GutterBottom="true">Add Item to Wanted List</MudText>
+
+        @if (_step == 1)
+        {
+            <!-- Step 1: Select Brick, Color, Quantity -->
+            <BrickPicker OnBrickAdded="HandleBrickSelected" 
+                         Label="Search for a brick" 
+                         Placeholder="Enter part number or name..."
+                         AddButtonText="Next: Select Wanted List"
+                         ShowQuickColorPicker="true"
+                         ShowBrandSelector="false"
+                         PreselectedBrick="@PreselectedBrick" />
+        }
+        else if (_step == 2)
+        {
+            <!-- Step 2: Select or Create Wanted List -->
+            @if (_loadingLists)
+            {
+                <MudProgressCircular Indeterminate="true" />
+            }
+            else
+            {
+                <MudPaper Class="pa-3 mb-3" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                    <MudText Typo="Typo.body2"><strong>Selected Item:</strong></MudText>
+                    <MudText Typo="Typo.body1">@_selectedBrickName</MudText>
+                    <MudText Typo="Typo.caption">Quantity: @_selectedQuantity | Color: @_selectedColorName</MudText>
+                </MudPaper>
+
+                <MudStack Spacing="2">
+                    <MudSelect T="int?" Label="Add to existing wanted list" Variant="Variant.Outlined"
+                               @bind-Value="_selectedWantedListId" Disabled="_saving">
+                        <MudSelectItem T="int?" Value="null">-- select --</MudSelectItem>
+                        @foreach (var wl in _wantedLists)
+                        {
+                            <MudSelectItem T="int?" Value="@wl.Id">@wl.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudDivider />
+
+                    <MudTextField Label="Or create a new wanted list" Variant="Variant.Outlined"
+                                  @bind-Value="_newListName" Disabled="_saving" />
+
+                    @if (!string.IsNullOrWhiteSpace(_error))
+                    {
+                        <MudAlert Severity="Severity.Error">@_error</MudAlert>
+                    }
+                </MudStack>
+            }
+        }
+
+        <!-- Error Message -->
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <MudAlert Severity="Severity.Error">@ErrorMessage</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_step == 1)
+        {
+            <MudButton Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+        }
+        else if (_step == 2)
+        {
+            <MudButton Color="Color.Secondary" OnClick="BackToStep1" Disabled="_saving">Back</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(_saving || _loadingLists)">
+                Add to Wanted List
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public MappedBrick? PreselectedBrick { get; set; }
+
+    private string ErrorMessage = "";
+    private int _step = 1;
+    private bool _loadingLists = false;
+    private bool _saving = false;
+    private string _error = "";
+
+    // Step 1: Selected brick data
+    private BrickSelectionDto? _selectedBrick = null;
+    private string _selectedBrickName = "";
+    private string _selectedColorName = "";
+    private int _selectedQuantity = 0;
+
+    // Step 2: Wanted list selection
+    private int? _selectedWantedListId = null;
+    private string _newListName = "";
+    private List<WantedList> _wantedLists = new();
+
+    private async Task HandleBrickSelected(BrickSelectionDto selection)
+    {
+        ErrorMessage = "";
+
+        if (selection?.Brick == null || selection.BrickColorId <= 0 || selection.Quantity <= 0)
+        {
+            ErrorMessage = "Invalid selection.";
+            return;
+        }
+
+        _selectedBrick = selection;
+        _selectedBrickName = selection.Brick.Name ?? selection.Brick.LegoName ?? "Unknown";
+        _selectedQuantity = selection.Quantity;
+
+        // Get color name
+        var colors = await BrickService.GetAllColorsAsync();
+        var color = colors.FirstOrDefault(c => c.Id == selection.BrickColorId);
+        _selectedColorName = color?.Name ?? "Unknown";
+
+        // Move to step 2
+        _step = 2;
+        await LoadWantedLists();
+        StateHasChanged();
+    }
+
+    private async Task LoadWantedLists()
+    {
+        _loadingLists = true;
+        try
+        {
+            _wantedLists = await WantedListService.GetCurrentUserWantedListsAsync();
+        }
+        finally
+        {
+            _loadingLists = false;
+        }
+    }
+
+    private void BackToStep1()
+    {
+        _step = 1;
+        _error = "";
+        StateHasChanged();
+    }
+
+    private async Task Save()
+    {
+        _error = "";
+
+        if (_selectedBrick == null)
+        {
+            _error = "No item selected.";
+            return;
+        }
+
+        var createNew = !string.IsNullOrWhiteSpace(_newListName);
+
+        if (!createNew && !_selectedWantedListId.HasValue)
+        {
+            _error = "Please select an existing wanted list OR enter a name for a new one.";
+            return;
+        }
+
+        _saving = true;
+        LoadingService?.Show();
+
+        try
+        {
+            var itemToAdd = new NewWantedListItemModel
+            {
+                MappedBrickId = _selectedBrick.Brick!.Id,
+                BrickName = _selectedBrickName,
+                ColorId = _selectedBrick.BrickColorId,
+                Quantity = _selectedBrick.Quantity
+            };
+
+            bool ok;
+
+            if (createNew)
+            {
+                var model = new NewWantedListModel
+                {
+                    Name = _newListName.Trim(),
+                    Items = new List<NewWantedListItemModel> { itemToAdd }
+                };
+
+                ok = await WantedListService.CreateWantedListAsync(model);
+            }
+            else
+            {
+                ok = await WantedListService.AddItemsToWantedListAsync(
+                    _selectedWantedListId!.Value, 
+                    new List<NewWantedListItemModel> { itemToAdd });
+            }
+
+            if (!ok)
+            {
+                _error = "Saving failed.";
+                return;
+            }
+
+            NotificationService.Success($"{_selectedQuantity}x {_selectedBrickName} added to wanted list.");
+            MudDialog?.Close(true);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            LoadingService?.Hide();
+            _saving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+}
