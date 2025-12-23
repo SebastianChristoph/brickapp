@@ -101,7 +101,7 @@ else
         @if ((_result.InvalidColorIds?.Count ?? 0) > 0)
         {
             <MudAlert Severity="Severity.Warning" Class="mt-3">
-                <b>@_result.InvalidColorIds.Count</b> Farbe(n) aus der Datei konnten nicht auf deine BrickColors gemappt werden.
+                <b>@_result.InvalidColorIds!.Count</b> Farbe(n) aus der Datei konnten nicht auf deine BrickColors gemappt werden.
             </MudAlert>
 
             <MudExpansionPanels Class="mt-2">
@@ -128,7 +128,7 @@ else
         @if ((_result.InvalidRows?.Count ?? 0) > 0)
         {
             <MudAlert Severity="Severity.Warning" Class="mt-3">
-                <b>@_result.InvalidRows.Count</b> Zeile(n) waren ungültig und wurden übersprungen.
+                <b>@_result.InvalidRows!.Count</b> Zeile(n) waren ungültig und wurden übersprungen.
             </MudAlert>
 
             <MudExpansionPanels Class="mt-2">

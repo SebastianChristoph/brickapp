@@ -490,7 +490,7 @@ private bool _isResolving = false;
     using var scope = ServiceProvider.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<brickapp.Data.AppDbContext>();
 
-    var partNums = _mock.MissingItems.Select(m => m.ExternalPartNum).Distinct().ToList();
+    var partNums = _mock.MissingItems?.Select(m => m.ExternalPartNum).Distinct().ToList() ?? new List<string?>();
 
     // Prüfen, welche PartNums jetzt gemappt sind
     var foundPartNums = await db.MappedBricks
