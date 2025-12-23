@@ -193,7 +193,7 @@
         else
         {
             <MudTable Items="_wantedListSummaries" Hover="true" Breakpoint="Breakpoint.Sm" Context="wl" 
-                      OnRowClick="@((TableRowClickEventArgs<WantedListSummary> args) => GoToDetails(args.Item.Id))"
+                      OnRowClick="@((TableRowClickEventArgs<WantedListSummary> args) => GoToDetails(args.Item?.Id ?? 0))"
                       T="WantedListSummary" Style="cursor:pointer">
                 <HeaderContent>
                

@@ -168,7 +168,7 @@ private int _legoPreviewRequestId = 0;
     private string MappingItemId { get; set; } = string.Empty;
 
 
-    private async Task OnSave()
+    private void OnSave()
     {
         _errorMessage = string.Empty;
         if (Brick == null) return;

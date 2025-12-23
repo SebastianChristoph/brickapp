@@ -30,7 +30,7 @@ namespace brickapp.Data.Services
 
             var exportList = sets.Select(s => new ExportSet
             {
-                SetNum = s.SetNum,
+                SetNum = s.SetNum ?? string.Empty,
                 Name = s.Name,
                 Brand = s.Brand,
                 Year = (int)(s.Year ?? 0), // falls Year nullable ist
