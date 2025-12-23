@@ -156,7 +156,6 @@ private int _searchRequestId = 0;
     private List<ItemSet>? sets;
     private List<ItemSet>? _favoriteSets;
     private string _searchText = string.Empty;
-    private bool _addSetDialogOpen = false;
 
     private List<ItemSet> _filteredSets =>
         string.IsNullOrWhiteSpace(_searchText) || _searchText.Length < 3
@@ -190,10 +189,6 @@ private async Task OnSearchChanged(string value)
     _searchingSets = false;
     await InvokeAsync(StateHasChanged);
 }
-
-
-    void OpenAddSetDialog() => _addSetDialogOpen = true;
-    void CloseAddSetDialog() => _addSetDialogOpen = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

@@ -8,6 +8,8 @@
 @inject brickapp.Data.Services.SetFavoritesService SetFavoritesService
 @inject brickapp.Data.Services.MappedBrickService BrickService
 @inject brickapp.Data.Services.ImageService ImageService
+@inject brickapp.Data.Services.RequestService RequestService
+@inject brickapp.Data.Services.NotificationService _notificationService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 
@@ -391,11 +393,30 @@ else
         
         var result = await dialog.Result;
         
-        if (result is not null && !result.Canceled)
+        if (result is not null && !result.Canceled && result.Data is ValueTuple<string, string, string> tuple)
         {
-            await LoadRandomBrick(); // Load a new random brick after successful mapping
+            await UpdateMappingAsync(_randomBrick, tuple.Item1, tuple.Item2, tuple.Item3);
         }
     }
+
+    private async Task UpdateMappingAsync(MappedBrick brick, string brand, string mappingName, string mappingItemId)
+{
+
+    try
+    {
+        var userId = await UserService.GetTokenAsync();
+        if (userId is null)
+            throw new InvalidOperationException("User ist nicht eingeloggt (kein Token).");
+
+        await RequestService.CreateMappingRequestAsync(brick.Id, brand, mappingName, mappingItemId, userId);
+        
+    }
+    catch (Exception ex)
+    {
+        _notificationService.Error("Failed to create mapping request: " + ex.Message);
+
+        }
+}
 
     private async Task OpenUploadImageDialog(MappedBrick brick)
     {

@@ -1,5 +1,5 @@
-﻿@using Helpers
-@page "/allbricks"
+﻿@page "/allbricks"
+@using Helpers
 @using brickapp.Data.Services
 @using brickapp.Data.Entities
 @using brickapp.Components.Dialogs
@@ -364,7 +364,7 @@
 @if (!string.IsNullOrWhiteSpace(_searchText) && _searchText.Length >= 3)
 {
     <MudTable Items="bricks" Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize"
-        OnPageChanged="OnPageChanged" OnRowsPerPageChanged="OnRowsPerPageChanged">
+        PageChanged="OnPageChanged" RowsPerPageChanged="OnRowsPerPageChanged">
         <HeaderContent>
             <MudTh>Actions</MudTh>
             <MudTh>Image</MudTh>
@@ -641,8 +641,8 @@
 else if (_showMappedOnly)
 {
     <MudTable Items="bricks"
-        Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize" OnPageChanged="OnPageChanged"
-        OnRowsPerPageChanged="OnRowsPerPageChanged">
+        Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize" PageChanged="OnPageChanged"
+        RowsPerPageChanged="OnRowsPerPageChanged">
         <HeaderContent>
             <MudTh>Actions</MudTh>
             <MudTh>Image</MudTh>

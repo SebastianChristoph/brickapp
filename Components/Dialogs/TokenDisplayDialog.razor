@@ -62,7 +62,7 @@
 
     private void CloseAndLogin()
     {
-        MudDialog.Close(DialogResult.Ok(true));
+        MudDialog?.Close(DialogResult.Ok(true));
         Nav.NavigateTo("/login", true);
     }
 }

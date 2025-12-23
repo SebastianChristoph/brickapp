@@ -47,7 +47,7 @@
         Items.Add(new SetItemInput());
     }
 
-    async Task OnImageUpload(InputFileChangeEventArgs e)
+    void OnImageUpload(InputFileChangeEventArgs e)
     {
         UploadedImage = e.File;
     }

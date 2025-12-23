@@ -25,7 +25,11 @@ public class AppUser
     // Navigation: NewItemRequests, die dieser User genehmigt hat
     public ICollection<NewItemRequest> NewItemRequestsApproved { get; set; } = new List<NewItemRequest>();
 
+
     // Navigation: Favorite Sets
     public ICollection<UserSetFavorite> FavoriteSets { get; set; } = new List<UserSetFavorite>();
+
+    // Brickets: Fictive currency for user achievements
+    public int Brickets { get; set; } = 0;
 
 }

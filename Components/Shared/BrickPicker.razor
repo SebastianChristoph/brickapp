@@ -64,11 +64,18 @@
 </style>
 
 <div>
+    @if (_searchingBricks)
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+            <MudText Typo="Typo.body2">Searching in database...</MudText>
+        </MudStack>
+    }
     @* Brick Search Field *@
     <MudAutocomplete T="MappedBrick"
                      Value="@SelectedBrick"
                      ValueChanged="@OnBrickSelected"
-                     SearchFunc="SearchBricks"
+                     SearchFunc="SearchBricksWrapper"
                      Label="@Label"
                      Placeholder="@Placeholder"
                      ToStringFunc="@(b => GetBrickDisplayName(b))"
@@ -175,7 +182,7 @@
 </div>
 
 @code {
-    [Parameter] public string Label { get; set; } = "Search for a brick";
+    [Parameter] public string Label { get; set; } = "Search for an item";
     [Parameter] public string Placeholder { get; set; } = "Enter part number or name...";
     [Parameter] public string AddButtonText { get; set; } = "Add to List";
     [Parameter] public bool ShowQuickColorPicker { get; set; } = true;
@@ -184,6 +191,7 @@
     [Parameter] public EventCallback<BrickSelectionDto> OnBrickAdded { get; set; }
 
     private List<MappedBrick> _allBricks = new();
+    private bool _searchingBricks = false;
     private bool _allBricksLoaded = false;
     private List<BrickColor> _allColors = new();
     private List<BrickColor> _availableColors = new();
@@ -251,6 +259,16 @@
             Logger.LogError(ex, "🔴 [BrickPicker] Error loading bricks");
             _allBricks = new();
         }
+    }
+
+    private async Task<IEnumerable<MappedBrick>> SearchBricksWrapper(string searchText, CancellationToken cancellationToken)
+    {
+        _searchingBricks = true;
+        StateHasChanged();
+        var results = await SearchBricks(searchText, cancellationToken);
+        _searchingBricks = false;
+        StateHasChanged();
+        return results;
     }
 
     private async Task<IEnumerable<MappedBrick>> SearchBricks(string searchText, CancellationToken cancellationToken)
@@ -343,12 +361,22 @@
         // Alle Farben verfügbar machen
         _availableColors = _allColors.OrderBy(c => c.Name).ToList();
 
-        // Quick Colors: Die häufigsten/wichtigsten Farben
-        var commonColorNames = new[] { "Black", "White", "Red", "Blue", "Yellow", "Green", "Gray", "Dark Bluish Gray", "Light Bluish Gray", "Brown", "Tan", "Orange" };
+        // Quick Colors: Die 10 meistgenutzten Farben laut Statistik
+        var topColorNames = new[] {
+            "Black",
+            "White",
+            "Light Bluish Gray",
+            "Dark Bluish Gray",
+            "Red",
+            "Yellow",
+            "Reddish Brown",
+            "Blue",
+            "Tan",
+            "Light Gray"
+        };
         _quickColors = _allColors
-            .Where(c => commonColorNames.Contains(c.Name, StringComparer.OrdinalIgnoreCase))
-            .OrderBy(c => Array.IndexOf(commonColorNames, c.Name))
-            .Take(12)
+            .Where(c => topColorNames.Contains(c.Name, StringComparer.OrdinalIgnoreCase))
+            .OrderBy(c => Array.IndexOf(topColorNames, c.Name))
             .ToList();
     }
 
