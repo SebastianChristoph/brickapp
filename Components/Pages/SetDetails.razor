@@ -175,6 +175,7 @@ else
             <MudTh>Unknown</MudTh>
             <MudTh>Quantity</MudTh>
             <MudTh>Do you have this in your inventory?</MudTh>
+            <MudTh>Actions</MudTh>
         </HeaderContent>
 
         <RowTemplate>
@@ -453,6 +454,23 @@ else
                         <MudChip T="string" Color="Color.Default">None</MudChip>
                     }
                 }
+            </MudTd>
+
+            <MudTd>
+                <MudStack Row="true" Spacing="1">
+                    <MudTooltip Text="Add to Inventory">
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                            OnClick="@(() => OpenAddInventoryDialog(context.MappedBrick))">
+                            <MudIcon Icon="@Icons.Material.Filled.Add" />
+                        </MudButton>
+                    </MudTooltip>
+                    <MudTooltip Text="Add to Wanted List">
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                            OnClick="@(() => OpenAddToWantedListDialog(context.MappedBrick))">
+                            <MudIcon Icon="@Icons.Material.Filled.PlaylistAdd" />
+                        </MudButton>
+                    </MudTooltip>
+                </MudStack>
             </MudTd>
         </RowTemplate>
         <PagerContent>
@@ -804,5 +822,25 @@ else
             NotificationService?.Error(_error ?? "Error updating favorites.");
             StateHasChanged();
         }
+    }
+
+    private async Task OpenAddInventoryDialog(MappedBrick? brick)
+    {
+        if (brick == null) return;
+
+        var parameters = new DialogParameters<AddInventoryItemDialog>();
+        parameters.Add(x => x.PreselectedBrick, brick);
+        var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>("Add item to inventory", parameters);
+        var result = await dialog.Result;
+    }
+
+    private async Task OpenAddToWantedListDialog(MappedBrick? brick)
+    {
+        if (brick == null) return;
+
+        var parameters = new DialogParameters<AddToWantedListDialog>();
+        parameters.Add(x => x.PreselectedBrick, brick);
+        var dialog = await DialogService.ShowAsync<AddToWantedListDialog>("Add item to wanted list", parameters);
+        var result = await dialog.Result;
     }
 }

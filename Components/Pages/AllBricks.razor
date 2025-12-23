@@ -366,7 +366,7 @@
     <MudTable Items="bricks" Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize"
         OnPageChanged="OnPageChanged" OnRowsPerPageChanged="OnRowsPerPageChanged">
         <HeaderContent>
-            <MudTh></MudTh>
+            <MudTh>Actions</MudTh>
             <MudTh>Image</MudTh>
             <MudTh>Name</MudTh>
             <MudTh>Lego</MudTh>
@@ -378,12 +378,20 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <MudTooltip Text="Add to Inventory">
-                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                        OnClick="@(() => OpenAddInventoryDialog(context))">
-                        <MudIcon Icon="@Icons.Material.Filled.Add" />
-                    </MudButton>
-                </MudTooltip>
+                <MudStack Row="true" Spacing="1">
+                    <MudTooltip Text="Add to Inventory">
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                            OnClick="@(() => OpenAddInventoryDialog(context))">
+                            <MudIcon Icon="@Icons.Material.Filled.Add" />
+                        </MudButton>
+                    </MudTooltip>
+                    <MudTooltip Text="Add to Wanted List">
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                            OnClick="@(() => OpenAddToWantedListDialog(context))">
+                            <MudIcon Icon="@Icons.Material.Filled.PlaylistAdd" />
+                        </MudButton>
+                    </MudTooltip>
+                </MudStack>
             </MudTd>
             <MudTd DataLabel="Image">
                 @{
@@ -637,7 +645,7 @@ else if (_showMappedOnly)
         Hover="true" Striped="true" Dense="false" Page="_currentPage" RowsPerPage="_pageSize" OnPageChanged="OnPageChanged"
         OnRowsPerPageChanged="OnRowsPerPageChanged">
         <HeaderContent>
-            <MudTh></MudTh>
+            <MudTh>Actions</MudTh>
             <MudTh>Image</MudTh>
             <MudTh>Name</MudTh>
             <MudTh>Lego</MudTh>
@@ -649,12 +657,20 @@ else if (_showMappedOnly)
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <MudTooltip Text="Add to Inventory">
-                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                        OnClick="@(() => OpenAddInventoryDialog(context))">
-                        <MudIcon Icon="@Icons.Material.Filled.Add" />
-                    </MudButton>
-                </MudTooltip>
+                <MudStack Row="true" Spacing="1">
+                    <MudTooltip Text="Add to Inventory">
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                            OnClick="@(() => OpenAddInventoryDialog(context))">
+                            <MudIcon Icon="@Icons.Material.Filled.Add" />
+                        </MudButton>
+                    </MudTooltip>
+                    <MudTooltip Text="Add to Wanted List">
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                            OnClick="@(() => OpenAddToWantedListDialog(context))">
+                            <MudIcon Icon="@Icons.Material.Filled.PlaylistAdd" />
+                        </MudButton>
+                    </MudTooltip>
+                </MudStack>
             </MudTd>
             <MudTd DataLabel="Image">
                 @{
@@ -916,6 +932,18 @@ private async Task LoadRandomBrick()
         /* if (result is not null && result.Data is bool b && b)
         {
             NotificationService.Success("Item added to inventory!");
+        } */
+    }
+
+    private async Task OpenAddToWantedListDialog(MappedBrick brick)
+    {
+        var parameters = new DialogParameters<AddToWantedListDialog>();
+        parameters.Add(x => x.PreselectedBrick, brick);
+        var dialog = await DialogService.ShowAsync<AddToWantedListDialog>("Add item to wanted list", parameters, dialogOptions);
+        var result = await dialog.Result;
+        /* if (result is not null && result.Data is bool b && b)
+        {
+            NotificationService.Success("Item added to wanted list!");
         } */
     }
 
