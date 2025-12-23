@@ -12,17 +12,20 @@ namespace brickapp.Data.Services
         private readonly UserNotificationService _notificationService;
         private readonly ImageService _imageService;
         private readonly ILogger<RequestService> _logger;
+        private readonly NotificationService _notification;
 
         public RequestService(
             IDbContextFactory<AppDbContext> dbFactory,
             UserNotificationService notificationService,
             ImageService imageService,
-            ILogger<RequestService> logger)
+            ILogger<RequestService> logger,
+            NotificationService notification)
         {
             _dbFactory = dbFactory;
             _notificationService = notificationService;
             _imageService = imageService;
             _logger = logger;
+            _notification = notification;
         }
 
         // NEW ITEM REQUESTS
@@ -527,8 +530,18 @@ public Task ApproveNewItemRequestAsync(int requestId, string adminUserId)
             };
 
             db.MappingRequests.Add(request);
-            await db.SaveChangesAsync();
-            return request;
+            try
+            {
+                await db.SaveChangesAsync();
+                _logger.LogInformation("MappingRequest created: {@request}", request);
+                return request;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create MappingRequest: {@request}", request);
+                _notification.Error($"Failed to create MappingRequest: {ex.Message}");
+                throw; // Optional: oder gib null zurück, je nach API-Design
+            }
         }
 
         public async Task ApproveMappingRequestAsync(int requestId, string adminUserId)
