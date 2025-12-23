@@ -162,19 +162,75 @@ else
     </style>
 
     <MudTable @key="_tableKey" Items="@_tableItems" Page="_itemsPage" RowsPerPage="_itemsRowsPerPage"
-        OnPageChanged="OnItemsPageChanged" OnRowsPerPageChanged="OnItemsRowsPerPageChanged">
+        OnPageChanged="OnItemsPageChanged" OnRowsPerPageChanged="OnItemsRowsPerPageChanged"
+        Sortable="true" T="ItemSetBrick">
         <HeaderContent>
             <MudTh>Actions</MudTh>
             <MudTh>Image</MudTh>
-            <MudTh>Name</MudTh>
-            <MudTh>Color</MudTh>
-            <MudTh>Lego</MudTh>
-            <MudTh>BlueBrixx</MudTh>
-            <MudTh>Cada</MudTh>
-            <MudTh>Pantasy</MudTh>
-            <MudTh>Mould King</MudTh>
-            <MudTh>Unknown</MudTh>
-            <MudTh>Quantity</MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="ItemSetBrick"
+                                   SortBy="@(x => x.MappedBrick?.Name ?? string.Empty)">
+                    Name
+                </MudTableSortLabel>
+            </MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="ItemSetBrick"
+                                   SortBy="@(x => x.BrickColor?.Name ?? string.Empty)">
+                    Color
+                </MudTableSortLabel>
+            </MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="ItemSetBrick"
+                                   SortBy="@(x => x.MappedBrick?.LegoName ?? string.Empty)">
+                    Lego
+                </MudTableSortLabel>
+            </MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="ItemSetBrick"
+                                   SortBy="@(x => x.MappedBrick?.BluebrixxName ?? string.Empty)">
+                    BlueBrixx
+                </MudTableSortLabel>
+            </MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="ItemSetBrick"
+                                   SortBy="@(x => x.MappedBrick?.CadaName ?? string.Empty)">
+                    Cada
+                </MudTableSortLabel>
+            </MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="ItemSetBrick"
+                                   SortBy="@(x => x.MappedBrick?.PantasyName ?? string.Empty)">
+                    Pantasy
+                </MudTableSortLabel>
+            </MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="ItemSetBrick"
+                                   SortBy="@(x => x.MappedBrick?.MouldKingName ?? string.Empty)">
+                    Mould King
+                </MudTableSortLabel>
+            </MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="ItemSetBrick"
+                                   SortBy="@(x => x.MappedBrick?.UnknownName ?? string.Empty)">
+                    Unknown
+                </MudTableSortLabel>
+            </MudTh>
+            
+            <MudTh>
+                <MudTableSortLabel T="ItemSetBrick"
+                                   SortBy="@(x => x.Quantity)">
+                    Quantity
+                </MudTableSortLabel>
+            </MudTh>
+            
             <MudTh>Do you have this in your inventory?</MudTh>
             
         </HeaderContent>
