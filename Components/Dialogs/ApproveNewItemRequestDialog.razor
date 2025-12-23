@@ -1,4 +1,5 @@
 @using MudBlazor
+@using brickapp.Data.Services
 
 <MudDialog>
     <DialogContent>
@@ -17,6 +18,34 @@
                       Required="true"
                       Immediate="true"
                       HelperText="Edit the name if needed" />
+
+        @if (!string.IsNullOrWhiteSpace(PartNum) && Brand?.ToLower() == "lego")
+        {
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Info"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       Class="mt-2"
+                       OnClick="FetchBricklinkName"
+                       Disabled="_isFetching">
+                @if (_isFetching)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    <span class="ml-2">Fetching...</span>
+                }
+                else
+                {
+                    <span>Try to get Bricklink name</span>
+                }
+            </MudButton>
+
+            @if (!string.IsNullOrWhiteSpace(_fetchMessage))
+            {
+                <MudAlert Severity="_fetchSuccess ? Severity.Success : Severity.Warning" 
+                          Class="mt-2" Dense="true">
+                    @_fetchMessage
+                </MudAlert>
+            }
+        }
 
         @if (_nameChanged)
         {
@@ -44,9 +73,17 @@
     [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
 
     [Parameter] public string? CurrentName { get; set; }
+    [Parameter] public string? PartNum { get; set; }
+    [Parameter] public string? Brand { get; set; }
+
+    [Inject] private BricklinkScraperService BricklinkScraperService { get; set; } = default!;
 
     private string _name = "";
     private string _originalName = "";
+    private bool _isFetching = false;
+    private string? _fetchMessage = null;
+    private bool _fetchSuccess = false;
+
     private bool _nameChanged => !string.IsNullOrWhiteSpace(_name) && 
                                   !string.IsNullOrWhiteSpace(_originalName) && 
                                   _name.Trim() != _originalName.Trim();
@@ -55,6 +92,43 @@
     {
         _name = CurrentName ?? "";
         _originalName = CurrentName ?? "";
+    }
+
+    private async Task FetchBricklinkName()
+    {
+        if (string.IsNullOrWhiteSpace(PartNum))
+            return;
+
+        _isFetching = true;
+        _fetchMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var fetchedName = await BricklinkScraperService.GetBricklinkItemNameAsync(PartNum);
+
+            if (!string.IsNullOrWhiteSpace(fetchedName))
+            {
+                _name = fetchedName;
+                _fetchSuccess = true;
+                _fetchMessage = "Successfully fetched name from Bricklink!";
+            }
+            else
+            {
+                _fetchSuccess = false;
+                _fetchMessage = "Could not extract name from Bricklink page.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _fetchSuccess = false;
+            _fetchMessage = $"Error fetching name: {ex.Message}";
+        }
+        finally
+        {
+            _isFetching = false;
+            StateHasChanged();
+        }
     }
 
     private void Cancel()

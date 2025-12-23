@@ -171,6 +171,30 @@ namespace brickapp.Data.Services
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<bool> DeleteMappedBrickAsync(int brickId)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var brick = await db.MappedBricks
+                .Include(b => b.MappingRequests)
+                .FirstOrDefaultAsync(b => b.Id == brickId);
+
+            if (brick == null)
+                return false;
+
+            // Remove all related mapping requests first
+            if (brick.MappingRequests?.Any() == true)
+            {
+                db.MappingRequests.RemoveRange(brick.MappingRequests);
+            }
+
+            // Remove the brick itself
+            db.MappedBricks.Remove(brick);
+
+            await db.SaveChangesAsync();
+            return true;
+        }
+
         private bool HasImage(MappedBrick brick)
         {
             // Prüfe ob Bild existiert (gleiche Logik wie ImageService.GetMappedBrickImagePath)
