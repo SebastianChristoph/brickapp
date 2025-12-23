@@ -20,6 +20,7 @@
 @inject ILogger<MyMocks> _logger
 
 
+<PageTitle>My MOCs</PageTitle>
 
 <MudText Typo="Typo.h4" GutterBottom="true">My MOCs</MudText>
 
@@ -124,8 +125,10 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Bild">
-            <img src="@ImageService.GetMockImagePath(mock)" alt="Mock Bild"
-                 style="width:48px;height:48px;object-fit:contain;border:1px solid #ccc;background:#fff;padding:2px;border-radius:6px;" />
+            <div style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
+                <img src="@ImageService.GetMockImagePath(mock)" alt="Mock Bild"
+                     style="width:48px;height:48px;object-fit:contain;border:1px solid #ccc;background:#fff;padding:2px;border-radius:6px;" />
+            </div>
         </MudTd>
         <MudTd DataLabel="Name">
             <div style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
@@ -142,12 +145,12 @@
             <MudText Typo="Typo.body2">@totalParts Parts</MudText>
         </MudTd>
         <MudTd DataLabel="Actions" Style="text-align:right">
-            <MudButton Variant="Variant.Outlined" 
+            <MudIconButton Variant="Variant.Outlined" 
                        Color="Color.Error" 
+                       Icon="@Icons.Material.Filled.Delete" 
                        Size="Size.Small" 
                        OnClick="@(() => DeleteMock(mock.Id))">
-                Delete
-            </MudButton>
+            </MudIconButton>
         </MudTd>
     </RowTemplate>
 </MudTable>
