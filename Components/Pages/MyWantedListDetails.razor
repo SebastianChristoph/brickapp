@@ -48,7 +48,7 @@ You can now add them to your MOC by clicking the button below to improve the vis
                        StartIcon="@Icons.Material.Filled.Add"
                        Disabled="@_isResolving"
                        OnClick="AddResolvableItems">
-                Teile zur Liste hinzufügen
+                       Update items in list
             </MudButton>
         </MudStack>
     </MudAlert>
@@ -76,7 +76,19 @@ You can now add them to your MOC by clicking the button below to improve the vis
 
     <br />
 
-    <MudText Typo="Typo.h6" GutterBottom="true">Items in this list</MudText>
+    <MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
+        <MudText Typo="Typo.h6" GutterBottom="true">Items in this list</MudText>
+
+        <MudButton Variant="@(_showOnlyMissing? Variant.Outlined: Variant.Filled)" Color="Color.Primary"
+            OnClick="ShowAllItems" StartIcon="@Icons.Material.Filled.List" Class="ml-4">
+            Show all items
+        </MudButton>
+
+        <MudButton Variant="@(_showOnlyMissing? Variant.Filled: Variant.Outlined)" Color="Color.Primary"
+            StartIcon="@Icons.Material.Filled.FilterList" OnClick="ShowOnlyMissingItems">
+            Show only missing items
+        </MudButton>
+    </MudStack>
 
     <style>
         .brick {
@@ -126,8 +138,7 @@ You can now add them to your MOC by clicking the button below to improve the vis
         }
     </style>
 
-    <MudTable Items="(_wantedList.Items ?? Enumerable.Empty<WantedListItem>()).OrderBy(b => b.BrickColor?.Name)"
-        Hover="true" Dense="true" Page="_itemsPage" RowsPerPage="_itemsRowsPerPage" OnPageChanged="OnItemsPageChanged"
+    <MudTable @key="_tableKey" Items="@_tableItems" Hover="true" Dense="true" Page="_itemsPage" RowsPerPage="_itemsRowsPerPage" OnPageChanged="OnItemsPageChanged"
         OnRowsPerPageChanged="OnItemsRowsPerPageChanged">
 
         <HeaderContent>
@@ -264,6 +275,11 @@ You can now add them to your MOC by clicking the button below to improve the vis
     private List<MissingItem> _resolvableItems = new();
     private bool _isResolving = false;
 
+    // Filter state
+    private bool _showOnlyMissing = false;
+    private Guid _tableKey = Guid.NewGuid();
+    private List<WantedListItem> _tableItems = new();
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -272,6 +288,7 @@ You can now add them to your MOC by clicking the button below to improve the vis
 
         await LoadData();
         _resolvableItems = await WantedListService.GetResolvableMissingItemsAsync(wantedListId);
+        UpdateTableItems();
         _loading = false;
     }
 
@@ -285,6 +302,42 @@ You can now add them to your MOC by clicking the button below to improve the vis
         g => g.Key,
         g => g.GroupBy(i => i.Brand).ToDictionary(bg => bg.Key, bg => bg.Sum(i => i.Quantity))
         );
+    }
+
+    private void UpdateTableItems()
+    {
+        if (_wantedList?.Items == null)
+        {
+            _tableItems = new();
+            return;
+        }
+
+        var items = _wantedList.Items.AsEnumerable();
+
+        if (_showOnlyMissing)
+        {
+            items = items.Where(i => GetOwnedQuantity(i) < i.Quantity);
+        }
+
+        _tableItems = items.OrderBy(b => b.BrickColor?.Name).ToList();
+    }
+
+    private void ShowAllItems()
+    {
+        _showOnlyMissing = false;
+        UpdateTableItems();
+        _itemsPage = 0;
+        _tableKey = Guid.NewGuid();
+        StateHasChanged();
+    }
+
+    private void ShowOnlyMissingItems()
+    {
+        _showOnlyMissing = true;
+        UpdateTableItems();
+        _itemsPage = 0;
+        _tableKey = Guid.NewGuid();
+        StateHasChanged();
     }
 
     private async Task AddResolvableItems()
@@ -301,6 +354,7 @@ You can now add them to your MOC by clicking the button below to improve the vis
     // Daten neu laden
     _resolvableItems.Clear();
     await LoadData();
+    UpdateTableItems();
     _isResolving = false;
 }
 
@@ -318,6 +372,7 @@ You can now add them to your MOC by clicking the button below to improve the vis
 
         _itemsPage = 0; // <-- wichtig
         _wantedList = await WantedListService.GetWantedListByIdAsync(wantedListId);
+        UpdateTableItems();
     }
 
     private async Task OpenEditItemDialog(int itemId, int currentQuantity, int currentColorId)
@@ -338,6 +393,7 @@ You can now add them to your MOC by clicking the button below to improve the vis
             {
                 NotificationService.Success("Item updated successfully.");
                 await LoadData();
+                UpdateTableItems();
                 StateHasChanged();
             }
             else

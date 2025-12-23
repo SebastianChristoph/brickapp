@@ -331,12 +331,18 @@ private async Task<string?> OpenApproveNewItemDialogAsync(string currentName)
     return string.IsNullOrWhiteSpace(name) ? null : name.Trim();
 }
 
-private async Task<ApproveItemDialogResult?> OpenApproveItemNameDialogAsync(string currentName)
+private async Task<ApproveItemDialogResult?> OpenApproveItemNameDialogAsync(string currentName, string? partNum = null, string? brand = null)
 {
     var parameters = new DialogParameters
     {
         ["CurrentName"] = currentName
     };
+
+    if (!string.IsNullOrWhiteSpace(partNum))
+        parameters.Add("PartNum", partNum);
+
+    if (!string.IsNullOrWhiteSpace(brand))
+        parameters.Add("Brand", brand);
 
     var options = new DialogOptions
     {
@@ -363,7 +369,7 @@ private async Task<ApproveItemDialogResult?> OpenApproveItemNameDialogAsync(stri
 
 private async Task ApproveNewItemRequestWithDialog(Data.Entities.NewItemRequest req)
 {
-    var dialogResult = await OpenApproveItemNameDialogAsync(req.Name ?? "");
+    var dialogResult = await OpenApproveItemNameDialogAsync(req.Name ?? "", req.PartNum, req.Brand);
     if (dialogResult is null) return; // cancel
 
     await ApproveNewItemRequest(req.Id, dialogResult.Name, dialogResult.NameChanged);

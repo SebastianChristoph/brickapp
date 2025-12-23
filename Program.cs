@@ -74,6 +74,7 @@ builder.Services.AddScoped<StatsService>();
 builder.Services.AddScoped<SetFavoritesService>();
 builder.Services.AddScoped<TrackingService>();
 builder.Services.AddHttpClient<RebrickableApiService>();
+builder.Services.AddHttpClient<BricklinkScraperService>();
 
 builder.Services.AddScoped<IPartsListUploadService, PartsListUploadService>();
 
