@@ -66,7 +66,8 @@
 <div>
     @* Brick Search Field *@
     <MudAutocomplete T="MappedBrick"
-                     @bind-Value="SelectedBrick"
+                     Value="@SelectedBrick"
+                     ValueChanged="@OnBrickSelected"
                      SearchFunc="SearchBricks"
                      Label="@Label"
                      Placeholder="@Placeholder"

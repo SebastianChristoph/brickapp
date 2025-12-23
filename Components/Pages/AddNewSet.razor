@@ -210,7 +210,7 @@ else
                     <MudTh>Color</MudTh>
                  
                     <MudTh>Quantity</MudTh>
-                    <MudTh>Actions</MudTh>
+                    <MudTh Style="text-align:right">Actions</MudTh>
                 </HeaderContent>
 
                 <RowTemplate Context="brick">
@@ -243,11 +243,10 @@ else
                   
                     <MudTd DataLabel="Quantity">@brick.Quantity</MudTd>
 
-                    <MudTd DataLabel="Actions">
-                        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                    <MudTd DataLabel="Actions" Style="text-align:right">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
                                    @onclick="() => RemoveBrick(brick)">
-                            Delete
-                        </MudButton>
+                        </MudIconButton>
                     </MudTd>
                 </RowTemplate>
             </MudTable>

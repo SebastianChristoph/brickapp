@@ -196,18 +196,18 @@ else
                         <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
 
                         <MudTd DataLabel="Actions">
-                            <MudButton Size="Size.Small"
+                            <MudIconButton Size="Size.Small"
                                        Variant="Variant.Outlined"
                                        Color="Color.Primary"
+                                       Icon="@Icons.Material.Filled.Edit"
                                        OnClick="@(() => OpenEditDialog(context.Id, context.Quantity, context.BrickColorId))">
-                                Edit
-                            </MudButton>
-                            <MudButton Size="Size.Small"
+                            </MudIconButton>
+                            <MudIconButton Size="Size.Small"
                                        Variant="Variant.Outlined"
                                        Color="Color.Error"
+                                       Icon="@Icons.Material.Filled.Delete"
                                        OnClick="@((MouseEventArgs e) => OpenDeleteDialog(context.Id))">
-                                Delete
-                            </MudButton>
+                            </MudIconButton>
                         </MudTd>
                     </RowTemplate>
 

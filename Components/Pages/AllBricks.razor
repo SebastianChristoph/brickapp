@@ -380,16 +380,15 @@
             <MudTd>
                 <MudStack Row="true" Spacing="1">
                     <MudTooltip Text="Add to Inventory">
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                        <MudIconButton  Icon="@Icons.Material.Filled.Add" Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
                             OnClick="@(() => OpenAddInventoryDialog(context))">
-                            <MudIcon Icon="@Icons.Material.Filled.Add" />
-                        </MudButton>
+                        </MudIconButton>
                     </MudTooltip>
                     <MudTooltip Text="Add to Wanted List">
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                        <MudIconButton Icon="@Icons.Material.Filled.PlaylistAdd" Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
                             OnClick="@(() => OpenAddToWantedListDialog(context))">
-                            <MudIcon Icon="@Icons.Material.Filled.PlaylistAdd" />
-                        </MudButton>
+                            
+                        </MudIconButton>
                     </MudTooltip>
                 </MudStack>
             </MudTd>

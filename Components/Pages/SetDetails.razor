@@ -164,6 +164,7 @@ else
     <MudTable @key="_tableKey" Items="@_tableItems" Page="_itemsPage" RowsPerPage="_itemsRowsPerPage"
         OnPageChanged="OnItemsPageChanged" OnRowsPerPageChanged="OnItemsRowsPerPageChanged">
         <HeaderContent>
+            <MudTh>Actions</MudTh>
             <MudTh>Image</MudTh>
             <MudTh>Name</MudTh>
             <MudTh>Color</MudTh>
@@ -175,10 +176,25 @@ else
             <MudTh>Unknown</MudTh>
             <MudTh>Quantity</MudTh>
             <MudTh>Do you have this in your inventory?</MudTh>
-            <MudTh>Actions</MudTh>
+            
         </HeaderContent>
 
         <RowTemplate>
+                 <MudTd>
+                <MudStack Row="true" Spacing="1">
+                    <MudTooltip Text="Add to Inventory">
+                        <MudIconButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                            OnClick="@(() => OpenAddInventoryDialog(context.MappedBrick))"
+                            Icon="@Icons.Material.Filled.Add">
+                        </MudIconButton>
+                    </MudTooltip>
+                    <MudTooltip Text="Add to Wanted List">
+                        <MudIconButton Icon="@Icons.Material.Filled.PlaylistAdd"  Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                            OnClick="@(() => OpenAddToWantedListDialog(context.MappedBrick))">
+                        </MudIconButton>
+                    </MudTooltip>
+                </MudStack>
+            </MudTd>
             <MudTd DataLabel="Image">
                 @{
                     var imgUrl = context.MappedBrick != null
@@ -451,27 +467,14 @@ else
                     }
                     else
                     {
-                        <MudChip T="string" Color="Color.Default">None</MudChip>
+                        <MudTooltip Text="You do not own this item in your inventory.">
+                       <MudIcon Icon="@Icons.Material.Filled.NoSim" Title="Favorite" />
+                       </MudTooltip>
                     }
                 }
             </MudTd>
 
-            <MudTd>
-                <MudStack Row="true" Spacing="1">
-                    <MudTooltip Text="Add to Inventory">
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                            OnClick="@(() => OpenAddInventoryDialog(context.MappedBrick))">
-                            <MudIcon Icon="@Icons.Material.Filled.Add" />
-                        </MudButton>
-                    </MudTooltip>
-                    <MudTooltip Text="Add to Wanted List">
-                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                            OnClick="@(() => OpenAddToWantedListDialog(context.MappedBrick))">
-                            <MudIcon Icon="@Icons.Material.Filled.PlaylistAdd" />
-                        </MudButton>
-                    </MudTooltip>
-                </MudStack>
-            </MudTd>
+       
         </RowTemplate>
         <PagerContent>
             <MudTablePager PageSizeOptions="new int[] { 25, 50, 100, 250 }" />
