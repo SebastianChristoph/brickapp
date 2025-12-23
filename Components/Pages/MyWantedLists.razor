@@ -121,7 +121,7 @@
                     <MudTh>Brick</MudTh>
                     <MudTh>Color</MudTh>
                     <MudTh>Quantity</MudTh>
-                    <MudTh></MudTh>
+                    <MudTh Style="text-align:right">Actions</MudTh>
                 </HeaderContent>
 
                 <RowTemplate Context="item">
@@ -150,20 +150,21 @@
                     <MudTd DataLabel="Brick">@item.BrickName</MudTd>
                     <MudTd DataLabel="Color">@brickColors.FirstOrDefault(c => c.Id == item.ColorId)?.Name</MudTd>
                     <MudTd DataLabel="Quantity">@item.Quantity</MudTd>
-                    <MudTd>
-                        <MudButton Variant="Variant.Outlined"
+                    <MudTd DataLabel="Actions" Style="text-align:right">
+                        <MudIconButton  Variant="Variant.Outlined"
                                    Color="Color.Primary"
                                    Size="Size.Small"
                                    OnClick="@(() => OpenEditItemDialog(item))"
+                                      Icon="@Icons.Material.Filled.Edit"
                                    Class="mr-2">
-                            Edit
-                        </MudButton>
-                        <MudButton Variant="Variant.Outlined"
+                        </MudIconButton>
+                        
+                        <MudIconButton Variant="Variant.Outlined"
                                    Color="Color.Error"
                                    Size="Size.Small"
-                                   OnClick="@(() => RemoveItem(item))">
-                            Remove
-                        </MudButton>
+                                   OnClick="@(() => RemoveItem(item))"
+                                      Icon="@Icons.Material.Filled.Delete">
+                        </MudIconButton>
                     </MudTd>
                 </RowTemplate>
 
@@ -177,41 +178,53 @@
 
 <MudDivider Class="my-12" />
 
-@if (_loading)
-{
-    <MudProgressCircular Indeterminate="true" />
-    <MudText Typo="Typo.body2">Loading wanted lists…</MudText>
-}
-else if (_wantedListSummaries == null || !_wantedListSummaries.Any())
-{
-    <MudAlert Severity="Severity.Info">You do not have any wanted lists yet.</MudAlert>
-}
-else
-{
-    <MudTable Items="_wantedListSummaries" Hover="true" Striped="true">
-        <HeaderContent>
-            <MudTh>Name</MudTh>
-            <MudTh>Items</MudTh>
-            <MudTh>Action</MudTh>
-        </HeaderContent>
-        <RowTemplate Context="wl">
-            <MudTd>
-                <span style="cursor:pointer; color: #1976d2; font-size: 1.3rem; text-decoration: underline;"
-                      @onclick="() => GoToDetails(wl.Id)">
-                    @wl.Name
-                </span>
-                <div style="color:#777; font-size:0.9em;">Added from: @wl.Source</div>
-            </MudTd>
-            <MudTd>@wl.ItemCount</MudTd>
-            <MudTd>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
-                           OnClick="@(() => RemoveWantedList(wl.Id))">
-                    Remove
-                </MudButton>
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-}
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5">Your Wanted Lists</MudText>
+
+    <MudList T="string">
+        @if (_loading)
+        {
+            <MudText>Loading...</MudText>
+        }
+        else if (_wantedListSummaries == null || !_wantedListSummaries.Any())
+        {
+            <MudAlert Severity="Severity.Info">You do not have any wanted lists yet.</MudAlert>
+        }
+        else
+        {
+            <MudTable Items="_wantedListSummaries" Hover="true" Breakpoint="Breakpoint.Sm" Context="wl" 
+                      OnRowClick="@((TableRowClickEventArgs<WantedListSummary> args) => GoToDetails(args.Item.Id))"
+                      T="WantedListSummary" Style="cursor:pointer">
+                <HeaderContent>
+               
+                    <MudTh>Name</MudTh>
+                    <MudTh>Source</MudTh>
+                    <MudTh>Items</MudTh>
+                    <MudTh Style="text-align:right">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">
+                        <MudText>@wl.Name</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Source">
+                        <MudText>@wl.Source</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Items">
+                        <MudText Typo="Typo.body2">@wl.ItemCount Parts</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Actions" Style="text-align:right" @onclick:stopPropagation="true">
+                        <MudIconButton Variant="Variant.Outlined" 
+                                   Color="Color.Error" 
+                                   Icon="@Icons.Material.Filled.Delete" 
+                                   Size="Size.Small" 
+                                   OnClick="@(() => RemoveWantedList(wl.Id))">
+                        </MudIconButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudList>
+</MudPaper>
 
 @code {
     // Overview ist jetzt super leicht
