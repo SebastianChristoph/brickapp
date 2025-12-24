@@ -1,28 +1,18 @@
-using brickapp.Data;
 using brickapp.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace brickapp.Data.Services
 {
 
-public class ItemSetService
+public class ItemSetService(IDbContextFactory<AppDbContext> dbFactory, UserService userService)
 {
-    private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    private readonly UserService _userService;
-
-    public ItemSetService(IDbContextFactory<AppDbContext> dbFactory, UserService userService)
-    {
-        _dbFactory = dbFactory;
-        _userService = userService;
-    }
-
     public async Task<List<UserItemSet>> GetCurrentUserItemSetsAsync()
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
-            return new List<UserItemSet>();
+            return [];
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         return await db.UserItemSets
             .AsNoTracking()
@@ -35,11 +25,11 @@ public class ItemSetService
 
     public async Task<UserItemSet?> GetCurrentUserItemSetAsync(int itemSetId)
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             return null;
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         return await db.UserItemSets
             .AsNoTracking()
@@ -56,7 +46,7 @@ public class ItemSetService
 
     public async Task<(List<ItemSet> Items, int TotalCount)> GetPaginatedItemSetsAsync(int pageNumber, int pageSize = 25)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var query = db.ItemSets.AsNoTracking().OrderBy(s => s.Name);
         var totalCount = await query.CountAsync();
@@ -71,7 +61,7 @@ public class ItemSetService
 
     public async Task<ItemSet?> GetItemSetByIdAsync(int itemSetId)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         return await db.ItemSets
             .AsNoTracking()

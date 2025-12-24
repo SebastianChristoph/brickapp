@@ -1,30 +1,18 @@
 using System.Text.Json;
-using brickapp.Data;                  // <- WICHTIG für AppDbContext
-using brickapp.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using brickapp.Data.Services.Storage;
 
 namespace brickapp.Data.Services
     {
-    public class ItemSetExportService
+    public class ItemSetExportService(IDbContextFactory<AppDbContext> factory, IExportStorage storage)
     {
-        private readonly IDbContextFactory<AppDbContext> _factory;
-        private readonly IExportStorage _storage;
-
-        // liegt unter mappedData/
         private const string ExportRelPath = "exported_sets.json";
 
-        public ItemSetExportService(IDbContextFactory<AppDbContext> factory, IExportStorage storage)
-        {
-            _factory = factory;
-            _storage = storage;
-        }
-
-        public string GetExportPath() => _storage.DescribeTarget(ExportRelPath);
+        public string GetExportPath() => storage.DescribeTarget(ExportRelPath);
 
         public async Task<int> ExportSetsAsync()
         {
-            await using var db = await _factory.CreateDbContextAsync();
+            await using var db = await factory.CreateDbContextAsync();
 
             var sets = await db.ItemSets.AsNoTracking().ToListAsync();
 
@@ -33,23 +21,23 @@ namespace brickapp.Data.Services
                 SetNum = s.SetNum ?? string.Empty,
                 Name = s.Name,
                 Brand = s.Brand,
-                Year = (int)(s.Year ?? 0), // falls Year nullable ist
+                Year = s.Year ?? 0, // falls Year nullable ist
                 ImageUrl = s.ImageUrl
             }).ToList();
 
             var json = JsonSerializer.Serialize(exportList, new JsonSerializerOptions { WriteIndented = true });
 
-            await _storage.WriteTextAsync(ExportRelPath, "application/json", json);
+            await storage.WriteTextAsync(ExportRelPath, "application/json", json);
             return exportList.Count;
         }
 
         public async Task<int> ImportSetsAsync()
         {
             // Wichtig: nicht crashen wenn Datei nicht existiert
-            if (!await _storage.ExistsAsync($"mappedData/{ExportRelPath}"))
+            if (!await storage.ExistsAsync($"mappedData/{ExportRelPath}"))
                 return 0;
 
-            var json = await _storage.ReadTextAsync($"mappedData/{ExportRelPath}");
+            var json = await storage.ReadTextAsync($"mappedData/{ExportRelPath}");
             if (string.IsNullOrWhiteSpace(json))
                 return 0;
 
@@ -57,7 +45,7 @@ namespace brickapp.Data.Services
             if (imported == null || imported.Count == 0)
                 return 0;
 
-            await using var db = await _factory.CreateDbContextAsync();
+            await using var db = await factory.CreateDbContextAsync();
 
             int importedCount = 0;
             foreach (var s in imported)

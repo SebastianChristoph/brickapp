@@ -1,27 +1,17 @@
-using brickapp.Data;
 using brickapp.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace brickapp.Data.Services
 {
-public class InventoryService
+public class InventoryService(IDbContextFactory<AppDbContext> dbFactory, UserService userService)
 {
-    private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    private readonly UserService _userService;
-
-    public InventoryService(IDbContextFactory<AppDbContext> dbFactory, UserService userService)
-    {
-        _dbFactory = dbFactory;
-        _userService = userService;
-    }
-
     public async Task<bool> DeleteAllInventoryItemsAsync()
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             return false;
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var items = await db.InventoryItems.Where(i => i.AppUserId == user.Id).ToListAsync();
         if (!items.Any())
@@ -34,18 +24,17 @@ public class InventoryService
 
     public async Task<bool> AddMockItemsToInventoryAsync(int mockId, string mocksource)
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             return false;
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var mock = await db.Mocks.Include(m => m.Items).FirstOrDefaultAsync(m => m.Id == mockId);
-        if (mock == null || mock.Items == null || !mock.Items.Any())
+        if (mock == null || !mock.Items.Any())
             return false;
 
-        var mockType = mock.MockType?.ToLower();
-        var brand = (mocksource == "bricklink" || mocksource == "rebrickable") ? "Lego" : "Unbranded";
+        var brand = mocksource is "bricklink" or "rebrickable" ? "Lego" : "Unbranded";
 
         foreach (var item in mock.Items)
         {
@@ -62,11 +51,11 @@ public class InventoryService
 
     public async Task<List<InventoryItem>> GetCurrentUserInventoryAsync()
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             return new List<InventoryItem>();
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         return await db.InventoryItems
             .AsNoTracking()
@@ -80,11 +69,11 @@ public class InventoryService
 
     public async Task<InventoryItem?> GetInventoryItemAsync(int itemId)
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             return null;
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         return await db.InventoryItems
             .Include(i => i.MappedBrick)
@@ -94,11 +83,11 @@ public class InventoryService
 
     public async Task<bool> UpdateInventoryItemAsync(int itemId, int newQuantity, int? newColorId = null)
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null || newQuantity <= 0)
             return false;
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var item = await db.InventoryItems
             .FirstOrDefaultAsync(i => i.Id == itemId && i.AppUserId == user.Id);
@@ -120,11 +109,11 @@ public class InventoryService
 
     public async Task<bool> DeleteInventoryItemAsync(int itemId)
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             return false;
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var item = await db.InventoryItems
             .FirstOrDefaultAsync(i => i.Id == itemId && i.AppUserId == user.Id);
@@ -139,11 +128,11 @@ public class InventoryService
 
     public async Task<bool> AddInventoryItemAsync(int mappedBrickId, int brickColorId, string brand, int quantity)
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null || quantity <= 0)
             return false;
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var brick = await db.MappedBricks.FirstOrDefaultAsync(b => b.Id == mappedBrickId);
         var color = await db.BrickColors.FirstOrDefaultAsync(c => c.Id == brickColorId);
@@ -180,11 +169,11 @@ public class InventoryService
 
     public async Task<bool> AddSetBricksToInventoryAsync(int itemSetId)
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             return false;
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var itemSet = await db.ItemSets
             .FirstOrDefaultAsync(s => s.Id == itemSetId);

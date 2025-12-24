@@ -64,31 +64,3 @@
         <a href="/privacypolicy" style="color:#505050;text-decoration:underline;">Privacy Policy</a>
     </div>
 </div>
-
-@code {
-    private bool _isAuthenticated;
-    private bool _isAdmin;
-    private bool _hasRendered;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && !_hasRendered)
-        {
-            _isAuthenticated = await UserService.IsAuthenticatedAsync();
-            var user = await UserService.GetCurrentUserAsync();
-            _isAdmin = user?.IsAdmin ?? false;
-
-            _hasRendered = true;
-            StateHasChanged();
-        }
-    }
-
-    public async Task RefreshMenuAsync()
-    {
-        _isAuthenticated = await UserService.IsAuthenticatedAsync();
-        var user = await UserService.GetCurrentUserAsync();
-        _isAdmin = user?.IsAdmin ?? false;
-
-        StateHasChanged();
-    }
-}

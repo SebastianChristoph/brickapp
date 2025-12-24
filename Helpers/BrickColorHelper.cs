@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-
 namespace brickapp.Helpers
 {
     public static class BrickColorHelper
     {
         // Häufig genutzte Farben für Schnell-Auswahl
-        public static readonly List<string> CommonColors = new() { "Black", "White", "Blue", "Red", "Green" };
 
         // Mapping bricklink-Farbnamen zu Hex (erweitert aus colors.csv)
         private static readonly Dictionary<string, string> BrickColorToHex = new(StringComparer.OrdinalIgnoreCase)

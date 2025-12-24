@@ -1,13 +1,9 @@
 
-@using MudBlazor
 @using brickapp.Data.Services
 @using brickapp.Data.Entities
 @using brickapp.Data.DTOs
-@using brickapp.Components.Shared
-@inject brickapp.Data.Services.MappedBrickService BrickService
-@inject brickapp.Data.Services.InventoryService InventoryService
-@inject brickapp.Data.Services.ImageService ImageService
-@inject brickapp.Data.Services.NotificationService NotificationService
+@inject InventoryService InventoryService
+@inject NotificationService NotificationService
 
 <MudDialog>
     <DialogContent>
@@ -19,56 +15,12 @@
                      ShowBrandSelector="true"
                      PreselectedBrick="@PreselectedBrick" />
 
-        <!-- Error Message -->
-        @if (!string.IsNullOrEmpty(ErrorMessage))
+        @if (!string.IsNullOrEmpty(_errorMessage))
         {
-            <MudAlert Severity="Severity.Error">@ErrorMessage</MudAlert>
+            <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
         }
     </DialogContent>
     <DialogActions>
         <MudButton Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
-
-@code {
-    [CascadingParameter]
-    private IMudDialogInstance? MudDialog { get; set; }
-
-    [Parameter]
-    public MappedBrick? PreselectedBrick { get; set; }
-
-    private string ErrorMessage = "";
-
-    private async Task HandleBrickAdded(BrickSelectionDto selection)
-    {
-        ErrorMessage = "";
-
-        if (selection?.Brick == null || selection.BrickColorId <= 0 || selection.Quantity <= 0)
-        {
-            ErrorMessage = "Invalid selection.";
-            return;
-        }
-
-        // Füge zum Inventory hinzu mit ausgewählter Brand
-        var success = await InventoryService.AddInventoryItemAsync(
-            selection.Brick.Id, 
-            selection.BrickColorId, 
-            selection.Brand,
-            selection.Quantity);
-            
-        if (success)
-        {
-            NotificationService.Success($"{selection.Quantity}x {selection.Brick.Name} ({selection.Brand}) added to inventory.");
-            MudDialog?.Close(true);
-        }
-        else
-        {
-            ErrorMessage = "Error adding item to inventory.";
-        }
-    }
-
-    private void Cancel()
-    {
-        MudDialog?.Cancel();
-    }
-}

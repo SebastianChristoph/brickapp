@@ -2,29 +2,20 @@ using System.Text.RegularExpressions;
 
 namespace brickapp.Data.Services;
 
-public class BricklinkScraperService
+public class BricklinkScraperService(HttpClient httpClient, ILogger<BricklinkScraperService> logger)
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<BricklinkScraperService> _logger;
-
-    public BricklinkScraperService(HttpClient httpClient, ILogger<BricklinkScraperService> logger)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-    }
-
     public async Task<string?> GetBricklinkItemNameAsync(string partNum)
     {
         try
         {
             var url = $"https://www.bricklink.com/v2/catalog/catalogitem.page?P={partNum}";
-            _logger.LogInformation("Fetching Bricklink item name from: {Url}", url);
+            logger.LogInformation("Fetching Bricklink item name from: {Url}", url);
 
-            var response = await _httpClient.GetAsync(url);
+            var response = await httpClient.GetAsync(url);
             
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Failed to fetch Bricklink page. Status: {Status}", response.StatusCode);
+                logger.LogWarning("Failed to fetch Bricklink page. Status: {Status}", response.StatusCode);
                 return null;
             }
 
@@ -36,7 +27,7 @@ public class BricklinkScraperService
             if (h1Match.Success)
             {
                 var itemName = h1Match.Groups[1].Value.Trim();
-                _logger.LogInformation("Successfully extracted item name: {ItemName}", itemName);
+                logger.LogInformation("Successfully extracted item name: {ItemName}", itemName);
                 return itemName;
             }
 
@@ -45,16 +36,16 @@ public class BricklinkScraperService
             if (titleMatch.Success)
             {
                 var itemName = titleMatch.Groups[1].Value.Trim();
-                _logger.LogInformation("Successfully extracted item name from title: {ItemName}", itemName);
+                logger.LogInformation("Successfully extracted item name from title: {ItemName}", itemName);
                 return itemName;
             }
 
-            _logger.LogWarning("Could not extract item name from Bricklink page");
+            logger.LogWarning("Could not extract item name from Bricklink page");
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching Bricklink item name for part {PartNum}", partNum);
+            logger.LogError(ex, "Error fetching Bricklink item name for part {PartNum}", partNum);
             return null;
         }
     }

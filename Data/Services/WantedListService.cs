@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using brickapp.Data;
 using brickapp.Data.DTOs;
 using brickapp.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -63,8 +58,6 @@ namespace brickapp.Data.Services
 
             foreach (var wl in lists)
             {
-                if (wl.Items == null) continue;
-
                 foreach (var item in wl.Items)
                 {
                     var key = (item.MappedBrickId, item.BrickColorId);
@@ -215,7 +208,7 @@ namespace brickapp.Data.Services
             if (list == null)
                 return false;
 
-            foreach (var item in itemsToAdd ?? Enumerable.Empty<NewWantedListItemModel>())
+            foreach (var item in itemsToAdd)
             {
                 if (item.MappedBrickId <= 0 || item.ColorId <= 0 || item.Quantity <= 0)
                     continue;
@@ -255,7 +248,7 @@ namespace brickapp.Data.Services
     var validColorIds = await db.BrickColors.AsNoTracking().Select(c => c.Id).ToHashSetAsync();
 
     // 2. Mapped Items deduplizieren und validieren
-    var groupedMapped = (model.Items ?? new List<NewWantedListItemModel>())
+    var groupedMapped = (model.Items)
         .Where(i => i.MappedBrickId > 0 && i.ColorId > 0 && i.Quantity > 0)
         .GroupBy(i => (i.MappedBrickId, i.ColorId))
         .Select(g => new NewWantedListItemModel
@@ -292,7 +285,7 @@ namespace brickapp.Data.Services
     }
 
     // 5. Unmapped Rows verarbeiten: MissingItems & NewItemRequests
-    if (model.UnmappedRows != null && model.UnmappedRows.Any())
+    if (model.UnmappedRows.Any())
     {
         // A) NewItemRequests erstellen (Dedupliziert nach PartNum)
         var distinctPartNums = model.UnmappedRows

@@ -1,5 +1,4 @@
 
-using brickapp.Data;
 using brickapp.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
@@ -7,25 +6,12 @@ using Microsoft.AspNetCore.Components;
 
 namespace brickapp.Data.Services
 {
-    public class UserService
+    public class UserService(IDbContextFactory<AppDbContext> dbFactory, IJSRuntime js, NavigationManager nav)
     {
-        private readonly IDbContextFactory<AppDbContext> _dbFactory;
-        private readonly IJSRuntime _js;
-        private readonly NavigationManager _nav;
-
+        public NavigationManager Nav { get; } = nav;
         private AppUser? _currentUser;
 
-        private const string TokenKey = "authToken";
-        private const string UsernameKey = "username";
-
-        public UserService(IDbContextFactory<AppDbContext> dbFactory, IJSRuntime js, NavigationManager nav)
-        {
-            _dbFactory = dbFactory;
-            _js = js;
-            _nav = nav;
-        }
-
-            public async Task<AppUser?> AddUserAsync(string username)
+        public async Task<AppUser?> AddUserAsync(string username)
         {
             if (string.IsNullOrWhiteSpace(username))
                 return null;
@@ -39,7 +25,7 @@ namespace brickapp.Data.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            await using var db = await dbFactory.CreateDbContextAsync();
             db.Users.Add(user);
             await db.SaveChangesAsync();
             return user;
@@ -47,7 +33,7 @@ namespace brickapp.Data.Services
 
         public async Task<bool> IsAuthenticatedAsync()
         {
-            var token = await _js.InvokeAsync<string>("userAuth.getAuthToken");
+            var token = await js.InvokeAsync<string>("userAuth.getAuthToken");
 
             if (string.IsNullOrWhiteSpace(token))
             {
@@ -55,18 +41,18 @@ namespace brickapp.Data.Services
                 return false;
             }
 
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            await using var db = await dbFactory.CreateDbContextAsync();
             var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Uuid == token);
 
             if (user == null)
             {
-                await _js.InvokeVoidAsync("userAuth.clearAuth");
+                await js.InvokeVoidAsync("userAuth.clearAuth");
                 _currentUser = null;
                 return false;
             }
 
             _currentUser = user;
-            await _js.InvokeVoidAsync("userAuth.setAuthInfo", user.Uuid, user.Name ?? string.Empty);
+            await js.InvokeVoidAsync("userAuth.setAuthInfo", user.Uuid, user.Name ?? string.Empty);
             return true;
         }
 
@@ -75,14 +61,14 @@ namespace brickapp.Data.Services
             if (string.IsNullOrWhiteSpace(token))
                 return false;
 
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            await using var db = await dbFactory.CreateDbContextAsync();
             var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Uuid == token);
 
             if (user == null)
                 return false;
 
             _currentUser = user;
-            await _js.InvokeVoidAsync("userAuth.setAuthInfo", user.Uuid, user.Name ?? string.Empty);
+            await js.InvokeVoidAsync("userAuth.setAuthInfo", user.Uuid, user.Name ?? string.Empty);
             return true;
         }
 
@@ -133,7 +119,7 @@ namespace brickapp.Data.Services
         public async Task LogoutAsync()
         {
             _currentUser = null;
-            await _js.InvokeVoidAsync("userAuth.clearAuth");
+            await js.InvokeVoidAsync("userAuth.clearAuth");
         }
     }
 }

@@ -1,7 +1,6 @@
-@using brickapp.Data.Services
 @using brickapp.Data.Entities
 @using Microsoft.EntityFrameworkCore
-@inject IDbContextFactory<brickapp.Data.AppDbContext> DbFactory
+@inject IDbContextFactory<Data.AppDbContext> DbFactory
 
 <MudDialog>
     <DialogContent>
@@ -42,45 +41,3 @@
         </MudButton>
     </DialogActions>
 </MudDialog>
-
-@code {
-    [CascadingParameter]
-    private IMudDialogInstance? MudDialog { get; set; }
-
-    [Parameter]
-    public int CurrentQuantity { get; set; }
-
-    [Parameter]
-    public int CurrentColorId { get; set; }
-
-    private int _quantity = 1;
-    private int _selectedColorId = 0;
-    private List<BrickColor>? _colors;
-
-    protected override async Task OnInitializedAsync()
-    {
-        _quantity = CurrentQuantity;
-        _selectedColorId = CurrentColorId;
-
-        // Lade alle verfügbaren Farben
-        await using var db = await DbFactory.CreateDbContextAsync();
-        _colors = await db.BrickColors
-            .OrderBy(c => c.Name)
-            .ToListAsync();
-    }
-
-    private void Cancel()
-    {
-        MudDialog?.Cancel();
-    }
-
-    private void Save()
-    {
-        var result = new EditItemDialogResult
-        {
-            Quantity = _quantity,
-            ColorId = _selectedColorId
-        };
-        MudDialog?.Close(result);
-    }
-}

@@ -1,4 +1,3 @@
-@using MudBlazor
 @using brickapp.Data.Services
 
 <MudDialog>
@@ -47,7 +46,7 @@
             }
         }
 
-        @if (_nameChanged)
+        @if (NameChanged)
         {
             <MudAlert Severity="Severity.Info" Class="mt-2" Dense="true">
                 The user will be notified that the name was changed by admin.
@@ -64,85 +63,7 @@
                    Color="Color.Success"
                    Disabled="@string.IsNullOrWhiteSpace(_name)"
                    OnClick="Approve">
-            @(_nameChanged ? "Approve with Name Change" : "Approve")
+            @(NameChanged ? "Approve with Name Change" : "Approve")
         </MudButton>
     </DialogActions>
 </MudDialog>
-
-@code {
-    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
-
-    [Parameter] public string? CurrentName { get; set; }
-    [Parameter] public string? PartNum { get; set; }
-    [Parameter] public string? Brand { get; set; }
-
-    [Inject] private BricklinkScraperService BricklinkScraperService { get; set; } = default!;
-
-    private string _name = "";
-    private string _originalName = "";
-    private bool _isFetching = false;
-    private string? _fetchMessage = null;
-    private bool _fetchSuccess = false;
-
-    private bool _nameChanged => !string.IsNullOrWhiteSpace(_name) && 
-                                  !string.IsNullOrWhiteSpace(_originalName) && 
-                                  _name.Trim() != _originalName.Trim();
-
-    protected override void OnInitialized()
-    {
-        _name = CurrentName ?? "";
-        _originalName = CurrentName ?? "";
-    }
-
-    private async Task FetchBricklinkName()
-    {
-        if (string.IsNullOrWhiteSpace(PartNum))
-            return;
-
-        _isFetching = true;
-        _fetchMessage = null;
-        StateHasChanged();
-
-        try
-        {
-            var fetchedName = await BricklinkScraperService.GetBricklinkItemNameAsync(PartNum);
-
-            if (!string.IsNullOrWhiteSpace(fetchedName))
-            {
-                _name = fetchedName;
-                _fetchSuccess = true;
-                _fetchMessage = "Successfully fetched name from Bricklink!";
-            }
-            else
-            {
-                _fetchSuccess = false;
-                _fetchMessage = "Could not extract name from Bricklink page.";
-            }
-        }
-        catch (Exception ex)
-        {
-            _fetchSuccess = false;
-            _fetchMessage = $"Error fetching name: {ex.Message}";
-        }
-        finally
-        {
-            _isFetching = false;
-            StateHasChanged();
-        }
-    }
-
-    private void Cancel()
-        => MudDialog?.Close(DialogResult.Cancel());
-
-    private void Approve()
-    {
-        var result = new ApproveItemDialogResult
-        {
-            Name = _name.Trim(),
-            NameChanged = _nameChanged,
-            OriginalName = _originalName.Trim()
-        };
-        MudDialog?.Close(DialogResult.Ok(result));
-    }
-}
-

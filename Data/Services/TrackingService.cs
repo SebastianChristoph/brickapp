@@ -3,17 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace brickapp.Data.Services;
 
-public class TrackingService
+public class TrackingService(IDbContextFactory<AppDbContext> dbFactory, UserService userService)
 {
-    private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    private readonly UserService _userService;
-
-    public TrackingService(IDbContextFactory<AppDbContext> dbFactory, UserService userService)
-    {
-        _dbFactory = dbFactory;
-        _userService = userService;
-    }
-
     /// <summary>
     /// Tracks an action/event
     /// </summary>
@@ -21,14 +12,14 @@ public class TrackingService
     {
         try
         {
-            var userUuid = await _userService.GetTokenAsync();
-            var user = await _userService.GetCurrentUserAsync();
+            var userUuid = await userService.GetTokenAsync();
+            var user = await userService.GetCurrentUserAsync();
 
             // Don't track admin actions
             if (user?.IsAdmin == true)
                 return;
 
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            await using var db = await dbFactory.CreateDbContextAsync();
 
             var trackingInfo = new TrackingInfo
             {
@@ -54,7 +45,7 @@ public class TrackingService
     /// </summary>
     public async Task<List<TrackingInfo>> GetAllTrackingInfosAsync()
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         return await db.TrackingInfos
             .AsNoTracking()
@@ -68,7 +59,7 @@ public class TrackingService
     /// </summary>
     public async Task<List<TrackingInfo>> GetTrackingInfosByUserAsync(string userUuid)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         return await db.TrackingInfos
             .AsNoTracking()
@@ -83,7 +74,7 @@ public class TrackingService
     /// </summary>
     public async Task<Dictionary<string, List<TrackingInfo>>> GetTrackingInfosGroupedByUserAsync()
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var allTracking = await db.TrackingInfos
             .AsNoTracking()
@@ -102,7 +93,7 @@ public class TrackingService
     /// </summary>
     public async Task<Dictionary<string, int>> GetActionStatsAsync()
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         return await db.TrackingInfos
             .AsNoTracking()
@@ -117,7 +108,7 @@ public class TrackingService
     /// </summary>
     public async Task CleanupOldTrackingAsync(int olderThanDays = 90)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var cutoffDate = DateTime.UtcNow.AddDays(-olderThanDays);
 
@@ -134,7 +125,7 @@ public class TrackingService
     /// </summary>
     public async Task DeleteAllTrackingsAsync()
     {
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var allTracking = await db.TrackingInfos.ToListAsync();
         db.TrackingInfos.RemoveRange(allTracking);
