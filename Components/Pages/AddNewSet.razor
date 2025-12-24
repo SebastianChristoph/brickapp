@@ -1,17 +1,13 @@
 @page "/add-new-set"
 @using brickapp.Data.Entities
-@using brickapp.Data.Services
-@using brickapp.Data.DTOs
 @using brickapp.Helpers
-@using brickapp.Components.Shared
-
-@inject brickapp.Data.Services.RequestService RequestService
-@inject brickapp.Data.Services.UserService UserService
-@inject brickapp.Data.Services.ItemSetService ItemSetService
-@inject brickapp.Data.Services.MappedBrickService MappedBrickService
-@inject brickapp.Data.Services.NotificationService NotificationService
-@inject brickapp.Data.Services.ImageService ImageService
-@inject brickapp.Data.Services.LoadingService LoadingService
+@inject Data.Services.RequestService RequestService
+@inject Data.Services.UserService UserService
+@inject Data.Services.ItemSetService ItemSetService
+@inject Data.Services.MappedBrickService MappedBrickService
+@inject Data.Services.NotificationService NotificationService
+@inject Data.Services.ImageService ImageService
+@inject Data.Services.LoadingService LoadingService
 
 <PageTitle>Add New Sets</PageTitle>
 <MudText Typo="Typo.h4" GutterBottom="true">Add new sets</MudText>
@@ -40,8 +36,8 @@
     .brick::after {
         content: "";
         position: absolute;
-        right: .5px;
-        bottom: 0px;
+        right: 1px;
+        bottom: 0;
         width: 0;
         height: 0;
         border-bottom: 28px solid var(--brick-color, transparent);
@@ -49,20 +45,6 @@
         border-radius: 0 0 4px 0;
         z-index: 2;
         pointer-events: none;
-    }
-
-        .color-chip-select {
-        border: 1px solid #ccc;
-        transition: transform 0.1s;
-    }
-    .color-chip-select:hover {
-        transform: scale(1.1);
-        cursor: pointer;
-    }
-    /* Markierung für die aktuell gewählte Farbe */
-    .color-chip-active {
-        border: 2px solid var(--mud-palette-primary) !important;
-        box-shadow: 0 0 5px rgba(0,0,0,0.2);
     }
 </style>
 
