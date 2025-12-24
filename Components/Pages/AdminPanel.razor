@@ -1,14 +1,12 @@
 @page "/admin-panel"
-@using brickapp.Data.Entities
-@using brickapp.Data.DTOs
-@using brickapp.Components.Dialogs
-@inject brickapp.Data.Services.MappedBrickExportService MappedExport
-@inject brickapp.Data.Services.ItemSetExportService SetExport
-@inject brickapp.Data.Services.UserService UserService
-@inject brickapp.Data.Services.StatsService StatsService
-@inject brickapp.Data.Services.TrackingService TrackingService
-@inject brickapp.Data.Services.MappedBrickService MappedBrickService
-@inject brickapp.Data.Services.NotificationService NotificationService
+@using brickapp.Data.Services
+@inject MappedBrickExportService MappedExport
+@inject ItemSetExportService SetExport
+@inject UserService UserService
+@inject StatsService StatsService
+@inject TrackingService TrackingService
+@inject MappedBrickService MappedBrickService
+@inject NotificationService NotificationService
 @inject IDialogService DialogService
 
 <MudText Typo="Typo.h4" GutterBottom="true">Admin Panel</MudText>
@@ -16,473 +14,337 @@
 
 @if (_loading)
 {
-    <MudProgressCircular Indeterminate="true" Class="mb-4" />
+    <MudProgressCircular Indeterminate="true" Class="mb-4"/>
 }
 else if (_stats != null)
 {
-   
-
     <MudTabs Elevation="4" Rounded="true" Color="Color.Primary">
-    <MudTabPanel Text="Statistics" Icon="@Icons.Material.Filled.BarChart">
-        
-    <MudGrid Class="mt-4" GutterSize="3">
-        <!-- Users & Content -->
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Primary" />
-                            <MudText Typo="Typo.h3">@_stats.TotalUsers</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Total Users</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+        <MudTabPanel Text="Statistics" Icon="@Icons.Material.Filled.BarChart">
 
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.ViewInAr" Size="Size.Large" Color="Color.Secondary" />
-                            <MudText Typo="Typo.h3">@_stats.TotalMocks</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">MOCs</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.List" Size="Size.Large" Color="Color.Tertiary" />
-                            <MudText Typo="Typo.h3">@_stats.TotalWantedLists</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Wanted Lists</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <!-- Bricks & Sets -->
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Large" Color="Color.Info" />
-                            <MudText Typo="Typo.h3">@_stats.TotalMappedBricks</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Mapped Bricks</MudText>
-                        <MudText Typo="Typo.caption">@_stats.MappedBricksWithMapping mapped / @_stats.MappedBricksWithoutMapping unmapped</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Color="Color.Success" />
-                            <MudText Typo="Typo.h3">@_stats.TotalInventoryItems</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Inventory Items</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.CollectionsBookmark" Size="Size.Large" Color="Color.Warning" />
-                            <MudText Typo="Typo.h3">@_stats.TotalItemSets</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Item Sets</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <!-- Requests by Status -->
-        <MudItem xs="12">
-            <MudText Typo="Typo.h6" Class="mt-4 mb-2">Requests by Status</MudText>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.PendingActions" Size="Size.Large" Color="Color.Warning" />
-                            <MudText Typo="Typo.h3">@_stats.PendingRequests</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Pending Requests</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Color="Color.Success" />
-                            <MudText Typo="Typo.h3">@_stats.ApprovedRequests</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Approved Requests</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Large" Color="Color.Error" />
-                            <MudText Typo="Typo.h3">@_stats.RejectedRequests</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Rejected Requests</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <!-- Requests by Type -->
-        <MudItem xs="12">
-            <MudText Typo="Typo.h6" Class="mt-4 mb-2">Requests by Type (Total: @_stats.TotalRequests)</MudText>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Large" Color="Color.Primary" />
-                            <MudText Typo="Typo.h3">@_stats.TotalMappingRequests</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Mapping Requests</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.AddBox" Size="Size.Large" Color="Color.Secondary" />
-                            <MudText Typo="Typo.h3">@_stats.TotalNewItemRequests</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">New Item Requests</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.LibraryAdd" Size="Size.Large" Color="Color.Tertiary" />
-                            <MudText Typo="Typo.h3">@_stats.TotalNewSetRequests</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">New Set Requests</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="4">
-                <MudCardContent>
-                    <MudStack Spacing="2">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Large" Color="Color.Info" />
-                            <MudText Typo="Typo.h3">@_stats.TotalItemImageRequests</MudText>
-                        </MudStack>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Image Requests</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-    </MudGrid>
-
-    </MudTabPanel>
-    <MudTabPanel Text="Admin Actions" Icon="@Icons.Material.Filled.AdminPanelSettings">
-     <div class="mt-4"></div>
-
-<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportMappings">Export Mappings</MudButton>
-<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportSets">Export Sets</MudButton>
-
-<MudDivider Class="my-4" />
-<MudText Typo="Typo.h6">Create new AppUser</MudText>
-<MudTextField @bind-Value="newUserName" Label="Username" Variant="Variant.Outlined" />
-<MudButton StartIcon="Icons.Material.Filled.PersonAdd" Variant="Variant.Filled" Color="Color.Secondary" OnClick="CreateUser">Create AppUser</MudButton>
-<div>@createUserMessage</div>
-
-<div>@statusMessage</div>
-
-    </MudTabPanel>
-    <MudTabPanel Text="User Tracking" Icon="@Icons.Material.Filled.Timeline">
-        @if (_loadingTracking)
-        {
-            <MudProgressCircular Indeterminate="true" Class="mb-4" />
-        }
-        else if (_trackingByUser != null)
-        {
-            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 mt-4">
-                <MudText Typo="Typo.h5">User Activity Tracking</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteForever" OnClick="DeleteAllTrackings">Delete All Trackings</MudButton>
-            </MudStack>
-            
-            @if (!_trackingByUser.Any())
-            {
-                <MudAlert Severity="Severity.Info">No tracking data available yet.</MudAlert>
-            }
-            else
-            {
-                @foreach (var userGroup in _trackingByUser.OrderByDescending(kvp => kvp.Value.Count))
-                {
-                    var userName = userGroup.Value.FirstOrDefault()?.AppUser?.Name ?? "Unknown";
-                    var userUuid = userGroup.Key;
-                    
-                    <MudExpansionPanels Class="mb-3">
-                        <MudExpansionPanel>
-                            <TitleContent>
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                                    <MudIcon Icon="@Icons.Material.Filled.Person" />
-                                    <div>
-                                        <MudText Typo="Typo.body1"><b>@userName</b></MudText>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">UUID: @userUuid</MudText>
-                                    </div>
-                                    <MudSpacer />
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@userGroup.Value.Count actions</MudChip>
+            <MudGrid Class="mt-4" GutterSize="3">
+                <!-- Users & Content -->
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large"
+                                             Color="Color.Primary"/>
+                                    <MudText Typo="Typo.h3">@_stats.TotalUsers</MudText>
                                 </MudStack>
-                            </TitleContent>
-                            <ChildContent>
-                                <MudTable Items="@userGroup.Value" Dense="true" Hover="true">
-                                    <HeaderContent>
-                                        <MudTh>Time</MudTh>
-                                        <MudTh>Action</MudTh>
-                                        <MudTh>Page</MudTh>
-                                        <MudTh>Details</MudTh>
-                                    </HeaderContent>
-                                    <RowTemplate>
-                                        <MudTd>@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
-                                        <MudTd><MudChip T="string" Size="Size.Small">@context.Action</MudChip></MudTd>
-                                        <MudTd>@context.PageUrl</MudTd>
-                                        <MudTd>
-                                            @if (!string.IsNullOrWhiteSpace(context.Details))
-                                            {
-                                                <MudText Typo="Typo.caption">@context.Details</MudText>
-                                            }
-                                        </MudTd>
-                                    </RowTemplate>
-                                </MudTable>
-                            </ChildContent>
-                        </MudExpansionPanel>
-                    </MudExpansionPanels>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Total Users</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.ViewInAr" Size="Size.Large"
+                                             Color="Color.Secondary"/>
+                                    <MudText Typo="Typo.h3">@_stats.TotalMocks</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">MOCs</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.List" Size="Size.Large"
+                                             Color="Color.Tertiary"/>
+                                    <MudText Typo="Typo.h3">@_stats.TotalWantedLists</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Wanted Lists</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Bricks & Sets -->
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Large"
+                                             Color="Color.Info"/>
+                                    <MudText Typo="Typo.h3">@_stats.TotalMappedBricks</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Mapped Bricks</MudText>
+                                <MudText Typo="Typo.caption">@_stats.MappedBricksWithMapping mapped
+                                    / @_stats.MappedBricksWithoutMapping unmapped
+                                </MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large"
+                                             Color="Color.Success"/>
+                                    <MudText Typo="Typo.h3">@_stats.TotalInventoryItems</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Inventory Items</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.CollectionsBookmark" Size="Size.Large"
+                                             Color="Color.Warning"/>
+                                    <MudText Typo="Typo.h3">@_stats.TotalItemSets</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Item Sets</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Requests by Status -->
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6" Class="mt-4 mb-2">Requests by Status</MudText>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.PendingActions" Size="Size.Large"
+                                             Color="Color.Warning"/>
+                                    <MudText Typo="Typo.h3">@_stats.PendingRequests</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Pending Requests</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large"
+                                             Color="Color.Success"/>
+                                    <MudText Typo="Typo.h3">@_stats.ApprovedRequests</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Approved Requests</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Large"
+                                             Color="Color.Error"/>
+                                    <MudText Typo="Typo.h3">@_stats.RejectedRequests</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Rejected Requests</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Requests by Type -->
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6" Class="mt-4 mb-2">Requests by Type (Total: @_stats.TotalRequests)</MudText>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Large"
+                                             Color="Color.Primary"/>
+                                    <MudText Typo="Typo.h3">@_stats.TotalMappingRequests</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Mapping Requests</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.AddBox" Size="Size.Large"
+                                             Color="Color.Secondary"/>
+                                    <MudText Typo="Typo.h3">@_stats.TotalNewItemRequests</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">New Item Requests</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.LibraryAdd" Size="Size.Large"
+                                             Color="Color.Tertiary"/>
+                                    <MudText Typo="Typo.h3">@_stats.TotalNewSetRequests</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">New Set Requests</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Elevation="4">
+                        <MudCardContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Large" Color="Color.Info"/>
+                                    <MudText Typo="Typo.h3">@_stats.TotalItemImageRequests</MudText>
+                                </MudStack>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Image Requests</MudText>
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            </MudGrid>
+
+        </MudTabPanel>
+        <MudTabPanel Text="Admin Actions" Icon="@Icons.Material.Filled.AdminPanelSettings">
+            <div class="mt-4"></div>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportMappings">Export Mappings
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportSets">Export Sets</MudButton>
+
+            <MudDivider Class="my-4"/>
+            <MudText Typo="Typo.h6">Create new AppUser</MudText>
+            <MudTextField @bind-Value="_newUserName" Label="Username" Variant="Variant.Outlined"/>
+            <MudButton StartIcon="Icons.Material.Filled.PersonAdd" Variant="Variant.Filled" Color="Color.Secondary"
+                       OnClick="CreateUser">Create AppUser
+            </MudButton>
+            <div>@_createUserMessage</div>
+
+            <div>@_statusMessage</div>
+
+        </MudTabPanel>
+        <MudTabPanel Text="User Tracking" Icon="@Icons.Material.Filled.Timeline">
+            @if (_loadingTracking)
+            {
+                <MudProgressCircular Indeterminate="true" Class="mb-4"/>
+            }
+            else if (_trackingByUser != null)
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 mt-4">
+                    <MudText Typo="Typo.h5">User Activity Tracking</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.DeleteForever" OnClick="DeleteAllTrackings">Delete All
+                        Trackings
+                    </MudButton>
+                </MudStack>
+
+                @if (!_trackingByUser.Any())
+                {
+                    <MudAlert Severity="Severity.Info">No tracking data available yet.</MudAlert>
+                }
+                else
+                {
+                    @foreach (var userGroup in _trackingByUser.OrderByDescending(kvp => kvp.Value.Count))
+                    {
+                        var userName = userGroup.Value.FirstOrDefault()?.AppUser?.Name ?? "Unknown";
+                        var userUuid = userGroup.Key;
+
+                        <MudExpansionPanels Class="mb-3">
+                            <MudExpansionPanel>
+                                <TitleContent>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                        <MudIcon Icon="@Icons.Material.Filled.Person"/>
+                                        <div>
+                                            <MudText Typo="Typo.body1"><b>@userName</b></MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                UUID: @userUuid</MudText>
+                                        </div>
+                                        <MudSpacer/>
+                                        <MudChip T="string" Size="Size.Small"
+                                                 Color="Color.Primary">@userGroup.Value.Count actions
+                                        </MudChip>
+                                    </MudStack>
+                                </TitleContent>
+                                <ChildContent>
+                                    <MudTable Items="@userGroup.Value" Dense="true" Hover="true">
+                                        <HeaderContent>
+                                            <MudTh>Time</MudTh>
+                                            <MudTh>Action</MudTh>
+                                            <MudTh>Page</MudTh>
+                                            <MudTh>Details</MudTh>
+                                        </HeaderContent>
+                                        <RowTemplate>
+                                            <MudTd>@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                                            <MudTd>
+                                                <MudChip T="string" Size="Size.Small">@context.Action</MudChip>
+                                            </MudTd>
+                                            <MudTd>@context.PageUrl</MudTd>
+                                            <MudTd>
+                                                @if (!string.IsNullOrWhiteSpace(context.Details))
+                                                {
+                                                    <MudText Typo="Typo.caption">@context.Details</MudText>
+                                                }
+                                            </MudTd>
+                                        </RowTemplate>
+                                    </MudTable>
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    }
                 }
             }
-        }
-    </MudTabPanel>
-    <MudTabPanel Text="Delete Items" Icon="@Icons.Material.Filled.Delete">
-        <MudPaper Class="pa-4 mt-4" Elevation="2">
-            <MudText Typo="Typo.h6" GutterBottom="true">Delete Mapped Brick</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Warning" Class="mb-4">
-                <strong>Warning:</strong> Deleting a brick will permanently remove it from the database along with all its mapping requests.
-            </MudText>
+        </MudTabPanel>
+        <MudTabPanel Text="Delete Items" Icon="@Icons.Material.Filled.Delete">
+            <MudPaper Class="pa-4 mt-4" Elevation="2">
+                <MudText Typo="Typo.h6" GutterBottom="true">Delete Mapped Brick</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Warning" Class="mb-4">
+                    <strong>Warning:</strong> Deleting a brick will permanently remove it from the database along with
+                    all its mapping requests.
+                </MudText>
 
-            <BrickPicker Label="Search for brick to delete"
-                         Placeholder="Enter part number or name..."
-                         AddButtonText="Delete This Brick"
-                         ShowQuickColorPicker="false"
-                         ShowBrandSelector="false"
-                         OnBrickAdded="HandleDeleteBrick" />
+                <BrickPicker Label="Search for brick to delete"
+                             Placeholder="Enter part number or name..."
+                             AddButtonText="Delete This Brick"
+                             ShowQuickColorPicker="false"
+                             ShowBrandSelector="false"
+                             OnBrickAdded="HandleDeleteBrick"/>
 
-            @if (!string.IsNullOrWhiteSpace(_deleteMessage))
-            {
-                <MudAlert Severity="_deleteSuccess ? Severity.Success : Severity.Error" Class="mt-4">
-                    @_deleteMessage
-                </MudAlert>
-            }
-        </MudPaper>
-    </MudTabPanel>
-    
-</MudTabs>
+                @if (!string.IsNullOrWhiteSpace(_deleteMessage))
+                {
+                    <MudAlert Severity="_deleteSuccess ? Severity.Success : Severity.Error" Class="mt-4">
+                        @_deleteMessage
+                    </MudAlert>
+                }
+            </MudPaper>
+        </MudTabPanel>
 
-}
-
-
-
-@code {
-    private string statusMessage = "";
-    private string newUserName = string.Empty;
-    private string createUserMessage = string.Empty;
-    private bool _loading = true;
-    private bool _loadingTracking = true;
-    private brickapp.Data.Services.AdminStats? _stats;
-    private Dictionary<string, List<brickapp.Data.Entities.TrackingInfo>>? _trackingByUser;
-    private string _deleteMessage = string.Empty;
-    private bool _deleteSuccess = false;
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            _stats = await StatsService.GetAdminStatsAsync();
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"Error loading statistics: {ex.Message}";
-        }
-        finally
-        {
-            _loading = false;
-        }
-
-        // Load tracking data
-        try
-        {
-            _trackingByUser = await TrackingService.GetTrackingInfosGroupedByUserAsync();
-        }
-        catch (Exception ex)
-        {
-            statusMessage += $" Error loading tracking: {ex.Message}";
-        }
-        finally
-        {
-            _loadingTracking = false;
-        }
-    }
-
-    private async Task DeleteAllTrackings()
-    {
-        try
-        {
-            await TrackingService.DeleteAllTrackingsAsync();
-            _trackingByUser = new Dictionary<string, List<brickapp.Data.Entities.TrackingInfo>>();
-            statusMessage = "All tracking data deleted successfully.";
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"Error deleting tracking data: {ex.Message}";
-        }
-    }
-
-    private async Task CreateUser()
-    {
-        createUserMessage = string.Empty;
-        if (string.IsNullOrWhiteSpace(newUserName))
-        {
-            createUserMessage = "Please enter a username.";
-            return;
-        }
-        var user = await UserService.AddUserAsync(newUserName);
-        if (user != null)
-        {
-            createUserMessage = $"User created: {user.Name} (UUID: {user.Uuid})";
-            newUserName = string.Empty;
-            
-            // Refresh stats
-            _stats = await StatsService.GetAdminStatsAsync();
-        }
-        else
-        {
-            createUserMessage = "Error creating user.";
-        }
-    }
-
-    private async Task ExportMappings()
-    {
-        try
-        {
-            var count = await MappedExport.ExportMappedBricksAsync();
-            statusMessage = $"Export successful: {count} mappings saved. (Path: {MappedExport.GetExportPath()})";
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"Error during export: {ex.Message}";
-        }
-    }
-
-    private async Task ExportSets()
-    {
-        try
-        {
-            var count = await SetExport.ExportSetsAsync();
-            statusMessage = $"Sets export successful: {count} sets saved.";
-        }
-        catch (Exception ex)
-        {
-            statusMessage = $"Error during sets export: {ex.Message}";
-        }
-    }
-
-    private async Task HandleDeleteBrick(BrickSelectionDto selection)
-    {
-        if (selection?.Brick == null)
-            return;
-
-        var brick = selection.Brick;
-        var brickName = brick.Name ?? brick.LegoName ?? "Unknown";
-        var brickPartNum = brick.LegoPartNum ?? brick.BluebrixxPartNum ?? "Unknown";
-
-        var message = $"Are you sure you want to permanently delete brick '{brickName}' (Part# {brickPartNum})? This action cannot be undone and will also delete all related mapping requests.";
-
-        var parameters = new DialogParameters
-        {
-            ["Message"] = message
-        };
-
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
-        var dialog = await DialogService.ShowAsync<DeleteBrickConfirmDialog>("Confirm Deletion", parameters, options);
-        var result = await dialog.Result;
-
-        if (result == null || result.Canceled)
-            return;
-
-        try
-        {
-            var success = await MappedBrickService.DeleteMappedBrickAsync(brick.Id);
-            if (success)
-            {
-                _deleteSuccess = true;
-                _deleteMessage = $"Successfully deleted brick '{brickName}' (Part# {brickPartNum})";
-                NotificationService.Success($"Brick deleted: {brickName}");
-                
-                // Refresh stats
-                _stats = await StatsService.GetAdminStatsAsync();
-            }
-            else
-            {
-                _deleteSuccess = false;
-                _deleteMessage = $"Failed to delete brick. It may not exist in the database.";
-                NotificationService.Error("Delete failed");
-            }
-        }
-        catch (Exception ex)
-        {
-            _deleteSuccess = false;
-            _deleteMessage = $"Error deleting brick: {ex.Message}";
-            NotificationService.Error($"Error: {ex.Message}");
-        }
-
-        StateHasChanged();
-    }
+    </MudTabs>
 }
