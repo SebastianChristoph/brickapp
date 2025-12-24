@@ -1,19 +1,16 @@
 @page "/myinventory"
-
-@using brickapp.Data.Services
 @using brickapp.Data.Entities
-@using brickapp.Components.Dialogs
+@using brickapp.Data.Services
 @using brickapp.Helpers
-@using MudBlazor
 
-@inject brickapp.Data.Services.UserService UserService
-@inject brickapp.Data.Services.InventoryService InventoryService
-@inject brickapp.Data.Services.TrackingService TrackingService
+@inject UserService UserService
+@inject InventoryService InventoryService
+@inject TrackingService TrackingService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
-@inject brickapp.Data.Services.ImageService ImageService
-@inject brickapp.Data.Services.NotificationService NotificationService
-@inject brickapp.Data.Services.WantedListService WantedListService
+@inject ImageService ImageService
+@inject NotificationService NotificationService
+@inject WantedListService WantedListService
 
 <PageTitle>My Inventory</PageTitle>
 <MudText Typo="Typo.h4" GutterBottom="true">My Inventory</MudText>
@@ -38,17 +35,17 @@
 
 @if (!_authChecked)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudProgressCircular Indeterminate="true"/>
 }
 else if (!_isAuth)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudProgressCircular Indeterminate="true"/>
 }
-else if (items is null)
+else if (_items is null)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudProgressCircular Indeterminate="true"/>
 }
-else if (items.Count == 0)
+else if (_items.Count == 0)
 {
     <MudAlert Severity="Severity.Info" Typo="Typo.body1">
         You do not have any items in your inventory yet.
@@ -56,7 +53,7 @@ else if (items.Count == 0)
 }
 else
 {
-    var grouped = items
+    var grouped = _items
         .GroupBy(i => i.Brand)
         .OrderBy(g => g.Key)
         .ToList();
@@ -66,7 +63,7 @@ else
         {
             <MudExpansionPanel Text="@brandGroup.Key" Expanded="true">
                 @{
-                    List<InventoryItem> brandItems = brandGroup.ToList();
+                    var brandItems = brandGroup.ToList();
                 }
 
                 <MudTable T="InventoryItem"
@@ -81,21 +78,21 @@ else
 
                         <MudTh>
                             <MudTableSortLabel T="InventoryItem"
-                                               SortBy="@(x => x.MappedBrick?.Name ?? string.Empty)">
+                                               SortBy="@(x => x.MappedBrick.Name)">
                                 Brick
                             </MudTableSortLabel>
                         </MudTh>
 
                         <MudTh>
                             <MudTableSortLabel T="InventoryItem"
-                                               SortBy="@(x => x.BrickColor?.Name ?? string.Empty)">
+                                               SortBy="@(x => x.BrickColor.Name)">
                                 Color
                             </MudTableSortLabel>
                         </MudTh>
 
                         <MudTh>
                             <MudTableSortLabel T="InventoryItem"
-                                               SortBy="@(x => x.Brand ?? string.Empty)">
+                                               SortBy="@(x => x.Brand)">
                                 Brand
                             </MudTableSortLabel>
                         </MudTh>
@@ -121,71 +118,70 @@ else
                         <MudTd DataLabel="Image">
                             @{
                                 var imgUrl = ImageService.GetMappedBrickImagePath(context.MappedBrick);
-                                var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name);
+                                var overlay = BrickColorHelper.GetHexForColor(context.BrickColor.Name);
                             }
                             @if (!string.IsNullOrWhiteSpace(imgUrl) && imgUrl != "/placeholder-image.png" && overlay != null)
                             {
                                 <div class="brick" style="--brick-color:@overlay">
                                     <img src="@imgUrl"
                                          alt=""
-                                         class="brick-img"
-                                         onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                                         class="brick-img"/>
                                 </div>
                             }
                             else if (!string.IsNullOrWhiteSpace(imgUrl) && imgUrl != "/placeholder-image.png")
                             {
                                 <img src="@imgUrl"
                                      alt=""
-                                     class="brick-img"
-                                     onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                                     class="brick-img"/>
                             }
                             else
                             {
-                                <span style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">
+                                <span
+                                    style="display:inline-block;width:48px;height:48px;line-height:48px;text-align:center;color:#bbb;font-size:0.8em;">
                                     No image
                                 </span>
                             }
                         </MudTd>
 
-                       <MudTd DataLabel="Brick">
-    <div class="d-flex align-center">
-        @context.MappedBrick?.Name
-        
-        @if (_wantedListNamesByItem.TryGetValue((context.MappedBrickId, context.BrickColorId), out var wantedLists) && wantedLists.Any())
-        {
-            <MudTooltip Text="@($"In Wanted Lists: {string.Join(", ", wantedLists)}")">
-                <MudIcon Icon="@Icons.Material.Filled.Bookmark" 
-                         Color="Color.Info" 
-                         Size="Size.Small" 
-                         Class="ml-2" />
-            </MudTooltip>
-        }
-    </div>
-</MudTd>
+                        <MudTd DataLabel="Brick">
+                            <div class="d-flex align-center">
+                                @context.MappedBrick.Name
 
-                        <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
+                                @if (_wantedListNamesByItem.TryGetValue((context.MappedBrickId, context.BrickColorId), out var wantedLists) && wantedLists.Any())
+                                {
+                                    <MudTooltip Text="@($"In Wanted Lists: {string.Join(", ", wantedLists)}")">
+                                        <MudIcon Icon="@Icons.Material.Filled.Bookmark"
+                                                 Color="Color.Info"
+                                                 Size="Size.Small"
+                                                 Class="ml-2"/>
+                                    </MudTooltip>
+                                }
+                            </div>
+                        </MudTd>
+
+                        <MudTd DataLabel="Color">@context.BrickColor.Name</MudTd>
                         <MudTd DataLabel="Brand">@context.Brand</MudTd>
 
                         <MudTd DataLabel="Brand ID">
-                            @if (context.Brand?.ToLower() == "lego")
+                            @if (context.Brand.ToLower() == "lego")
                             {
-                                @context.MappedBrick?.LegoPartNum
+                                @context.MappedBrick.LegoPartNum
                             }
-                            else if (context.Brand?.ToLower() == "bluebrixx")
+                            else if (context.Brand.ToLower() == "bluebrixx")
                             {
-                                @context.MappedBrick?.BluebrixxPartNum
+                                @context.MappedBrick.BluebrixxPartNum
                             }
-                            else if (context.Brand?.ToLower() == "cada")
+                            else if (context.Brand.ToLower() == "cada")
                             {
-                                @context.MappedBrick?.CadaPartNum
+                                @context.MappedBrick.CadaPartNum
                             }
-                            else if (context.Brand?.ToLower() == "pantasy")
+                            else if (context.Brand.ToLower() == "pantasy")
                             {
-                                @context.MappedBrick?.PantasyPartNum
+                                @context.MappedBrick.PantasyPartNum
                             }
-                            else if (context.Brand?.ToLower() == "mould king")
+                            else if (context.Brand.ToLower() == "mould king")
                             {
-                                @context.MappedBrick?.MouldKingPartNum
+                                @context.MappedBrick.MouldKingPartNum
                             }
                             else
                             {
@@ -197,23 +193,23 @@ else
 
                         <MudTd DataLabel="Actions">
                             <MudIconButton Size="Size.Small"
-                                       Variant="Variant.Outlined"
-                                       Color="Color.Primary"
-                                       Icon="@Icons.Material.Filled.Edit"
-                                       OnClick="@(() => OpenEditDialog(context.Id, context.Quantity, context.BrickColorId))">
+                                           Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           Icon="@Icons.Material.Filled.Edit"
+                                           OnClick="@(() => OpenEditDialog(context.Id, context.Quantity, context.BrickColorId))">
                             </MudIconButton>
                             <MudIconButton Size="Size.Small"
-                                       Variant="Variant.Outlined"
-                                       Color="Color.Error"
-                                       Icon="@Icons.Material.Filled.Delete"
-                                       OnClick="@((MouseEventArgs e) => OpenDeleteDialog(context.Id))">
+                                           Variant="Variant.Outlined"
+                                           Color="Color.Error"
+                                           Icon="@Icons.Material.Filled.Delete"
+                                           OnClick="@((MouseEventArgs _) => OpenDeleteDialog(context.Id))">
                             </MudIconButton>
                         </MudTd>
                     </RowTemplate>
 
                     <PagerContent>
                         <!-- Pro Brand-Tabelle eigener Pager -->
-                        <MudTablePager PageSizeOptions="new int[] { 25 }" />
+                        <MudTablePager PageSizeOptions="new[] { 25 }"/>
                     </PagerContent>
 
                 </MudTable>
@@ -245,8 +241,8 @@ else
         .brick::after {
             content: "";
             position: absolute;
-            right: .5px;
-            bottom: 0px;
+            right: 1px;
+            bottom: 0;
             width: 0;
             height: 0;
             border-bottom: 28px solid var(--brick-color, transparent);
@@ -256,126 +252,4 @@ else
             pointer-events: none;
         }
     </style>
-}
-
-@code {
-    private string? _username;
-    private List<InventoryItem>? items;
-    private bool _authChecked;
-    private bool _isAuth;
-
-    private static string BrandIdSelector(InventoryItem i)
-    {
-        var brand = i.Brand?.ToLowerInvariant();
-        return brand switch
-        {
-            "lego"       => i.MappedBrick?.LegoPartNum ?? string.Empty,
-            "bluebrixx"  => i.MappedBrick?.BluebrixxPartNum ?? string.Empty,
-            "cada"       => i.MappedBrick?.CadaPartNum ?? string.Empty,
-            "pantasy"    => i.MappedBrick?.PantasyPartNum ?? string.Empty,
-            "mould king" => i.MappedBrick?.MouldKingPartNum ?? string.Empty,
-            _            => string.Empty
-        };
-    }
-
-    private Dictionary<(int, int), List<string>> _wantedListNamesByItem = new();
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender || _authChecked)
-            return;
-
-        _authChecked = true;
-
-        _isAuth = await UserService.IsAuthenticatedAsync();
-
-        if (!_isAuth)
-        {
-            Nav.NavigateTo("/login", forceLoad: true);
-            return;
-        }
-
-        _username = await UserService.GetUsernameAsync();
-        items = await InventoryService.GetCurrentUserInventoryAsync();
-
-        // Track page visit
-        await TrackingService.TrackAsync("ViewMyInventory", $"Items: {items?.Count ?? 0}", "/myinventory");
-
-        var user = await UserService.GetCurrentUserAsync();
-        if (user != null)
-            _wantedListNamesByItem = await WantedListService.GetWantedListNamesByBrickAndColorAsync(user.Id);
-        else
-            _wantedListNamesByItem = new();
-
-        StateHasChanged();
-    }
-
-    private async Task OpenEditDialog(int itemId, int currentQuantity, int currentColorId)
-    {
-        var parameters = new DialogParameters<EditItemDialog>
-        {
-            { x => x.CurrentQuantity, currentQuantity },
-            { x => x.CurrentColorId, currentColorId }
-        };
-
-        var dialog = await DialogService.ShowAsync<EditItemDialog>("Edit item", parameters);
-        var result = await dialog.Result;
-
-        if (result is not null && !result.Canceled && result.Data is EditItemDialogResult editResult)
-        {
-            // Update mit neuer Quantity und ColorId
-            var success = await InventoryService.UpdateInventoryItemAsync(itemId, editResult.Quantity, editResult.ColorId);
-            if (success)
-            {
-                items = await InventoryService.GetCurrentUserInventoryAsync();
-                NotificationService.Success("Item updated successfully.");
-                StateHasChanged();
-            }
-            else
-            {
-                NotificationService.Error("Failed to update item.");
-            }
-        }
-    }
-
-    private async Task OpenDeleteDialog(int itemId)
-    {
-        var parameters = new DialogParameters();
-        var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("Delete item?", parameters);
-        var result = await dialog.Result;
-
-        if (result is not null && !result.Canceled && result.Data is bool confirmed && confirmed)
-        {
-            await InventoryService.DeleteInventoryItemAsync(itemId);
-            items = await InventoryService.GetCurrentUserInventoryAsync();
-            StateHasChanged();
-        }
-    }
-
-    private async Task OpenAddItemDialog()
-    {
-        var dialog = await DialogService.ShowAsync<AddInventoryItemDialog>("Add item");
-        var result = await dialog.Result;
-
-        if (result is not null && !result.Canceled)
-        {
-            items = await InventoryService.GetCurrentUserInventoryAsync();
-            NotificationService.Success("Item added to inventory.");
-            StateHasChanged();
-        }
-    }
-
-    private async Task OpenDeleteAllDialog()
-    {
-        var parameters = new DialogParameters();
-        var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("Really delete entire inventory?", parameters);
-        var result = await dialog.Result;
-
-        if (result is not null && !result.Canceled && result.Data is bool confirmed && confirmed)
-        {
-            await InventoryService.DeleteAllInventoryItemsAsync();
-            items = await InventoryService.GetCurrentUserInventoryAsync();
-            StateHasChanged();
-        }
-    }
 }

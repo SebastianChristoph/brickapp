@@ -1,16 +1,13 @@
 @page "/mywantedlistdetails/{wantedListId:int}"
-@using brickapp.Data.Entities
 @using brickapp.Data.Services
 @using brickapp.Helpers
-@using brickapp.Components.Dialogs
-@using MudBlazor
 
-@inject brickapp.Data.Services.WantedListService WantedListService
-@inject brickapp.Data.Services.InventoryService InventoryService
+@inject WantedListService WantedListService
+@inject InventoryService InventoryService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
-@inject brickapp.Data.Services.ImageService ImageService
-@inject brickapp.Data.Services.NotificationService NotificationService
+@inject ImageService ImageService
+@inject NotificationService NotificationService
 
 
 <PageTitle>Wanted List Details</PageTitle>
@@ -19,7 +16,7 @@
 {
     <MudStack Justify="Justify.Center" Spacing="2" Style="margin-bottom: 16px; margin-top:16px;">
         <MudText>Loading wanted list...</MudText>
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true"/>
     </MudStack>
 }
 else if (_wantedList == null)
@@ -31,28 +28,31 @@ else
 {
     @* --- HEADER --- *@
 
-    @if (_resolvableItems != null && _resolvableItems.Any())
-{
-    <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudText>
-                   <MudText Typo="Typo.body2">
-                   <b>@_resolvableItems.Count</b> of the unmapped items have been mapped in the database since your last import. <b/>
+    @if (_resolvableItems.Any())
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudText>
+                    <MudText Typo="Typo.body2">
+                        <b>@_resolvableItems.Count</b> of the unmapped items have been mapped in the database since your
+                        last import.
 
-You can now add them to your MOC by clicking the button below to improve the visual accuracy.<b/> <b>Please note: This will not change the number of parts in your list; </b> it only ensures that items are correctly displa
+                        You can now add them to your MOC by clicking the button below to improve the visual
+                        accuracy. <b>Please note: This will not change the number of parts in your list; </b> it
+                        only ensures that items are correctly displa
+                    </MudText>
+
                 </MudText>
-
-            </MudText>
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Primary" 
-                       StartIcon="@Icons.Material.Filled.Add"
-                       Disabled="@_isResolving"
-                       OnClick="AddResolvableItems">
-                       Update items in list
-            </MudButton>
-        </MudStack>
-    </MudAlert>
-}
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Disabled="@_isResolving"
+                           OnClick="AddResolvableItems">
+                    Update items in list
+                </MudButton>
+            </MudStack>
+        </MudAlert>
+    }
 
     <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
         <MudStack Spacing="1">
@@ -61,7 +61,7 @@ You can now add them to your MOC by clicking the button below to improve the vis
         </MudStack>
 
         <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
-            OnClick="DeleteList" Disabled="@_deletingList">
+                   OnClick="DeleteList" Disabled="@_deletingList">
             Delete this wanted list
         </MudButton>
     </MudStack>
@@ -69,23 +69,23 @@ You can now add them to your MOC by clicking the button below to improve the vis
 
     @* --- PROGRESS --- *@
     <MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
-        <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded" />
+        <OwnershipProgress OwnedCount="@TotalOwned" TotalCount="@TotalNeeded"/>
     </MudStack>
 
-    <br />
+    <br/>
 
-    <br />
+    <br/>
 
     <MudStack Row="true" Spacing="2" StretchItems="StretchItems.Start" Class="mb-4">
         <MudText Typo="Typo.h6" GutterBottom="true">Items in this list</MudText>
 
-        <MudButton Variant="@(_showOnlyMissing? Variant.Outlined: Variant.Filled)" Color="Color.Primary"
-            OnClick="ShowAllItems" StartIcon="@Icons.Material.Filled.List" Class="ml-4">
+        <MudButton Variant="@(_showOnlyMissing ? Variant.Outlined : Variant.Filled)" Color="Color.Primary"
+                   OnClick="ShowAllItems" StartIcon="@Icons.Material.Filled.List" Class="ml-4">
             Show all items
         </MudButton>
 
-        <MudButton Variant="@(_showOnlyMissing? Variant.Filled: Variant.Outlined)" Color="Color.Primary"
-            StartIcon="@Icons.Material.Filled.FilterList" OnClick="ShowOnlyMissingItems">
+        <MudButton Variant="@(_showOnlyMissing ? Variant.Filled : Variant.Outlined)" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.FilterList" OnClick="ShowOnlyMissingItems">
             Show only missing items
         </MudButton>
     </MudStack>
@@ -114,8 +114,8 @@ You can now add them to your MOC by clicking the button below to improve the vis
         .brick::after {
             content: "";
             position: absolute;
-            right: .5px;
-            bottom: 0px;
+            right: 1px;
+            bottom: 0;
             width: 0;
             height: 0;
             border-bottom: 28px solid var(--brick-color, transparent);
@@ -124,22 +124,11 @@ You can now add them to your MOC by clicking the button below to improve the vis
             z-index: 2;
             pointer-events: none;
         }
-
-        .brick-sm {
-            width: 42px;
-            height: 42px;
-            min-width: 42px;
-            min-height: 42px;
-        }
-
-        .brick-sm::after {
-            border-bottom-width: 21px;
-            border-left-width: 21px;
-        }
     </style>
 
-    <MudTable @key="_tableKey" Items="@_tableItems" Hover="true" Dense="true" Page="_itemsPage" RowsPerPage="_itemsRowsPerPage" OnPageChanged="OnItemsPageChanged"
-        OnRowsPerPageChanged="OnItemsRowsPerPageChanged">
+    <MudTable @key="_tableKey" Items="@_tableItems" Hover="true" Dense="true" Page="_itemsPage"
+              RowsPerPage="_itemsRowsPerPage" OnPageChanged="OnItemsPageChanged"
+              OnRowsPerPageChanged="OnItemsRowsPerPageChanged">
 
         <HeaderContent>
             <MudTh>Image</MudTh>
@@ -155,21 +144,20 @@ You can now add them to your MOC by clicking the button below to improve the vis
             <MudTd DataLabel="Image">
                 @{
                     var overlay = BrickColorHelper.GetHexForColor(context.BrickColor?.Name) ?? "transparent";
-                    var imgUrl = context.MappedBrick != null ? ImageService.GetMappedBrickImagePath(context.MappedBrick) :
-                    ImageService.GetPlaceHolder();
+                    var imgUrl = context.MappedBrick != null ? ImageService.GetMappedBrickImagePath(context.MappedBrick) : ImageService.GetPlaceHolder();
                 }
                 <div class="brick" style="--brick-color:@overlay">
-                    <img src="@imgUrl" alt="" class="brick-img"
-                        onerror="if(this.src!== '/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                    <img src="@imgUrl" alt="" class="brick-img"/>
                 </div>
             </MudTd>
             <MudTd DataLabel="Standard Name">@context.MappedBrick?.Name</MudTd>
             <MudTd DataLabel="Color">@context.BrickColor?.Name</MudTd>
-            <MudTd DataLabel="Lego">@context.MappedBrick?.LegoName @(string.IsNullOrEmpty(context.MappedBrick?.LegoPartNum)
-                            ? "" : $"({context.MappedBrick.LegoPartNum})")</MudTd>
+            <MudTd
+                DataLabel="Lego">@context.MappedBrick?.LegoName @(string.IsNullOrEmpty(context.MappedBrick?.LegoPartNum)
+                                                                        ? ""
+                                                                        : $"({context.MappedBrick.LegoPartNum})")</MudTd>
             <MudTd DataLabel="BlueBrixx">@context.MappedBrick?.BluebrixxName
-                @(string.IsNullOrEmpty(context.MappedBrick?.BluebrixxPartNum) ? "" :
-                            $"({context.MappedBrick.BluebrixxPartNum})")</MudTd>
+                @(string.IsNullOrEmpty(context.MappedBrick?.BluebrixxPartNum) ? "" : $"({context.MappedBrick.BluebrixxPartNum})")</MudTd>
             <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
             <MudTd DataLabel="In Inventory?">
                 @{
@@ -178,7 +166,8 @@ You can now add them to your MOC by clicking the button below to improve the vis
                     {
                         foreach (var brand in brands)
                         {
-                            <MudChip T="string" Color="Color.Primary" Class="mr-1 mb-1" Size="Size.Small">@brand.Key: @brand.Value
+                            <MudChip T="string" Color="Color.Primary" Class="mr-1 mb-1"
+                                     Size="Size.Small">@brand.Key: @brand.Value
                             </MudChip>
                         }
                     }
@@ -190,19 +179,21 @@ You can now add them to your MOC by clicking the button below to improve the vis
             </MudTd>
             <MudTd>
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
-                    OnClick="@(() => OpenEditItemDialog(context.Id, context.Quantity, context.BrickColorId))" Class="mr-2">
+                           OnClick="@(() => OpenEditItemDialog(context.Id, context.Quantity, context.BrickColorId))"
+                           Class="mr-2">
                     Edit
                 </MudButton>
                 <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
-                    OnClick="@(() => DeleteItem(context.Id))">Delete</MudButton>
+                           OnClick="@(() => DeleteItem(context.Id))">Delete
+                </MudButton>
             </MudTd>
         </RowTemplate>
         <PagerContent>
-            <MudTablePager PageSizeOptions="new int[] { 25, 50, 100, 250 }" />
+            <MudTablePager PageSizeOptions="new[] { 25, 50, 100, 250 }"/>
         </PagerContent>
     </MudTable>
 
-    @if (_wantedList.MissingItems != null && _wantedList.MissingItems.Any())
+    @if (_wantedList.MissingItems.Any())
     {
         <MudText Typo="Typo.h5" Class="mt-8 mb-4"> Unassigned parts (Missing Mappings)</MudText>
         <MudAlert Severity="Severity.Warning" Class="mb-4">
@@ -220,9 +211,9 @@ You can now add them to your MOC by clicking the button below to improve the vis
 
                 <MudTd DataLabel="Color ID">
                     @{
-                        string? hex = null;
+                        string? hex;
                         // Wir speichern die Source in einer lokalen Variable für bessere Lesbarkeit
-                        var source = _wantedList.Source?.ToLower();
+                        var source = _wantedList.Source.ToLower();
 
                         if (source == "bricklink")
                         {
@@ -258,167 +249,14 @@ You can now add them to your MOC by clicking the button below to improve the vis
     }
 
 
-    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-8" Variant="Variant.Outlined" OnClick="GoBack">Back
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-8" Variant="Variant.Outlined" OnClick="GoBack">
+        Back
     </MudButton>
 }
 
 @code {
-    [Parameter] public int wantedListId { get; set; }
-    private WantedList? _wantedList;
-    private bool _loading = true;
-    private bool _deletingList = false;
-    private Dictionary<(int, int), Dictionary<string, int>> _ownedByBrand = new();
-
-    private int _itemsPage = 0;
-    private int _itemsRowsPerPage = 25;
-
-    private List<MissingItem> _resolvableItems = new();
-    private bool _isResolving = false;
 
     // Filter state
-    private bool _showOnlyMissing = false;
-    private Guid _tableKey = Guid.NewGuid();
-    private List<WantedListItem> _tableItems = new();
-
-
-    protected override async Task OnInitializedAsync()
-    {
-        _loading = true;
-        _wantedList = await WantedListService.GetWantedListByIdAsync(wantedListId);
-
-        await LoadData();
-        _resolvableItems = await WantedListService.GetResolvableMissingItemsAsync(wantedListId);
-        UpdateTableItems();
-        _loading = false;
-    }
-
-    private async Task LoadData()
-    {
-        _wantedList = await WantedListService.GetWantedListByIdAsync(wantedListId);
-        var inventory = await InventoryService.GetCurrentUserInventoryAsync();
-        _ownedByBrand = inventory
-        .GroupBy(i => (i.MappedBrickId, i.BrickColorId))
-        .ToDictionary(
-        g => g.Key,
-        g => g.GroupBy(i => i.Brand).ToDictionary(bg => bg.Key, bg => bg.Sum(i => i.Quantity))
-        );
-    }
-
-    private void UpdateTableItems()
-    {
-        if (_wantedList?.Items == null)
-        {
-            _tableItems = new();
-            return;
-        }
-
-        var items = _wantedList.Items.AsEnumerable();
-
-        if (_showOnlyMissing)
-        {
-            items = items.Where(i => GetOwnedQuantity(i) < i.Quantity);
-        }
-
-        _tableItems = items.OrderBy(b => b.BrickColor?.Name).ToList();
-    }
-
-    private void ShowAllItems()
-    {
-        _showOnlyMissing = false;
-        UpdateTableItems();
-        _itemsPage = 0;
-        _tableKey = Guid.NewGuid();
-        StateHasChanged();
-    }
-
-    private void ShowOnlyMissingItems()
-    {
-        _showOnlyMissing = true;
-        UpdateTableItems();
-        _itemsPage = 0;
-        _tableKey = Guid.NewGuid();
-        StateHasChanged();
-    }
-
-    private async Task AddResolvableItems()
-{
-    if (!_resolvableItems.Any()) return;
-    
-    _isResolving = true;
-    var ids = _resolvableItems.Select(i => i.Id).ToList();
-    
-    await WantedListService.ResolveMissingItemsAsync(wantedListId, ids);
-    
-    NotificationService.Success($"{ids.Count} items were successfully added to your list.");
-    
-    // Daten neu laden
-    _resolvableItems.Clear();
-    await LoadData();
-    UpdateTableItems();
-    _isResolving = false;
-}
-
-    private async Task DeleteList()
-    {
-
-        _deletingList = true;
-        await WantedListService.DeleteWantedListAsync(wantedListId);
-        NotificationService.Success("Wanted List deleted successfully.");
-        Nav.NavigateTo("/mywantedlists");
-    }
-    private async Task DeleteItem(int id)
-    {
-        await WantedListService.DeleteWantedListItemAsync(id);
-
-        _itemsPage = 0; // <-- wichtig
-        _wantedList = await WantedListService.GetWantedListByIdAsync(wantedListId);
-        UpdateTableItems();
-    }
-
-    private async Task OpenEditItemDialog(int itemId, int currentQuantity, int currentColorId)
-    {
-        var parameters = new DialogParameters<EditItemDialog>
-        {
-            { x => x.CurrentQuantity, currentQuantity },
-            { x => x.CurrentColorId, currentColorId }
-        };
-
-        var dialog = await DialogService.ShowAsync<EditItemDialog>("Edit item", parameters);
-        var result = await dialog.Result;
-
-        if (result is not null && !result.Canceled && result.Data is EditItemDialogResult editResult)
-        {
-            var success = await WantedListService.UpdateWantedListItemAsync(itemId, editResult.Quantity, editResult.ColorId);
-            if (success)
-            {
-                NotificationService.Success("Item updated successfully.");
-                await LoadData();
-                UpdateTableItems();
-                StateHasChanged();
-            }
-            else
-            {
-                NotificationService.Error("Failed to update item.");
-            }
-        }
-    }
-
-    protected int TotalNeeded => _wantedList?.Items?.Sum(b => b.Quantity) ?? 0;
-    protected int TotalOwned => _wantedList?.Items?.Sum(b => Math.Min(GetOwnedQuantity(b), b.Quantity)) ?? 0;
-    private int GetOwnedQuantity(WantedListItem item) => _ownedByBrand.TryGetValue((item.MappedBrickId, item.BrickColorId),
-    out var brandDict) ? brandDict.Values.Sum() : 0;
-    private void GoBack() => Nav.NavigateTo("/mywantedlists");
-
-    private void OnItemsPageChanged(int page)
-    {
-        _itemsPage = page;
-    }
-
-    private void OnItemsRowsPerPageChanged(int size)
-    {
-        _itemsRowsPerPage = size;
-        _itemsPage = 0;
-    }
 
 
 }

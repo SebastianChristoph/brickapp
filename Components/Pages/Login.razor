@@ -1,9 +1,7 @@
 @page "/login"
-
 @using brickapp.Data.Services
-@using brickapp.Components.Dialogs
-@inject brickapp.Data.Services.UserService UserService
-@inject brickapp.Data.Services.TrackingService TrackingService
+@inject UserService UserService
+@inject TrackingService TrackingService
 @inject NavigationManager Nav
 @inject IDialogService DialogService
 
@@ -16,7 +14,7 @@
             Mobile View Not Supported
         </MudText>
         <MudText Typo="Typo.body1" Align="Align.Center" Class="mt-4">
-            This site is not designed to fit on a mobile screen. 
+            This site is not designed to fit on a mobile screen.
             Please consider switching to a tablet or PC for the best experience.
         </MudText>
         <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2" Color="Color.Secondary">
@@ -27,151 +25,82 @@
 
 <!-- Eigentlicher Content - nur ab Medium (Tablet) sichtbar -->
 <MudHidden Breakpoint="Breakpoint.SmAndDown">
-<MudStack Spacing="6" Row="true" StretchItems="StretchItems.All">
-<MudPaper Class="pa-6 mx-auto" Style="min-width: 30vw;">
-    <MudText Typo="Typo.h4" GutterBottom="true">Login</MudText>
-    <MudText Typo="Typo.body2" GutterBottom="true">
-        Please enter your token.
-    </MudText>
+    <MudStack Spacing="6" Row="true" StretchItems="StretchItems.All">
+        <MudPaper Class="pa-6 mx-auto" Style="min-width: 30vw;">
+            <MudText Typo="Typo.h4" GutterBottom="true">Login</MudText>
+            <MudText Typo="Typo.body2" GutterBottom="true">
+                Please enter your token.
+            </MudText>
 
-    <MudTextField @bind-Value="_token"
-                  Label="Token"
-                  Required="true"
-                  For="@(() => _token)"
-                  Margin="Margin.Dense"
-                  FullWidth="true" />
+            <MudTextField @bind-Value="_token"
+                          Label="Token"
+                          Required="true"
+                          For="@(() => _token)"
+                          Margin="Margin.Dense"
+                          FullWidth="true"/>
 
-    @if (!string.IsNullOrWhiteSpace(_error))
-    {
-        <MudText Color="Color.Error">@_error</MudText>
-    }
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <MudText Color="Color.Error">@_error</MudText>
+            }
 
-    <MudButton Class="mt-4"
-               Variant="Variant.Filled"
-               Color="Color.Primary"
-               Disabled="@string.IsNullOrWhiteSpace(_token)"
-               OnClick="LoginWithToken">
-        Login
-    </MudButton>
-</MudPaper>
+            <MudButton Class="mt-4"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="@string.IsNullOrWhiteSpace(_token)"
+                       OnClick="LoginWithToken">
+                Login
+            </MudButton>
+        </MudPaper>
 
 
-<MudPaper Class="pa-6 mx-auto" >
-    <MudText Typo="Typo.h4" GutterBottom="true">Sign Up</MudText>
-    <MudAlert Severity="Severity.Info" Class="mb-4">
-        Simply sign up here and receive your personal token. This token is your access to BrickIsBrick. Don't lose it – there's no option to reissue or change it.
-    </MudAlert>
+        <MudPaper Class="pa-6 mx-auto">
+            <MudText Typo="Typo.h4" GutterBottom="true">Sign Up</MudText>
+            <MudAlert Severity="Severity.Info" Class="mb-4">
+                Simply sign up here and receive your personal token. This token is your access to BrickIsBrick. Don't
+                lose it – there's no option to reissue or change it.
+            </MudAlert>
 
-    <MudTextField @bind-Value="_newUsername"
-                  Label="Username"
-                  Required="true"
-                  For="@(() => _newUsername)"
-                  Margin="Margin.Dense"
-                  FullWidth="true" />
+            <MudTextField @bind-Value="_newUsername"
+                          Label="Username"
+                          Required="true"
+                          For="@(() => _newUsername)"
+                          Margin="Margin.Dense"
+                          FullWidth="true"/>
 
-    @if (!string.IsNullOrWhiteSpace(_signupError))
-    {
-        <MudText Color="Color.Error">@_signupError</MudText>
-    }
+            @if (!string.IsNullOrWhiteSpace(_signupError))
+            {
+                <MudText Color="Color.Error">@_signupError</MudText>
+            }
 
-    <MudCheckBox @bind-Value="_acceptTerms" 
-                 Label="I accept the terms and conditions" 
-                 Class="mt-3" 
-                 Color="Color.Secondary" />
+            <MudCheckBox @bind-Value="_acceptTerms"
+                         Label="I accept the terms and conditions"
+                         Class="mt-3"
+                         Color="Color.Secondary"/>
 
-    <MudButton Class="mt-4"
-               Variant="Variant.Filled"
-               Color="Color.Secondary"
-               Disabled="@(string.IsNullOrWhiteSpace(_newUsername) || !_acceptTerms)"
-               OnClick="SignUp">
-        Sign Up
-    </MudButton>
-</MudPaper>
-</MudStack>
+            <MudButton Class="mt-4"
+                       Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Disabled="@(string.IsNullOrWhiteSpace(_newUsername) || !_acceptTerms)"
+                       OnClick="SignUp">
+                Sign Up
+            </MudButton>
+        </MudPaper>
+    </MudStack>
 
-<!-- Terms and Conditions Info -->
-<MudPaper Class="pa-4 mt-4" Elevation="0" Style="background-color: #f5f5f5;">
-    <MudText Typo="Typo.h6" GutterBottom="true" Align="Align.Center">
-        🔒 Privacy & Terms of Service
-    </MudText>
-    <MudText Typo="Typo.body2" Align="Align.Center" Style="max-width: 800px; margin: 0 auto;">
-        <strong>We're not interested in your data!</strong> We don't want your email or password. 
-        We don't store any personal data and don't create any cookies. 
-        We only store your token in your browser's local storage so this app can function.
-    </MudText>
-    <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2" Color="Color.Secondary" Style="max-width: 800px; margin: 0 auto;">
-        ✓ No email required &nbsp; ✓ No password &nbsp; ✓ No cookies &nbsp; ✓ No tracking tools
-    </MudText>
-</MudPaper>
+    <!-- Terms and Conditions Info -->
+    <MudPaper Class="pa-4 mt-4" Elevation="0" Style="background-color: #f5f5f5;">
+        <MudText Typo="Typo.h6" GutterBottom="true" Align="Align.Center">
+            🔒 Privacy & Terms of Service
+        </MudText>
+        <MudText Typo="Typo.body2" Align="Align.Center" Style="max-width: 800px; margin: 0 auto;">
+            <strong>We're not interested in your data!</strong> We don't want your email or password.
+            We don't store any personal data and don't create any cookies.
+            We only store your token in your browser's local storage so this app can function.
+        </MudText>
+        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2" Color="Color.Secondary"
+                 Style="max-width: 800px; margin: 0 auto;">
+            ✓ No email required &nbsp; ✓ No password &nbsp; ✓ No cookies &nbsp; ✓ No tracking tools
+        </MudText>
+    </MudPaper>
 </MudHidden>
-
-@code {
-    private string _token = string.Empty;
-    private string? _error;
-    private string _newUsername = string.Empty;
-    private string? _signupError;
-    private bool _acceptTerms = false;
-
-        private readonly DialogOptions dialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true
-    };
-
-    private async Task LoginWithToken()
-    {
-        _error = null;
-
-        var success = await UserService.LoginWithTokenAsync(_token);
-
-        if (!success)
-        {
-            _error = "Invalid token. Please check.";
-            return;
-        }
-
-        // Track login
-        await TrackingService.TrackAsync("UserLogin", null, "/login");
-
-        // After successful login, navigate somewhere
-        Nav.NavigateTo("/", true); // forceLoad: true
-    }
-
-    private async Task SignUp()
-    {
-        _signupError = null;
-
-        if (string.IsNullOrWhiteSpace(_newUsername))
-        {
-            _signupError = "Please enter a username.";
-            return;
-        }
-
-        var user = await UserService.AddUserAsync(_newUsername);
-
-        if (user == null)
-        {
-            _signupError = "Error creating user. Please try again.";
-            return;
-        }
-
-        // Track signup (will use the new user's token)
-        await TrackingService.TrackAsync("UserSignup", $"Username: {user.Name}", "/login");
-
-        // Show dialog with token
-        var parameters = new DialogParameters
-        {
-            { "Token", user.Uuid },
-            { "Username", user.Name }
-        };
-
-       
-    
-
-        await DialogService.ShowAsync<TokenDisplayDialog>("Your Access Token", parameters, dialogOptions);
-
-        // Clear form
-        _newUsername = string.Empty;
-    }
-}

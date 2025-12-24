@@ -1,13 +1,11 @@
 @page "/preview-set-request/{requestId:int}"
-@using brickapp.Data.Services
 @using brickapp.Data.Entities
-@using brickapp.Components.Dialogs
-@using MudBlazor
+@using brickapp.Data.Services
 
-@inject brickapp.Data.Services.RequestService RequestService
-@inject brickapp.Data.Services.ImageService ImageService
-@inject brickapp.Data.Services.UserService UserService
-@inject brickapp.Data.Services.NotificationService NotificationService
+@inject RequestService RequestService
+@inject ImageService ImageService
+@inject UserService UserService
+@inject NotificationService NotificationService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 
@@ -17,10 +15,10 @@
 {
     <MudStack Justify="Justify.Center" Spacing="2" Style="margin-bottom: 16px; margin-top:16px;">
         <MudText>Loading set request...</MudText>
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true"/>
     </MudStack>
 }
-else if (@_isAdmin == false)
+else if (!_isAdmin)
 {
     <MudAlert Severity="Severity.Error">Access denied. This page is only available for administrators.</MudAlert>
 }
@@ -40,7 +38,7 @@ else
             {
                 <div style="flex-shrink:0;">
                     <img src="@setImgUrl" alt="@_setRequest.SetName"
-                        style="max-width: 300px; max-height: 300px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;" />
+                         style="max-width: 300px; max-height: 300px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px;"/>
                 </div>
             }
 
@@ -52,7 +50,9 @@ else
                 <MudText Typo="Typo.subtitle2">Set Nr: @_setRequest.SetNo</MudText>
 
                 <MudText Typo="Typo.body2" Class="mt-2">
-                    Status: <MudChip T="string" Size="Size.Small" Color="GetStatusColor(_setRequest.Status)">@_setRequest.Status</MudChip>
+                    Status:
+                    <MudChip T="string" Size="Size.Small"
+                             Color="GetStatusColor(_setRequest.Status)">@_setRequest.Status</MudChip>
                 </MudText>
 
                 <MudText Typo="Typo.body2">
@@ -97,20 +97,20 @@ else
         </RowTemplate>
 
         <PagerContent>
-            <MudTablePager PageSizeOptions="new int[] { 25, 50, 100, 250 }" />
+            <MudTablePager PageSizeOptions="new[] { 25, 50, 100, 250 }"/>
         </PagerContent>
     </MudTable>
 
     @if (_setRequest.Status == NewSetRequestStatus.Pending)
     {
         <MudStack Row="true" Spacing="2" Class="mt-4">
-            <MudButton Variant="Variant.Filled" 
+            <MudButton Variant="Variant.Filled"
                        Color="Color.Success"
                        StartIcon="@Icons.Material.Filled.Check"
                        OnClick="@(() => ApproveNewSetRequest(_setRequest.Id))">
                 Approve
             </MudButton>
-            <MudButton Variant="Variant.Filled" 
+            <MudButton Variant="Variant.Filled"
                        Color="Color.Error"
                        StartIcon="@Icons.Material.Filled.Close"
                        OnClick="@(() => RejectNewSetRequestWithDialog(_setRequest.Id))">
@@ -122,130 +122,4 @@ else
     <MudButton Class="mt-4" Variant="Variant.Outlined" OnClick="@GoBack">
         Back to Admin Requests
     </MudButton>
-}
-
-@code {
-    [Parameter]
-    public int RequestId { get; set; }
-
-    private NewSetRequest? _setRequest;
-    private bool _loading = true;
-    private bool _isAdmin = false;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadDataAsync();
-    }
-
-    private async Task LoadDataAsync()
-    {
-        try
-        {
-            _loading = true;
-            _isAdmin = await UserService.IsAdminAsync();
-            
-            if (!_isAdmin)
-            {
-                _loading = false;
-                return;
-            }
-
-            _setRequest = await RequestService.GetNewSetRequestByIdAsync(RequestId);
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
-
-    private void GoBack()
-    {
-        Nav.NavigateTo("/admin-requests");
-    }
-
-    private Color GetStatusColor(NewSetRequestStatus status)
-    {
-        return status switch
-        {
-            NewSetRequestStatus.Draft => Color.Default,
-            NewSetRequestStatus.Pending => Color.Warning,
-            NewSetRequestStatus.Approved => Color.Success,
-            NewSetRequestStatus.Rejected => Color.Error,
-            _ => Color.Default
-        };
-    }
-
-    private async Task ApproveNewSetRequest(int requestId)
-    {
-        try
-        {
-            var token = await UserService.GetTokenAsync();
-            if (token == null)
-            {
-                NotificationService.Error("User token not found.");
-                return;
-            }
-            await RequestService.ApproveNewSetRequestAsync(requestId);
-            NotificationService.Success("New set request approved successfully.");
-            Nav.NavigateTo("/admin-requests");
-        }
-        catch (Exception ex)
-        {
-            NotificationService.Error($"Error approving request: {ex.Message}");
-        }
-    }
-
-    private async Task RejectNewSetRequestWithDialog(int requestId)
-    {
-        var reason = await OpenRejectReasonDialogAsync();
-        if (reason is null) return;
-
-        await RejectNewSetRequest(requestId, reason);
-    }
-
-    private async Task RejectNewSetRequest(int requestId, string reason)
-    {
-        try
-        {
-            await RequestService.RejectNewSetRequestAsync(requestId, reason);
-            NotificationService.Success("New set request rejected successfully.");
-            Nav.NavigateTo("/admin-requests");
-        }
-        catch (Exception ex)
-        {
-            NotificationService.Error($"Error rejecting request: {ex.Message}");
-        }
-    }
-
-    private async Task<string?> OpenRejectReasonDialogAsync(string? defaultReason = null)
-    {
-        var parameters = new DialogParameters();
-
-        if (!string.IsNullOrWhiteSpace(defaultReason))
-            parameters.Add("DefaultReason", defaultReason);
-
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
-
-        var dialogReference = await DialogService.ShowAsync<RejectRequestDialog>(
-            "Reject Request", parameters, options);
-
-        if (dialogReference is null)
-            return null;
-
-        if (dialogReference.Result is null)
-            return null;
-
-        var result = await dialogReference.Result;
-
-        if (result is null || result.Canceled)
-            return null;
-
-        var reason = result.Data?.ToString();
-        return string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
-    }
 }

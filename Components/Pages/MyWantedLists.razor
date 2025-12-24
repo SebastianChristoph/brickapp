@@ -1,22 +1,17 @@
 @page "/mywantedlists"
-
-@using brickapp.Data.Entities
-@using brickapp.Data.Services
-@using brickapp.Data.DTOs
-@using brickapp.Helpers
 @using brickapp.Components.Shared.PartsListUpload
-@using brickapp.Components.Shared
-@using brickapp.Components.Dialogs
-@using static brickapp.Data.Services.WantedListService
+@using brickapp.Data.Services
+@using brickapp.Helpers
+@using static Data.Services.WantedListService
 
-@inject brickapp.Data.Services.WantedListService WantedListService
-@inject brickapp.Data.Services.MappedBrickService MappedBrickService
-@inject brickapp.Data.Services.ImageService ImageService
-@inject brickapp.Data.Services.TrackingService TrackingService
+@inject WantedListService WantedListService
+@inject MappedBrickService MappedBrickService
+@inject ImageService ImageService
+@inject TrackingService TrackingService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
-@inject brickapp.Data.Services.LoadingService LoadingService
-@inject brickapp.Data.Services.NotificationService NotificationService
+@inject LoadingService LoadingService
+@inject NotificationService NotificationService
 
 <PageTitle>My Wanted Lists</PageTitle>
 
@@ -28,7 +23,7 @@
         @_error
         @if (!string.IsNullOrWhiteSpace(_errorDetails))
         {
-            <MudDivider Class="my-2" />
+            <MudDivider Class="my-2"/>
             <MudText Typo="Typo.caption" Style="white-space:pre-wrap;">@_errorDetails</MudText>
         }
     </MudAlert>
@@ -59,7 +54,7 @@
         content: "";
         position: absolute;
         right: .5px;
-        bottom: 0px;
+        bottom: 0;
         width: 0;
         height: 0;
         border-bottom: 28px solid var(--brick-color, transparent);
@@ -73,8 +68,8 @@
 <MudPaper Class="pa-4 mt-6">
     <MudText Typo="Typo.h5" GutterBottom="true">Create new wanted list</MudText>
 
-    <EditForm Model="newListModel" OnValidSubmit="HandleCreateWantedList">
-        <MudTextField @bind-Value="newListModel.Name" Label="List name" Required="true" Class="mb-2" />
+    <EditForm Model="_newListModel" OnValidSubmit="HandleCreateWantedList">
+        <MudTextField @bind-Value="_newListModel.Name" Label="List name" Required="true" Class="mb-2"/>
 
         <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Class="my-8">
             <MudTabPanel Text="Upload a item list">
@@ -83,16 +78,16 @@
                                    ClearButtonText="Clear upload"
                                    OnParsed="OnUploadParsed"
                                    OnAdd="AddUploadItemsToNewList_FromComponent"
-                                   OnCleared="OnUploadCleared" />
+                                   OnCleared="OnUploadCleared"/>
             </MudTabPanel>
 
             <MudTabPanel Text="Add items manually">
                 <MudText Typo="Typo.h6" GutterBottom="true">Add items manually</MudText>
-                <BrickPicker OnBrickAdded="HandleBrickAdded" 
-                             Label="Search for a brick" 
+                <BrickPicker OnBrickAdded="HandleBrickAdded"
+                             Label="Search for a brick"
                              Placeholder="Enter part number or name..."
                              AddButtonText="Add item to list"
-                             ShowQuickColorPicker="true" />
+                             ShowQuickColorPicker="true"/>
             </MudTabPanel>
         </MudTabs>
 
@@ -101,15 +96,15 @@
                    Color="Color.Success"
                    Size="Size.Large"
                    ButtonType="ButtonType.Submit"
-                   Disabled="@(_saving || !newListModel.Items.Any())">
+                   Disabled="@(_saving || !_newListModel.Items.Any())">
             @(_saving ? "Saving..." : "Save this wanted list")
         </MudButton>
 
-        <MudDivider Class="my-12" />
+        <MudDivider Class="my-12"/>
 
-        @if (newListModel.Items.Any())
+        @if (_newListModel.Items.Any())
         {
-            <MudTable Items="newListModel.Items"
+            <MudTable Items="_newListModel.Items"
                       Hover="true"
                       Striped="true"
                       Page="_itemsPage"
@@ -129,7 +124,7 @@
                         @{
                             _brickById.TryGetValue(item.MappedBrickId, out var brick);
 
-                            var colorName = brickColors.FirstOrDefault(c => c.Id == item.ColorId)?.Name;
+                            var colorName = _brickColors.FirstOrDefault(c => c.Id == item.ColorId)?.Name;
                             var overlay = BrickColorHelper.GetHexForColor(colorName);
                             var overlayCss = overlay ?? "transparent";
 
@@ -142,41 +137,40 @@
                             <img src="@(hasImage ? url : "/placeholder-image.png")"
                                  alt=""
                                  class="brick-img"
-                                 style="border-width:1px;@(hasImage ? "" : "opacity:0.5;")"
-                                 onerror="if(this.src!=='/placeholder-image.png'){this.src='/placeholder-image.png';this.style.opacity='0.5';}" />
+                                 style="border-width:1px;@(hasImage ? "" : "opacity:0.5;")"/>
                         </div>
                     </MudTd>
 
                     <MudTd DataLabel="Brick">@item.BrickName</MudTd>
-                    <MudTd DataLabel="Color">@brickColors.FirstOrDefault(c => c.Id == item.ColorId)?.Name</MudTd>
+                    <MudTd DataLabel="Color">@_brickColors.FirstOrDefault(c => c.Id == item.ColorId)?.Name</MudTd>
                     <MudTd DataLabel="Quantity">@item.Quantity</MudTd>
                     <MudTd DataLabel="Actions" Style="text-align:right">
-                        <MudIconButton  Variant="Variant.Outlined"
-                                   Color="Color.Primary"
-                                   Size="Size.Small"
-                                   OnClick="@(() => OpenEditItemDialog(item))"
-                                      Icon="@Icons.Material.Filled.Edit"
-                                   Class="mr-2">
-                        </MudIconButton>
-                        
                         <MudIconButton Variant="Variant.Outlined"
-                                   Color="Color.Error"
-                                   Size="Size.Small"
-                                   OnClick="@(() => RemoveItem(item))"
-                                      Icon="@Icons.Material.Filled.Delete">
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       OnClick="@(() => OpenEditItemDialog(item))"
+                                       Icon="@Icons.Material.Filled.Edit"
+                                       Class="mr-2">
+                        </MudIconButton>
+
+                        <MudIconButton Variant="Variant.Outlined"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       OnClick="@(() => RemoveItem(item))"
+                                       Icon="@Icons.Material.Filled.Delete">
                         </MudIconButton>
                     </MudTd>
                 </RowTemplate>
 
                 <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                    <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }"/>
                 </PagerContent>
             </MudTable>
         }
     </EditForm>
 </MudPaper>
 
-<MudDivider Class="my-12" />
+<MudDivider Class="my-12"/>
 
 <MudPaper Class="pa-4">
     <MudText Typo="Typo.h5">Your Wanted Lists</MudText>
@@ -192,11 +186,11 @@
         }
         else
         {
-            <MudTable Items="_wantedListSummaries" Hover="true" Breakpoint="Breakpoint.Sm" Context="wl" 
+            <MudTable Items="_wantedListSummaries" Hover="true" Breakpoint="Breakpoint.Sm" Context="wl"
                       OnRowClick="@((TableRowClickEventArgs<WantedListSummary> args) => GoToDetails(args.Item?.Id ?? 0))"
                       T="WantedListSummary" Style="cursor:pointer">
                 <HeaderContent>
-               
+
                     <MudTh>Name</MudTh>
                     <MudTh>Source</MudTh>
                     <MudTh>Items</MudTh>
@@ -213,11 +207,11 @@
                         <MudText Typo="Typo.body2">@wl.ItemCount Parts</MudText>
                     </MudTd>
                     <MudTd DataLabel="Actions" Style="text-align:right" @onclick:stopPropagation="true">
-                        <MudIconButton Variant="Variant.Outlined" 
-                                   Color="Color.Error" 
-                                   Icon="@Icons.Material.Filled.Delete" 
-                                   Size="Size.Small" 
-                                   OnClick="@(() => RemoveWantedList(wl.Id))">
+                        <MudIconButton Variant="Variant.Outlined"
+                                       Color="Color.Error"
+                                       Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       OnClick="@(() => RemoveWantedList(wl.Id))">
                         </MudIconButton>
                     </MudTd>
                 </RowTemplate>
@@ -228,253 +222,15 @@
 
 @code {
     // Overview ist jetzt super leicht
-    private List<WantedListSummary>? _wantedListSummaries;
-
-    private bool _loading = true;
-
-    private string? _error;
-    private string? _errorDetails;
-
-    private void SetError(Exception ex, string? context = null)
-    {
-        _error = context == null
-            ? $"An error happened: {ex.Message}"
-            : $"An error happened ({context}): {ex.Message}";
-        _errorDetails = ex.ToString();
-    }
 
     // Save UX
-    private bool _saving = false;
 
     // Pagination (New list preview table)
-    private int _itemsPage = 0;
-    private int _itemsRowsPerPage = 25;
-
-    private readonly Dictionary<int, MappedBrick> _brickById = new();
-
-    private NewWantedListModel newListModel = new();
-    private List<BrickColor> brickColors = new();
 
     // Lazy cache – wird erst geladen, wenn der User wirklich sucht
-    private List<MappedBrick> _allBricks = new();
-    private bool _allBricksLoaded = false;
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            _loading = true;
-
-            // parallel: Summaries + Colors
-            var wantedTask = WantedListService.GetCurrentUserWantedListSummariesAsync();
-            var colorsTask = MappedBrickService.GetAllColorsAsync();
-
-            await Task.WhenAll(wantedTask, colorsTask);
-
-            _wantedListSummaries = await wantedTask;
-            brickColors = await colorsTask;
-
-            // Track page visit
-            await TrackingService.TrackAsync("ViewMyWantedLists", $"Lists: {_wantedListSummaries?.Count ?? 0}", "/mywantedlists");
-
-            // WICHTIG: _allBricks NICHT hier laden -> Performance!
-        }
-        catch (Exception ex)
-        {
-            SetError(ex, "OnInitializedAsync");
-            _wantedListSummaries = new();
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
-
-    private async Task EnsureAllBricksLoadedAsync()
-    {
-        if (_allBricksLoaded) return;
-        _allBricksLoaded = true;
-
-        try
-        {
-            // Diese Query ist schwer – deshalb lazy
-            _allBricks = await MappedBrickService.GetAllMappedBricksAsync();
-
-            foreach (var b in _allBricks)
-                _brickById[b.Id] = b;
-        }
-        catch (Exception ex)
-        {
-            // wenn das fehlschlägt, soll die Seite nicht komplett sterben
-            SetError(ex, "LoadAllBricks");
-            _allBricks = new();
-            _allBricksLoaded = false;
-        }
-    }
-
-    private void OnItemsPageChanged(int page) => _itemsPage = page;
-
-    private void OnItemsRowsPerPageChanged(int size)
-    {
-        _itemsRowsPerPage = size;
-        _itemsPage = 0;
-    }
-
-    private void GoToDetails(int wantedListId)
-        => Nav.NavigateTo($"/mywantedlistdetails/{wantedListId}");
-
-    private async Task RemoveWantedList(int wantedListId)
-    {
-        try
-        {
-            await WantedListService.DeleteWantedListAsync(wantedListId);
-            _wantedListSummaries = await WantedListService.GetCurrentUserWantedListSummariesAsync();
-        }
-        catch (Exception ex)
-        {
-            SetError(ex, "RemoveWantedList");
-        }
-        finally
-        {
-            StateHasChanged();
-        }
-    }
-
-    private void HandleBrickAdded(BrickSelectionDto selection)
-    {
-        _brickById[selection.Brick.Id] = selection.Brick;
-
-        AddOrMergeItem(newListModel.Items, new NewWantedListItemModel
-        {
-            MappedBrickId = selection.Brick.Id,
-            BrickName = selection.Brick.Name,
-            ColorId = selection.BrickColorId,
-            Quantity = selection.Quantity
-        });
-
-        _itemsPage = 0;
-        NotificationService.Success("Item added to list.");
-        StateHasChanged();
-    }
-
-    private void RemoveItem(NewWantedListItemModel item)
-    {
-        newListModel.Items.Remove(item);
-        _itemsPage = 0;
-        StateHasChanged();
-    }
-
-    private async Task OpenEditItemDialog(NewWantedListItemModel item)
-    {
-        var parameters = new DialogParameters<EditItemDialog>
-        {
-            { x => x.CurrentQuantity, item.Quantity },
-            { x => x.CurrentColorId, item.ColorId }
-        };
-
-        var dialog = await DialogService.ShowAsync<EditItemDialog>("Edit item", parameters);
-        var result = await dialog.Result;
-
-        if (result is not null && !result.Canceled && result.Data is EditItemDialogResult editResult)
-        {
-            // Update das Item in der Liste
-            item.Quantity = editResult.Quantity;
-            item.ColorId = editResult.ColorId;
-            
-            NotificationService.Success("Item updated.");
-            StateHasChanged();
-        }
-    }
-
-    private async Task HandleCreateWantedList()
-    {
-        if (_saving) return;
-        if (string.IsNullOrWhiteSpace(newListModel.Name) || !newListModel.Items.Any())
-            return;
-
-        _saving = true;
-        if (newListModel.UnmappedRows.Count > 0)
-        {
-            LoadingService.Show("Saving wanted list and inform admin about missing items...");
-
-        }
-        else
-        {
-            LoadingService.Show("Saving wanted list...");
-        }
-
-        try
-        {
-            var wantedListId = await WantedListService.CreateWantedListAndReturnIdAsync(newListModel);
-            if (wantedListId > 0)
-            {
-                NotificationService.Success("Wanted list created.");
-                Nav.NavigateTo($"/mywantedlistdetails/{wantedListId}");
-            }
-        }
-        catch (Exception ex)
-        {
-            SetError(ex, "HandleCreateWantedList");
-            NotificationService.Error(_error ?? "An error happened.");
-        }
-        finally
-        {
-            LoadingService.Hide();
-            _saving = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
 
     // =========================
     // ===== Upload (zentral) ===
     // =========================
 
-    private Task OnUploadParsed(ParseResult<ParsedPart> result)
-    {
-        newListModel.UnmappedRows = result.Unmapped;
-
-        // Source sauber normalisieren (trim/lower/csv/xml weg)
-        newListModel.Source = WantedListService.NormalizeSource(result.AppliedFormat.ToString());
-
-        return Task.CompletedTask;
-    }
-
-    private async void AddUploadItemsToNewList_FromComponent(List<ParsedPart> parts)
-{
-    LoadingService.Show("Adding uploaded items to wanted list...");
-        await EnsureAllBricksLoadedAsync(); 
-
-    foreach (var p in parts)
-    {
-        _brickById.TryGetValue(p.MappedBrickId, out var brick);
-        AddOrMergeItem(newListModel.Items, new NewWantedListItemModel
-        {
-            MappedBrickId = p.MappedBrickId,
-            BrickName = brick?.Name ?? $"Brick #{p.MappedBrickId}",
-            ColorId = p.BrickColorId,
-            Quantity = p.Quantity
-        });
-    }
-LoadingService.Hide();
-        _itemsPage = 0;
-        NotificationService.Success("Upload items added to list.");
-        StateHasChanged();
-    }
-
-    private Task OnUploadCleared()
-    {
-        // optional: newListModel.UnmappedRows = new();
-        return Task.CompletedTask;
-    }
-
-    private static void AddOrMergeItem(List<NewWantedListItemModel> list, NewWantedListItemModel item)
-    {
-        var existing = list.FirstOrDefault(x => x.MappedBrickId == item.MappedBrickId && x.ColorId == item.ColorId);
-        if (existing != null)
-        {
-            existing.Quantity += item.Quantity;
-            return;
-        }
-        list.Add(item);
-    }
 }
