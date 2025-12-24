@@ -1,36 +1,27 @@
 using brickapp.Data.Entities;
 using Microsoft.AspNetCore.Components.Forms;
-using brickapp.Data.Services;
 using brickapp.Data.Services.Storage;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
 namespace brickapp.Data.Services
 {
-    public class ImageService
+    public class ImageService(
+        IImageStorage storage,
+        NotificationService notificationService,
+        ILogger<RequestService> logger)
     {
-        private readonly IImageStorage _storage;
-        private readonly NotificationService _notificationService;
-              private readonly ILogger<RequestService> _logger;
-
-        public ImageService(IImageStorage storage, NotificationService notificationService,   ILogger<RequestService> logger)
-        {
-            _storage = storage;
-            _notificationService = notificationService;
-            _logger = logger;
-        }
-
         // ITEM IMAGES
         public string GetPlaceHolder()
         {
             return "/placeholder-image.png";
         }
 
-        public async Task<string?> SaveResizedItemImageAsync(IBrowserFile file, string brand, string? legoPartNum, string? uuid)
+        public async Task<string?> SaveResizedItemImageAsync(IBrowserFile? file, string brand, string? legoPartNum, string? uuid)
         {
-            _logger.LogInformation($"🟡 [ImageService] Saving Image for brand {brand}");
+            logger.LogInformation($"🟡 [ImageService] Saving Image for brand {brand}");
 
-            if (file == null || file.ContentType == null || !file.ContentType.StartsWith("image/"))
+            if (file == null || !file.ContentType.StartsWith("image/"))
                 return null;
 
             string relativePath;
@@ -78,11 +69,11 @@ namespace brickapp.Data.Services
             outStream.Position = 0;
 
             // Speichern (lokal: Datei, Azure: Blob)
-            await _storage.SaveAsync(outStream, "image/png", relativePath);
+            await storage.SaveAsync(outStream, "image/png", relativePath);
 
             var webPath = BuildWebPath(relativePath);
-            _notificationService.Success($"Item image saved at {webPath}");
-            _logger.LogInformation($"🟢 [ImageService] Image saved at {webPath}");
+            notificationService.Success($"Item image saved at {webPath}");
+            logger.LogInformation($"🟢 [ImageService] Image saved at {webPath}");
             return webPath;
         }
 
@@ -91,12 +82,12 @@ namespace brickapp.Data.Services
             try
             {
                 // Extrahiere den relativen Pfad aus dem WebPath
-                var baseUrl = _storage.BaseUrl ?? "/";
+                var baseUrl = storage.BaseUrl;
                 var relativePath = currentWebPath.Replace(baseUrl, "").TrimStart('/');
 
-                if (!_storage.Exists(relativePath))
+                if (!storage.Exists(relativePath))
                 {
-                    _logger.LogWarning($"[ImageService] Source image not found: {relativePath}");
+                    logger.LogWarning($"[ImageService] Source image not found: {relativePath}");
                     return null;
                 }
 
@@ -114,22 +105,22 @@ namespace brickapp.Data.Services
                 }
                 else
                 {
-                    _logger.LogWarning($"[ImageService] Cannot determine target path for folder={targetFolder}, legoPartNum={legoPartNum}, uuid={uuid}");
+                    logger.LogWarning($"[ImageService] Cannot determine target path for folder={targetFolder}, legoPartNum={legoPartNum}, uuid={uuid}");
                     return null;
                 }
 
                 // Kopiere die Datei an den neuen Ort
-                await _storage.CopyAsync(relativePath, targetRelativePath);
+                await storage.CopyAsync(relativePath, targetRelativePath);
 
                 // Lösche die alte Datei
-                await _storage.DeleteAsync(relativePath);
+                await storage.DeleteAsync(relativePath);
 
-                _logger.LogInformation($"[ImageService] Image moved from {relativePath} to {targetRelativePath}");
+                logger.LogInformation($"[ImageService] Image moved from {relativePath} to {targetRelativePath}");
                 return BuildWebPath(targetRelativePath);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"[ImageService] Error moving image from {currentWebPath}");
+                logger.LogError(ex, $"[ImageService] Error moving image from {currentWebPath}");
                 return null;
             }
         }
@@ -168,17 +159,17 @@ namespace brickapp.Data.Services
         await image.SaveAsPngAsync(outStream);
         outStream.Position = 0;
 
-        await _storage.SaveAsync(outStream, "image/png", relativePath);
+        await storage.SaveAsync(outStream, "image/png", relativePath);
         return BuildWebPath(relativePath);
     }
     catch (Exception ex)
     {
-        _logger.LogError(ex, "Fehler beim Download/Resize des Bildes von {Url}", imageUrl);
+        logger.LogError(ex, "Fehler beim Download/Resize des Bildes von {Url}", imageUrl);
         return null;
     }
 }
 
-        public string GetMappedBrickImagePath(MappedBrick mappedBrick)
+        public string GetMappedBrickImagePath(MappedBrick? mappedBrick)
         {
             if (mappedBrick != null)
             {
@@ -186,7 +177,7 @@ namespace brickapp.Data.Services
                 if (!string.IsNullOrWhiteSpace(mappedBrick.LegoPartNum))
                 {
                     var rel = $"part_images/{mappedBrick.LegoPartNum}.png";
-                    if (_storage.Exists(rel))
+                    if (storage.Exists(rel))
                         return BuildWebPath(rel);
                 }
 
@@ -194,7 +185,7 @@ namespace brickapp.Data.Services
                 if (!string.IsNullOrWhiteSpace(mappedBrick.Uuid))
                 {
                     var rel = $"part_images/new/{mappedBrick.Uuid}.png";
-                    if (_storage.Exists(rel))
+                    if (storage.Exists(rel))
                         return BuildWebPath(rel);
                 }
             }
@@ -202,7 +193,7 @@ namespace brickapp.Data.Services
             return "/placeholder-image.png";
         }
 
-        public string GetItemRequestImagePath(NewItemRequest newItemRequest)
+        public string GetItemRequestImagePath(NewItemRequest? newItemRequest)
         {
             if (newItemRequest != null)
             {
@@ -212,7 +203,7 @@ namespace brickapp.Data.Services
                     !string.IsNullOrWhiteSpace(newItemRequest.PartNum))
                 {
                     var rel = $"part_images/{newItemRequest.PartNum}.png";
-                    if (_storage.Exists(rel))
+                    if (storage.Exists(rel))
                         return BuildWebPath(rel);
                 }
 
@@ -220,7 +211,7 @@ namespace brickapp.Data.Services
                 if (!string.IsNullOrWhiteSpace(newItemRequest.Uuid))
                 {
                     var rel = $"part_images/new/{newItemRequest.Uuid}.png";
-                    if (_storage.Exists(rel))
+                    if (storage.Exists(rel))
                         return BuildWebPath(rel);
                 }
             }
@@ -229,7 +220,7 @@ namespace brickapp.Data.Services
         }
 
         // SET IMAGES
-        public async Task<string?> SaveSetImageAsync(IBrowserFile uploadedImage, string brand, string setId)
+        public async Task<string?> SaveSetImageAsync(IBrowserFile? uploadedImage, string brand, string setId)
         {
             if (uploadedImage == null) return null;
 
@@ -242,20 +233,20 @@ namespace brickapp.Data.Services
 
             var relativePath = $"setimages/{safeBrand}/{fileName}";
 
-            using var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024);
+            await using var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024);
 
-            await _storage.SaveAsync(
+            await storage.SaveAsync(
                 stream,
-                uploadedImage.ContentType ?? "application/octet-stream",
+                uploadedImage.ContentType,
                 relativePath
             );
 
             return BuildWebPath(relativePath);
         }
 
-        public string GetSetImagePath(ItemSet itemSet)
+        public string GetSetImagePath(ItemSet? itemSet)
         {
-            _logger.LogInformation($"[ImageService] Get Set Image Path for ItemSet ID {itemSet?.Id}");
+            logger.LogInformation($"[ImageService] Get Set Image Path for ItemSet ID {itemSet?.Id}");
              
             if (itemSet == null)
                 return "/placeholder-image.png";
@@ -263,7 +254,7 @@ namespace brickapp.Data.Services
             // 1) Falls ImageUrl gesetzt ist, verwende diese
             if (!string.IsNullOrWhiteSpace(itemSet.ImageUrl))
             {
-                    _logger.LogInformation($"[ImageService] Using ImageUrl: {itemSet.ImageUrl}");
+                    logger.LogInformation($"[ImageService] Using ImageUrl: {itemSet.ImageUrl}");
                     return itemSet.ImageUrl;
             }
                 
@@ -271,19 +262,19 @@ namespace brickapp.Data.Services
             // 2) lokales/blob Bild: setimages/<brand>/<setnum>.png
             if (!string.IsNullOrWhiteSpace(itemSet.SetNum) && !string.IsNullOrWhiteSpace(itemSet.Brand))
             {
-                _logger.LogInformation($"[ImageService] Checking local/blob storage for set image of brand {itemSet.Brand} and setnum {itemSet.SetNum}");
+                logger.LogInformation($"[ImageService] Checking local/blob storage for set image of brand {itemSet.Brand} and setnum {itemSet.SetNum}");
                 var safeBrand = itemSet.Brand.ToLower().Replace(" ", "_");
                 var safeSetNum = itemSet.SetNum.ToLower().Replace(" ", "_");
                 var rel = $"setimages/{safeBrand}/{safeSetNum}.png";
 
-                if (_storage.Exists(rel))
+                if (storage.Exists(rel))
                     return BuildWebPath(rel);
             }
 
             return "/placeholder-image.png";
         }
 
-        public string GetNewSetRequestImagePath(NewSetRequest newSetRequest)
+        public string GetNewSetRequestImagePath(NewSetRequest? newSetRequest)
         {
             if (newSetRequest == null)
                 return "/placeholder-image.png";
@@ -294,7 +285,7 @@ namespace brickapp.Data.Services
                 var safeSetNum = newSetRequest.SetNo.ToLower().Replace(" ", "_");
                 var rel = $"setimages/{safeBrand}/{safeSetNum}.png";
 
-                if (_storage.Exists(rel))
+                if (storage.Exists(rel))
                     return BuildWebPath(rel);
             }
 
@@ -302,7 +293,7 @@ namespace brickapp.Data.Services
         }
 
         // MOCK IMAGES
-        public async Task<string?> SaveMockImageAsync(IBrowserFile uploadedImage, string userUuid, int mockId)
+        public async Task<string?> SaveMockImageAsync(IBrowserFile? uploadedImage, string userUuid, int mockId)
         {
             if (uploadedImage == null) return null;
 
@@ -312,11 +303,11 @@ namespace brickapp.Data.Services
             var fileName = mockId + ext;
             var relativePath = $"{userUuid}/{fileName}";
 
-            using var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024);
+            await using var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024);
 
-            await _storage.SaveAsync(
+            await storage.SaveAsync(
                 stream,
-                uploadedImage.ContentType ?? "application/octet-stream",
+                uploadedImage.ContentType,
                 relativePath
             );
 
@@ -326,31 +317,31 @@ namespace brickapp.Data.Services
         {
             try
             {
-                var baseUrl = _storage.BaseUrl ?? "/";
+                var baseUrl = storage.BaseUrl;
                 var relativePath = webPath.Replace(baseUrl, "").TrimStart('/');
                 
-                var deleted = await _storage.DeleteAsync(relativePath);
+                var deleted = await storage.DeleteAsync(relativePath);
                 if (deleted)
                 {
-                    _logger.LogInformation($"[ImageService] Deleted image at {relativePath}");
+                    logger.LogInformation($"[ImageService] Deleted image at {relativePath}");
                 }
                 else
                 {
-                    _logger.LogWarning($"[ImageService] Image not found or already deleted: {relativePath}");
+                    logger.LogWarning($"[ImageService] Image not found or already deleted: {relativePath}");
                 }
                 return deleted;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"[ImageService] Error deleting image at {webPath}");
+                logger.LogError(ex, $"[ImageService] Error deleting image at {webPath}");
                 return false;
             }
         }
-       public async Task DeleteMockImageAsync(Mock mock)
+       public async Task DeleteMockImageAsync(Mock? mock)
 {
     if (mock == null || string.IsNullOrWhiteSpace(mock.UserUuid)) return;
 
-    var usertoken = mock.UserUuid;
+    var mockUserUuid = mock.UserUuid;
     var mockid = mock.Id;
 
     // Wir prüfen alle möglichen Endungen, die wir beim GetMockImagePath erlauben
@@ -358,23 +349,23 @@ namespace brickapp.Data.Services
     
     foreach (var ext in extensions)
     {
-        var rel = $"{usertoken}/{mockid}{ext}";
-        if (_storage.Exists(rel))
+        var rel = $"{mockUserUuid}/{mockid}{ext}";
+        if (storage.Exists(rel))
         {
             try 
             {
-                await _storage.DeleteAsync(rel);
-                _logger.LogInformation($"[ImageService] Deleted image for Mock {mockid} at {rel}");
+                await storage.DeleteAsync(rel);
+                logger.LogInformation($"[ImageService] Deleted image for Mock {mockid} at {rel}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"[ImageService] Error deleting image for Mock {mockid} at {rel}");
+                logger.LogError(ex, $"[ImageService] Error deleting image for Mock {mockid} at {rel}");
             }
         }
     }
 }
 
-        public string GetMockImagePath(Mock mock)
+        public string GetMockImagePath(Mock? mock)
         {
             if (mock == null)
                 return "/placeholder-image.png";
@@ -386,7 +377,7 @@ namespace brickapp.Data.Services
             foreach (var ext in extensions)
             {
                 var rel = $"{usertoken}/{mockid}{ext}";
-                if (_storage.Exists(rel))
+                if (storage.Exists(rel))
                     return BuildWebPath(rel);
             }
 
@@ -395,7 +386,7 @@ namespace brickapp.Data.Services
 
         private string BuildWebPath(string relativePath)
         {
-            var baseUrl = _storage.BaseUrl ?? "/";
+            var baseUrl = storage.BaseUrl;
 
             // baseUrl sauber machen
             if (!baseUrl.EndsWith("/"))

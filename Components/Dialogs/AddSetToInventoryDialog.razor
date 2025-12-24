@@ -1,6 +1,4 @@
-
-@using MudBlazor
-
+@using brickapp.Data.Services
 
 <MudDialog>
     <DialogContent>
@@ -11,44 +9,3 @@
         <MudButton StartIcon="@Icons.Material.Filled.Check" Variant="Variant.Filled" Color="Color.Primary" OnClick="ConfirmAsync" Disabled="_loading">Add</MudButton>
     </DialogActions>
 </MudDialog>
-
-@code {
-    [CascadingParameter]
-    private IMudDialogInstance? MudDialog { get; set; }
-
-    [Parameter]
-    public int ItemCount { get; set; }
-
-    [Inject]
-    public brickapp.Data.Services.LoadingService LoadingService { get; set; } = default!;
-    [Inject]
-    public brickapp.Data.Services.InventoryService InventoryService { get; set; } = default!;
-    [Parameter]
-    public int ItemSetId { get; set; }
-
-    private bool _loading = false;
-
-    private void Cancel()
-    {
-        if (!_loading)
-            MudDialog?.Close(false);
-    }
-
-    private async Task ConfirmAsync()
-    {
-        _loading = true;
-        await InvokeAsync(StateHasChanged);
-        await Task.Delay(100); // UI-Render-Pause für Spinner
-        LoadingService.Show(message: "Adding set bricks to inventory...");
-        try
-        {
-            await InventoryService.AddSetBricksToInventoryAsync(ItemSetId);
-            MudDialog?.Close(true);
-        }
-        finally
-        {
-            LoadingService.Hide();
-            _loading = false;
-        }
-    }
-}

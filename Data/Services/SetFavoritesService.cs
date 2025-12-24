@@ -3,27 +3,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace brickapp.Data.Services;
 
-public class SetFavoritesService
+public class SetFavoritesService(IDbContextFactory<AppDbContext> dbFactory, UserService userService)
 {
-    private readonly IDbContextFactory<AppDbContext> _dbFactory;
-    private readonly UserService _userService;
-
-    public SetFavoritesService(IDbContextFactory<AppDbContext> dbFactory, UserService userService)
-    {
-        _dbFactory = dbFactory;
-        _userService = userService;
-    }
-
     /// <summary>
     /// Adds an ItemSet to the user's favorites
     /// </summary>
     public async Task AddSetToFavoritesAsync(int itemSetId)
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             throw new InvalidOperationException("User not found");
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         // Check if already exists
         var exists = await db.UserSetFavorites
@@ -48,11 +39,11 @@ public class SetFavoritesService
     /// </summary>
     public async Task RemoveSetFromFavoritesAsync(int itemSetId)
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             throw new InvalidOperationException("User not found");
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var favorite = await db.UserSetFavorites
             .FirstOrDefaultAsync(f => f.AppUserId == user.Id && f.ItemSetId == itemSetId);
@@ -69,11 +60,11 @@ public class SetFavoritesService
     /// </summary>
     public async Task<List<ItemSet>> GetUserFavoriteSetListAsync()
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             return new List<ItemSet>();
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var favoriteSets = await db.UserSetFavorites
             .AsNoTracking()
@@ -91,11 +82,11 @@ public class SetFavoritesService
     /// </summary>
     public async Task<bool> IsSetInUsersFavoritesAsync(int itemSetId)
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             return false;
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         return await db.UserSetFavorites
             .AnyAsync(f => f.AppUserId == user.Id && f.ItemSetId == itemSetId);
@@ -106,11 +97,11 @@ public class SetFavoritesService
     /// </summary>
     public async Task<HashSet<int>> GetUserFavoriteSetIdsAsync()
     {
-        var user = await _userService.GetCurrentUserAsync();
+        var user = await userService.GetCurrentUserAsync();
         if (user == null)
             return new HashSet<int>();
 
-        await using var db = await _dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
         var ids = await db.UserSetFavorites
             .AsNoTracking()

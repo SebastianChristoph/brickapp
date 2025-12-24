@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging; // Wichtig für ILogger
 using brickapp.Components.Shared.PartsListUpload;
-using brickapp.Data;
 
 namespace brickapp.Data.Services.PartsListUpload;
 

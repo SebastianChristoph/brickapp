@@ -1,6 +1,6 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
-@inject IJSRuntime JSRuntime
+@inject IJSRuntime JsRuntime
 
 <MudDialog>
     <DialogContent>
@@ -44,25 +44,3 @@
         </MudButton>
     </DialogActions>
 </MudDialog>
-
-@code {
-    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
-
-    [Parameter]
-    public string Token { get; set; } = string.Empty;
-
-    [Parameter]
-    public string? Username { get; set; }
-
-    private async Task CopyTokenToClipboard()
-    {
-        await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", Token);
-        Snackbar.Add("Token copied to clipboard!", Severity.Success);
-    }
-
-    private void CloseAndLogin()
-    {
-        MudDialog?.Close(DialogResult.Ok(true));
-        Nav.NavigateTo("/login", true);
-    }
-}

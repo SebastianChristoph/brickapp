@@ -2,8 +2,8 @@
 @using brickapp.Data.Services
 @using brickapp.Data.DTOs
 @using brickapp.Helpers
-@inject brickapp.Data.Services.MappedBrickService MappedBrickService
-@inject brickapp.Data.Services.ImageService ImageService
+@inject MappedBrickService MappedBrickService
+@inject ImageService ImageService
 @inject ILogger<BrickPicker> Logger
 
 <style>
@@ -186,13 +186,13 @@
     [Parameter] public string Placeholder { get; set; } = "Enter part number or name...";
     [Parameter] public string AddButtonText { get; set; } = "Add to List";
     [Parameter] public bool ShowQuickColorPicker { get; set; } = true;
-    [Parameter] public bool ShowBrandSelector { get; set; } = false;
+    [Parameter] public bool ShowBrandSelector { get; set; }
     [Parameter] public MappedBrick? PreselectedBrick { get; set; }
     [Parameter] public EventCallback<BrickSelectionDto> OnBrickAdded { get; set; }
 
     private List<MappedBrick> _allBricks = new();
-    private bool _searchingBricks = false;
-    private bool _allBricksLoaded = false;
+    private bool _searchingBricks;
+    private bool _allBricksLoaded;
     private List<BrickColor> _allColors = new();
     private List<BrickColor> _availableColors = new();
     private List<BrickColor> _quickColors = new();
@@ -265,13 +265,13 @@
     {
         _searchingBricks = true;
         StateHasChanged();
-        var results = await SearchBricks(searchText, cancellationToken);
+        var results = await SearchBricks(searchText);
         _searchingBricks = false;
         StateHasChanged();
         return results;
     }
 
-    private async Task<IEnumerable<MappedBrick>> SearchBricks(string searchText, CancellationToken cancellationToken)
+    private async Task<IEnumerable<MappedBrick>> SearchBricks(string searchText)
     {
         if (string.IsNullOrWhiteSpace(searchText) || searchText.Length < 2)
             return Array.Empty<MappedBrick>();
@@ -290,7 +290,7 @@
                                (b.MouldKingPartNum?.Replace(" ", "").ToLower().Contains(normalized) ?? false) ||
                                (b.UnknownPartNum?.Replace(" ", "").ToLower().Contains(normalized) ?? false);
 
-                var matchName = (b.Name?.Replace(" ", "").ToLower().Contains(normalized) ?? false) ||
+                var matchName = b.Name.Replace(" ", "").ToLower().Contains(normalized) ||
                                 (b.LegoName?.Replace(" ", "").ToLower().Contains(normalized) ?? false) ||
                                 (b.BluebrixxName?.Replace(" ", "").ToLower().Contains(normalized) ?? false) ||
                                 (b.CadaName?.Replace(" ", "").ToLower().Contains(normalized) ?? false) ||
@@ -303,7 +303,7 @@
             .OrderByDescending(b =>
             {
                 // Priorität 1: Exakte Übereinstimmung mit Namen (wichtigste!)
-                var exactNameMatch = (b.Name?.Replace(" ", "").Equals(normalized, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                var exactNameMatch = b.Name.Replace(" ", "").Equals(normalized, StringComparison.OrdinalIgnoreCase) ||
                                      (b.LegoName?.Replace(" ", "").Equals(normalized, StringComparison.OrdinalIgnoreCase) ?? false) ||
                                      (b.BluebrixxName?.Replace(" ", "").Equals(normalized, StringComparison.OrdinalIgnoreCase) ?? false) ||
                                      (b.CadaName?.Replace(" ", "").Equals(normalized, StringComparison.OrdinalIgnoreCase) ?? false) ||
