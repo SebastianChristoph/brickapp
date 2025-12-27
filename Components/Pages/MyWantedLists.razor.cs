@@ -10,13 +10,13 @@ namespace brickapp.Components.Pages;
 public partial class MyWantedLists
 {
     private readonly Dictionary<int, MappedBrick> _brickById = new();
+    private readonly int _itemsRowsPerPage = 25;
     private readonly NewWantedListModel _newListModel = new();
-    private List<MappedBrick> _allBricks = new();
+    private List<MappedBrick> _allBricks = [];
     private bool _allBricksLoaded;
-    private List<BrickColor> _brickColors = new();
+    private List<BrickColor> _brickColors = [];
     private string? _error;
     private string? _errorDetails;
-    private readonly int _itemsRowsPerPage = 25;
     private bool _loading = true;
 
     private bool _saving;
@@ -54,7 +54,7 @@ public partial class MyWantedLists
         catch (Exception ex)
         {
             SetError(ex, "OnInitializedAsync");
-            _wantedListSummaries = new List<WantedListService.WantedListSummary>();
+            _wantedListSummaries = [];
         }
         finally
         {
@@ -79,7 +79,7 @@ public partial class MyWantedLists
         {
             // wenn das fehlschlägt, soll die Seite nicht komplett sterben
             SetError(ex, "LoadAllBricks");
-            _allBricks = new List<MappedBrick>();
+            _allBricks = [];
             _allBricksLoaded = false;
         }
     }
@@ -139,7 +139,7 @@ public partial class MyWantedLists
         var dialog = await DialogService.ShowAsync<EditItemDialog>("Edit item", parameters);
         var result = await dialog.Result;
 
-        if (result is not null && !result.Canceled && result.Data is EditItemDialogResult editResult)
+        if (result is not null && result is { Canceled: false, Data: EditItemDialogResult editResult })
         {
             // Update das Item in der Liste
             item.Quantity = editResult.Quantity;

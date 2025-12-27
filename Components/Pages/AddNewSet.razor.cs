@@ -4,10 +4,10 @@ using Microsoft.AspNetCore.Components.Forms;
 
 namespace brickapp.Components.Pages;
 
-public partial class AddNewSet(string? imageError)
+public partial class AddNewSet
 {
     private string? _imagePreviewUrl;
-    private string? _imageError = imageError;
+    private string? _imageError;
     private IBrowserFile? _uploadedImageFile;
     private bool _loading;
 
@@ -61,7 +61,6 @@ public partial class AddNewSet(string? imageError)
     private string? _errorMessage;
     private List<MappedBrick>? _allBricksCache;
     private List<BrickColor> _brickColors = new();
-    private readonly Dictionary<int, MappedBrick> _brickCache = new();
 
     private async Task EditDraftAsync(int draftId)
     {
@@ -148,8 +147,6 @@ public partial class AddNewSet(string? imageError)
     {
         if (selection?.Brick == null) return;
 
-        // Cache für spätere Verwendung
-        _brickCache[selection.Brick.Id] = selection.Brick;
 
         // Hole Farbnamen
         var colorName = _brickColors.FirstOrDefault(c => c.Id == selection.BrickColorId)?.Name ?? "Unknown";

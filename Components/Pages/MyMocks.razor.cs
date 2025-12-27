@@ -8,18 +8,19 @@ namespace brickapp.Components.Pages;
 
 public partial class MyMocks
 {
-    private readonly PartsUploadFormat[] _mocFormats = new[]
-    {
+    private readonly PartsUploadFormat[] _mocFormats =
+    [
         PartsUploadFormat.RebrickableCsv,
         PartsUploadFormat.RebrickableXml,
         PartsUploadFormat.BricklinkXml
-    };
+    ];
 
     private readonly string _uploadError = string.Empty;
     private string _currentSource = string.Empty;
     private string? _error;
     private string? _errorDetails;
     private bool _fileReadyForUpload;
+    private string _imagePreviewUrl = string.Empty;
     private bool _loading;
     private string _newMockComment = string.Empty;
     private string _newMockName = string.Empty;
@@ -29,9 +30,8 @@ public partial class MyMocks
     private List<MockItem> _uploadedItems = new();
 
     private List<Mock>? _userMocks;
-    public string ImagePreviewUrl = string.Empty;
 
-    private string MocFormatLabel(PartsUploadFormat f)
+    private static string MocFormatLabel(PartsUploadFormat f)
     {
         return f switch
         {
@@ -90,7 +90,7 @@ public partial class MyMocks
 
         // --- FIX: Button aktivieren ---
         // Wir aktivieren den Button, wenn entweder gemappte ODER ungemappte Teile gefunden wurden
-        _fileReadyForUpload = _uploadedItems.Any() || _unmappedRows.Any();
+        _fileReadyForUpload = _uploadedItems.Count != 0 || _unmappedRows.Count != 0;
 
         return Task.CompletedTask;
     }
@@ -136,7 +136,7 @@ public partial class MyMocks
             }
 
             // 2. NEU: Missing Items transformieren und hinzufügen
-            if (_unmappedRows.Any())
+            if (_unmappedRows.Count != 0)
             {
                 // A) MissingItems für das Mock erstellen (für die UI Anzeige)
                 mock.MissingItems = _unmappedRows
@@ -164,40 +164,36 @@ public partial class MyMocks
                                        && r.Status != NewItemRequestStatus.Rejected
                                        && r.Status != NewItemRequestStatus.Pending);
 
-                    if (!requestExists)
+                    if (requestExists) continue;
+                    // API fragen nach Name und Bild-URL (nutzt das neue DTO)
+                    var partInfo = await RebrickableApi.GetLegoItemNameByPartNumber(partNum);
+
+                    if (partInfo == null || string.IsNullOrWhiteSpace(partInfo.Name)) continue;
+                    var newRequestUuid = Guid.NewGuid().ToString();
+                    var newRequest = new NewItemRequest
                     {
-                        // API fragen nach Name und Bild-URL (nutzt das neue DTO)
-                        var partInfo = await RebrickableApi.GetLegoItemNameByPartNumber(partNum);
+                        Uuid = newRequestUuid,
+                        Brand = "Lego",
+                        PartNum = partNum,
+                        Name = partInfo.Name,
+                        RequestedByUserId = userUuid,
+                        CreatedAt = DateTime.UtcNow,
+                        Status = NewItemRequestStatus.Pending
+                    };
 
-                        if (partInfo != null && !string.IsNullOrWhiteSpace(partInfo.Name))
-                        {
-                            var newRequestUuid = Guid.NewGuid().ToString();
-                            var newRequest = new NewItemRequest
-                            {
-                                Uuid = newRequestUuid,
-                                Brand = "Lego",
-                                PartNum = partNum,
-                                Name = partInfo.Name,
-                                RequestedByUserId = userUuid,
-                                CreatedAt = DateTime.UtcNow,
-                                Status = NewItemRequestStatus.Pending
-                            };
+                    db.NewItemRequests.Add(newRequest);
 
-                            db.NewItemRequests.Add(newRequest);
+                    // Bild asynchron herunterladen und speichern
+                    if (!string.IsNullOrWhiteSpace(partInfo.ImageUrl))
+                        // Wir warten hier kurz, damit das Bild beim nächsten Laden 
+                        // der Seite evtl. schon da ist.
+                        await ImageService.DownloadAndSaveItemImageAsync(
+                            partInfo.ImageUrl,
+                            "Lego",
+                            partNum,
+                            newRequestUuid);
 
-                            // Bild asynchron herunterladen und speichern
-                            if (!string.IsNullOrWhiteSpace(partInfo.ImageUrl))
-                                // Wir warten hier kurz, damit das Bild beim nächsten Laden 
-                                // der Seite evtl. schon da ist.
-                                await ImageService.DownloadAndSaveItemImageAsync(
-                                    partInfo.ImageUrl,
-                                    "Lego",
-                                    partNum,
-                                    newRequestUuid);
-
-                            Logger.LogInformation("✅ NewItemRequest via MOC-Upload für {PartNum} erstellt.", partNum);
-                        }
-                    }
+                    Logger.LogInformation("✅ NewItemRequest via MOC-Upload für {PartNum} erstellt.", partNum);
                 }
             }
 
@@ -226,7 +222,7 @@ public partial class MyMocks
         var stream = _uploadedImage.OpenReadStream(3 * 1024 * 1024);
         var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
-        ImagePreviewUrl = $"data:{e.File.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        _imagePreviewUrl = $"data:{e.File.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
     }
 
     private async Task DeleteMock(int mockId)
@@ -247,7 +243,7 @@ public partial class MyMocks
             {
                 await ImageService.DeleteMockImageAsync(mock);
                 db.Mocks.Remove(mock);
-                db.SaveChanges();
+                await db.SaveChangesAsync();
             }
 
             await LoadMocks();
@@ -273,13 +269,13 @@ public partial class MyMocks
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
             var mocks = db.Mocks.Where(m => m.UserUuid == userUuid).ToList();
-            if (mocks.Any())
+            if (mocks.Count != 0)
             {
                 foreach (var mock in mocks)
                     await ImageService.DeleteMockImageAsync(mock);
 
                 db.Mocks.RemoveRange(mocks);
-                db.SaveChanges();
+                await db.SaveChangesAsync();
             }
 
             await LoadMocks();
