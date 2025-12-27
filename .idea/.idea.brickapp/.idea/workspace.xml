@@ -8,9 +8,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a2c54451-e293-4d24-97ed-878af13db848" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/Components/Dialogs/HelpMappingDialog.razor" beforeDir="false" afterPath="$PROJECT_DIR$/Components/Dialogs/HelpMappingDialog.razor" afterDir="false" />
-    </list>
+    <list default="true" id="a2c54451-e293-4d24-97ed-878af13db848" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -36,6 +34,10 @@
 }</component>
   <component name="HighlightingSettingsPerFile">
     <setting file="mock://C:/Users/sebas/Desktop/brickapp/Components/Pages/AddNewSet.razor.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sebas/Desktop/brickapp/Migrations/AppDbContextModelSnapshot.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sebas/Desktop/brickapp/Migrations/AppDbContextModelSnapshot.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sebas/Desktop/brickapp/Migrations/AppDbContextModelSnapshot.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sebas/Desktop/brickapp/Migrations/AppDbContextModelSnapshot.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="KubernetesApiPersistence">{}</component>
   <component name="KubernetesApiProvider">{
@@ -61,7 +63,6 @@
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;cleanup&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -116,7 +117,7 @@
       <workItem from="1766571738364" duration="1666000" />
       <workItem from="1766607603916" duration="2090000" />
       <workItem from="1766610830076" duration="2794000" />
-      <workItem from="1766869151938" duration="1151000" />
+      <workItem from="1766869151938" duration="1524000" />
     </task>
     <task id="LOCAL-00001" summary="Clean Up With Rider">
       <option name="closed" value="true" />
@@ -166,7 +167,23 @@
       <option name="project" value="LOCAL" />
       <updated>1766869791662</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="change bluebrixx link">
+      <option name="closed" value="true" />
+      <created>1766870406872</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1766870406874</updated>
+    </task>
+    <task id="LOCAL-00008">
+      <option name="closed" value="true" />
+      <created>1766870650921</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1766870650921</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -193,7 +210,8 @@
     <MESSAGE value="Clean up and refactoring" />
     <MESSAGE value="clean everything uuuup" />
     <MESSAGE value="clean up stuff" />
-    <option name="LAST_COMMIT_MESSAGE" value="clean up stuff" />
+    <MESSAGE value="change bluebrixx link" />
+    <option name="LAST_COMMIT_MESSAGE" value="change bluebrixx link" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
