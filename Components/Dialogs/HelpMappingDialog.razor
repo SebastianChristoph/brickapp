@@ -26,12 +26,17 @@
 
        
 
-        <MudTextField @bind-Value="MappingName" Label="Item name for this brand" Disabled="@(Brand == "Lego" || PartNumberOnlyMode)" />
-
-          @if(Brand != null && Brand.ToLower() =="bluebrixx" && !string.IsNullOrWhiteSpace(Brick?.LegoPartNum))
+        @if (Brand != null && Brand.Equals("bluebrixx", StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(Brick?.LegoPartNum))
         {
-            <MudAlert Severity="Severity.Info" Class="mb-2">Tip: Search for the LEGO part number <b>@Brick.LegoPartNum</b> on bluebrixx.com to identify the matching Bluebrixx item name. <MudLink Href="https://www.bluebrixx.com" Target="_blank">Go to BlueBrixx.com</MudLink></MudAlert>
-            
+            var query = Uri.EscapeDataString(Brick!.LegoPartNum);
+            var url = $"https://www.bluebrixx.com/de/#8fc1/embedded/q={query}";
+
+            <MudAlert Severity="Severity.Info" Class="mb-2">
+                Tip: Search for the LEGO part number <b>@Brick.LegoPartNum</b> on bluebrixx.com to identify the matching
+                Bluebrixx item name.
+                <MudLink Href="@url" Target="_blank">Go to BlueBrixx.com</MudLink>
+            </MudAlert>
         }
 
         <MudTextField Value="@MappingItemId" ValueChanged="@((string v) => OnMappingItemIdChanged(v))"
