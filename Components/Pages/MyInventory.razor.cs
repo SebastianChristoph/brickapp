@@ -67,7 +67,7 @@ public partial class MyInventory
         var dialog = await DialogService.ShowAsync<EditItemDialog>("Edit item", parameters);
         var result = await dialog.Result;
 
-        if (result is not null && !result.Canceled && result.Data is EditItemDialogResult editResult)
+        if (result is { Canceled: false, Data: EditItemDialogResult editResult })
         {
             // Update mit neuer Quantity und ColorId
             var success =
@@ -91,7 +91,7 @@ public partial class MyInventory
         var dialog = await DialogService.ShowAsync<DeleteConfirmDialog>("Delete item?", parameters);
         var result = await dialog.Result;
 
-        if (result is not null && !result.Canceled && result.Data is bool confirmed && confirmed)
+        if (result is { Canceled: false, Data: bool and true })
         {
             await InventoryService.DeleteInventoryItemAsync(itemId);
             _items = await InventoryService.GetCurrentUserInventoryAsync();

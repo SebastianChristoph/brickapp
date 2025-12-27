@@ -51,10 +51,10 @@
     <InputFile OnChange="OnImageSelected" accept="image/*" disabled="@_loading"/>
 
 
-    @if (!string.IsNullOrEmpty(ImagePreviewUrl))
+    @if (!string.IsNullOrEmpty(_imagePreviewUrl))
     {
         <div style="margin-top:8px;">
-            <img src="@ImagePreviewUrl" alt="Mock Bild Vorschau"
+            <img src="@_imagePreviewUrl" alt="Mock Bild Vorschau"
                  style="max-width:200px;max-height:200px;border:1px solid #ccc;padding:2px;"/>
         </div>
     }

@@ -7,9 +7,9 @@ namespace brickapp.Components.Pages;
 
 public partial class MyWantedListDetails
 {
+    private readonly int _itemsRowsPerPage = 25;
     private bool _deletingList;
     private bool _isResolving;
-    private readonly int _itemsRowsPerPage = 25;
     private bool _loading = true;
     private Dictionary<(int, int), Dictionary<string, int>> _ownedByBrand = new();
     private List<MissingItem> _resolvableItems = new();
@@ -78,7 +78,7 @@ public partial class MyWantedListDetails
 
     private async Task AddResolvableItems()
     {
-        if (!_resolvableItems.Any()) return;
+        if (_resolvableItems.Count == 0) return;
 
         _isResolving = true;
         var ids = _resolvableItems.Select(i => i.Id).ToList();
@@ -121,7 +121,7 @@ public partial class MyWantedListDetails
         var dialog = await DialogService.ShowAsync<EditItemDialog>("Edit item", parameters);
         var result = await dialog.Result;
 
-        if (result is not null && !result.Canceled && result.Data is EditItemDialogResult editResult)
+        if (result is { Canceled: false, Data: EditItemDialogResult editResult })
         {
             var success =
                 await WantedListService.UpdateWantedListItemAsync(itemId, editResult.Quantity, editResult.ColorId);

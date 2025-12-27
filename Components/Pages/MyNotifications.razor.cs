@@ -19,13 +19,9 @@ public partial class MyNotifications
     {
         var userUuid = await UserService.GetTokenAsync();
         if (!string.IsNullOrEmpty(userUuid))
-        {
             _notifications = await NotificationService.GetNotificationsForUserAsync(userUuid);
-        }
         else
-        {
-            _notifications = new();
-        }
+            _notifications = [];
     }
 
     private async Task DeleteNotification(UserNotification notification)
