@@ -47,10 +47,10 @@ public static class RebrickableSeeder
                 Path.Combine(dataDir, "inventory_parts.csv"));
 
         // 4. Externe Export Services (falls vorhanden)
-        var setsExportService = new Data.Services.ItemSetExportService(dbFactory, exportStorage);
+        var setsExportService = new Services.ItemSetExportService(dbFactory, exportStorage);
         await setsExportService.ImportSetsAsync();
 
-        var mappedExportService = new Data.Services.MappedBrickExportService(dbFactory, exportStorage);
+        var mappedExportService = new Services.MappedBrickExportService(dbFactory, exportStorage);
         await mappedExportService.ImportMappedBricksAsync();
 
         db.ChangeTracker.AutoDetectChangesEnabled = true;
@@ -72,11 +72,11 @@ public static class RebrickableSeeder
         int count = 0;
         foreach (var row in rows)
         {
-            if (colorDict.TryGetValue(row.rebrickable_color_id, out var color))
+            if (colorDict.TryGetValue(row.RebrickableColorId, out var color))
             {
-                if (row.bricklink_color_id.HasValue)
+                if (row.BricklinkColorId.HasValue)
                 {
-                    color.BricklinkColorId = row.bricklink_color_id;
+                    color.BricklinkColorId = row.BricklinkColorId;
                     
                     // WICHTIG: Explizites Update, da AutoDetectChangesEnabled = false
                     db.BrickColors.Update(color); 
@@ -104,7 +104,7 @@ public static class RebrickableSeeder
         int count = 0;
         foreach (var c in csv.GetRecords<RebrickableColor>())
         {
-            db.BrickColors.Add(new BrickColor { RebrickableColorId = c.id, Name = c.name, Rgb = c.rgb });
+            db.BrickColors.Add(new BrickColor { RebrickableColorId = c.Id, Name = c.Name, Rgb = c.Rgb });
             if (++count % BatchSize == 0) { await db.SaveChangesAsync(); db.ChangeTracker.Clear(); }
         }
         await db.SaveChangesAsync();
@@ -119,7 +119,7 @@ public static class RebrickableSeeder
         int count = 0;
         foreach (var p in csv.GetRecords<RebrickablePart>())
         {
-            db.MappedBricks.Add(new MappedBrick { LegoPartNum = p.part_num, LegoName = p.name, Name = p.name });
+            db.MappedBricks.Add(new MappedBrick { LegoPartNum = p.PartNum, LegoName = p.Name, Name = p.Name });
             if (++count % BatchSize == 0) { await db.SaveChangesAsync(); db.ChangeTracker.Clear(); }
         }
         await db.SaveChangesAsync();
@@ -134,7 +134,7 @@ public static class RebrickableSeeder
         int count = 0;
         foreach (var s in csv.GetRecords<RebrickableSet>())
         {
-            db.ItemSets.Add(new ItemSet { SetNum = s.set_num, Name = s.name, Brand = "Lego", Year = s.year, ImageUrl = s.img_url });
+            db.ItemSets.Add(new ItemSet { SetNum = s.SetNum, Name = s.Name, Brand = "Lego", Year = s.Year, ImageUrl = s.ImgUrl });
             if (++count % BatchSize == 0) { await db.SaveChangesAsync(); db.ChangeTracker.Clear(); }
         }
         await db.SaveChangesAsync();
@@ -153,7 +153,7 @@ public static class RebrickableSeeder
         using (var reader = new StreamReader(inventoriesPath))
         using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
         {
-            foreach (var inv in csv.GetRecords<RebrickableInventory>()) inventories[inv.id] = inv.set_num;
+            foreach (var inv in csv.GetRecords<RebrickableInventory>()) inventories[inv.Id] = inv.SetNum;
         }
 
         using var invReader = new StreamReader(inventoryPartsPath);
@@ -161,12 +161,12 @@ public static class RebrickableSeeder
         int count = 0;
         foreach (var invPart in invCsv.GetRecords<RebrickableInventoryPart>())
         {
-            if (inventories.TryGetValue(invPart.inventory_id, out var setNum) &&
+            if (inventories.TryGetValue(invPart.InventoryId, out var setNum) &&
                 setMapping.TryGetValue(setNum, out var itemSetId) &&
-                partMapping.TryGetValue(invPart.part_num, out var mappedBrickId) &&
-                colorMapping.TryGetValue(invPart.color_id, out var brickColorId))
+                partMapping.TryGetValue(invPart.PartNum, out var mappedBrickId) &&
+                colorMapping.TryGetValue(invPart.ColorId, out var brickColorId))
             {
-                db.ItemSetBricks.Add(new ItemSetBrick { ItemSetId = itemSetId, MappedBrickId = mappedBrickId, BrickColorId = brickColorId, Quantity = invPart.quantity });
+                db.ItemSetBricks.Add(new ItemSetBrick { ItemSetId = itemSetId, MappedBrickId = mappedBrickId, BrickColorId = brickColorId, Quantity = invPart.Quantity });
                 if (++count % BatchSize == 0) { await db.SaveChangesAsync(); db.ChangeTracker.Clear(); }
             }
         }
@@ -177,13 +177,13 @@ public static class RebrickableSeeder
     // Hilfsklassen für CSV-Mapping
     private class ColorMappingRow 
     { 
-        public int rebrickable_color_id { get; set; } 
-        public int? bricklink_color_id { get; set; } 
-        public int? lego_color_id { get; set; } 
+        public int RebrickableColorId { get; set; } 
+        public int? BricklinkColorId { get; set; } 
+        public int? LegoColorId { get; set; } 
     }
-    private class RebrickablePart { public string part_num { get; set; } = ""; public string name { get; set; } = ""; }
-    private class RebrickableSet { public string set_num { get; set; } = ""; public string name { get; set; } = ""; public int year { get; set; } public string img_url { get; set; } = ""; }
-    private class RebrickableColor { public int id { get; set; } public string name { get; set; } = ""; public string rgb { get; set; } = ""; }
-    private class RebrickableInventory { public int id { get; set; } public string set_num { get; set; } = ""; }
-    private class RebrickableInventoryPart { public int inventory_id { get; set; } public string part_num { get; set; } = ""; public int color_id { get; set; } public int quantity { get; set; } }
+    private class RebrickablePart { public string PartNum { get; set; } = ""; public string Name { get; set; } = ""; }
+    private class RebrickableSet { public string SetNum { get; set; } = ""; public string Name { get; set; } = ""; public int Year { get; set; } public string ImgUrl { get; set; } = ""; }
+    private class RebrickableColor { public int Id { get; set; } public string Name { get; set; } = ""; public string Rgb { get; set; } = ""; }
+    private class RebrickableInventory { public int Id { get; set; } public string SetNum { get; set; } = ""; }
+    private class RebrickableInventoryPart { public int InventoryId { get; set; } public string PartNum { get; set; } = ""; public int ColorId { get; set; } public int Quantity { get; set; } }
 }

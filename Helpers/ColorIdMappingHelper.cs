@@ -1,11 +1,9 @@
-using System.Collections.Generic;
-
 namespace brickapp.Helpers
 {
     // BrickLink / Rebrickable ColorId -> Hex RGB (without '#')
     public static class ColorIdMappingHelper
     {
-        private static readonly Dictionary<int, string> BricklinkColors = new Dictionary<int, string>
+        private static readonly Dictionary<int, string> BricklinkColors = new()
         {
             { 1, "FFFFFF" }, // White
             { 2, "E4CD9E" }, // Tan

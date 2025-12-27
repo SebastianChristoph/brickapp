@@ -130,6 +130,29 @@ public class AppDbContext : DbContext
             .HasPrincipalKey(u => u.Uuid)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // ItemImageRequest Tabelle und Beziehungen
+        modelBuilder.Entity<ItemImageRequest>().ToTable("itemImageRequests");
+
+        modelBuilder.Entity<ItemImageRequest>()
+            .HasOne(iir => iir.MappedBrick)
+            .WithMany()
+            .HasForeignKey(iir => iir.MappedBrickId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ItemImageRequest>()
+            .HasOne(iir => iir.RequestedByUser)
+            .WithMany()
+            .HasForeignKey(iir => iir.RequestedByUserId)
+            .HasPrincipalKey(u => u.Uuid)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<ItemImageRequest>()
+            .HasOne(iir => iir.ApprovedByUser)
+            .WithMany()
+            .HasForeignKey(iir => iir.ApprovedByUserId)
+            .HasPrincipalKey(u => u.Uuid)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Tabellen-Namen
         // Tabellen-Namen
         modelBuilder.Entity<MappedBrick>().ToTable("mappedBricks");

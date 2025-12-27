@@ -1,23 +1,14 @@
-using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
 namespace brickapp.Data.Services;
 
-public class RebrickableApiService
+public class RebrickableApiService(HttpClient httpClient, ILogger<RebrickableApiService> logger)
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<RebrickableApiService> _logger;
     private const string ApiKey = "c1995e6803e4cddd4e4a0dbc0ec4fcb1";
 
     public record RebrickablePartInfo(string Name, string? ImageUrl);
 
-    public RebrickableApiService(HttpClient httpClient, ILogger<RebrickableApiService> logger)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-    }
-
-  public async Task<RebrickablePartInfo?> GetLegoItemNameByPartNumber(string partNum)
+    public async Task<RebrickablePartInfo?> GetLegoItemNameByPartNumber(string partNum)
 {
     if (string.IsNullOrWhiteSpace(partNum)) return null;
 
@@ -61,12 +52,12 @@ public class RebrickableApiService
         request.Headers.Add("Authorization", $"key {ApiKey}");
         try
         {
-            var response = await _httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request);
             return response.IsSuccessStatusCode ? response : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "🌐 API Fehler: {Url}", url);
+            logger.LogError(ex, "🌐 API Fehler: {Url}", url);
             return null;
         }
     }

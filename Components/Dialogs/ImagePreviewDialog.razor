@@ -8,13 +8,3 @@
         <MudButton OnClick="Close" Color="Color.Primary">Close</MudButton>
     </DialogActions>
 </MudDialog>
-
-@code {
-    [CascadingParameter] private MudBlazor.IMudDialogInstance? MudDialog { get; set; }
-    [Parameter] public string ImageUrl { get; set; } = string.Empty;
-
-    private void Close()
-    {
-        MudDialog?.Close();
-    }
-}

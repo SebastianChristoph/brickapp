@@ -1,22 +1,12 @@
 using brickapp.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using brickapp.Data; // Dein Namespace für den AppDbContext
 namespace brickapp.Data.Services
 {
-    public class StatsService
+    public class StatsService(IDbContextFactory<AppDbContext> contextFactory, UserService userService)
     {
-        private readonly IDbContextFactory<AppDbContext> _contextFactory;
-        private readonly UserService _userService;
-
-        public StatsService(IDbContextFactory<AppDbContext> contextFactory, UserService userService)
-        {
-            _contextFactory = contextFactory;
-            _userService = userService;
-        }
-
         public async Task<BrickMappingStats> GetBrickMappingStatsAsync()
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
+            await using var context = await contextFactory.CreateDbContextAsync();
             
             var totalCount = await context.MappedBricks.CountAsync();
             var mappedCount = await context.MappedBricks.CountAsync(b => b.HasAtLeastOneMapping);
@@ -31,7 +21,7 @@ namespace brickapp.Data.Services
 
         public async Task<AdminStats> GetAdminStatsAsync()
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
+            await using var context = await contextFactory.CreateDbContextAsync();
 
             var stats = new AdminStats
             {
@@ -86,11 +76,11 @@ namespace brickapp.Data.Services
 
         public async Task<UserStats?> GetUserStatsAsync()
         {
-            var user = await _userService.GetCurrentUserAsync();
+            var user = await userService.GetCurrentUserAsync();
             if (user == null)
                 return null;
 
-            await using var context = await _contextFactory.CreateDbContextAsync();
+            await using var context = await contextFactory.CreateDbContextAsync();
 
             var stats = new UserStats
             {
@@ -132,7 +122,7 @@ namespace brickapp.Data.Services
 
         public async Task<List<RecentActivityItem>> GetRecentActivityAsync(int count = 5)
         {
-            await using var context = await _contextFactory.CreateDbContextAsync();
+            await using var context = await contextFactory.CreateDbContextAsync();
 
             var activities = new List<RecentActivityItem>();
 
@@ -247,7 +237,7 @@ namespace brickapp.Data.Services
     {
         public string Type { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public string Username { get; set; } = string.Empty;
+        public string? Username { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
     }
 }

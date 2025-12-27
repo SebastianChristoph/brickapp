@@ -5,24 +5,15 @@ using brickapp.Data.Services.Storage;
 
 namespace brickapp.Data.Services
 {
-    public class MappedBrickExportService
+    public class MappedBrickExportService(IDbContextFactory<AppDbContext> factory, IExportStorage storage)
     {
-        private readonly IDbContextFactory<AppDbContext> _factory;
-        private readonly IExportStorage _storage;
-
         private const string ExportRelPath = "exported_mappedbricks.json";
 
-        public MappedBrickExportService(IDbContextFactory<AppDbContext> factory, IExportStorage storage)
-        {
-            _factory = factory;
-            _storage = storage;
-        }
-
-        public string GetExportPath() => _storage.DescribeTarget(ExportRelPath);
+        public string GetExportPath() => storage.DescribeTarget(ExportRelPath);
 
         public async Task<int> ExportMappedBricksAsync()
         {
-            await using var db = await _factory.CreateDbContextAsync();
+            await using var db = await factory.CreateDbContextAsync();
 
             var allBricks = await db.MappedBricks.AsNoTracking().ToListAsync();
             var bricks = allBricks.Where(b => CountNonNullMappings(b) >= 1).ToList();
@@ -46,19 +37,19 @@ namespace brickapp.Data.Services
 
             var json = JsonSerializer.Serialize(exportList, new JsonSerializerOptions { WriteIndented = true });
 
-            await _storage.WriteTextAsync(ExportRelPath, "application/json", json);
+            await storage.WriteTextAsync(ExportRelPath, "application/json", json);
             return exportList.Count;
         }
 
         public async Task<int> ImportMappedBricksAsync()
         {
-            var json = await _storage.ReadTextAsync($"mappedData/{ExportRelPath}");
+            var json = await storage.ReadTextAsync($"mappedData/{ExportRelPath}");
             if (string.IsNullOrWhiteSpace(json)) return 0;
 
             var imported = JsonSerializer.Deserialize<List<ExportMappedBrick>>(json);
             if (imported == null || imported.Count == 0) return 0;
 
-            await using var db = await _factory.CreateDbContextAsync();
+            await using var db = await factory.CreateDbContextAsync();
 
             int importedCount = 0;
             foreach (var b in imported)

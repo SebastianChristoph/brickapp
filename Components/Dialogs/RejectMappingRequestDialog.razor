@@ -1,5 +1,4 @@
 
-@using MudBlazor
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.h6">Reject Mapping-Request</MudText>
@@ -10,10 +9,3 @@
         <MudButton Color="Color.Secondary"  OnClick="@(() => MudDialog?.Cancel())">Cancel</MudButton>
     </DialogActions>
 </MudDialog>
-
-@code {
-    private string _reason = string.Empty;
-    [Parameter] public Data.Entities.MappingRequest? Request { get; set; }
-    [CascadingParameter]
-    private IMudDialogInstance? MudDialog { get; set; }
-}

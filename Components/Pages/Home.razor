@@ -1,15 +1,12 @@
 ﻿@page "/"
 @using brickapp.Data.Services
-@using brickapp.Data.Entities
-@using MudBlazor
-@using brickapp.Components.Dialogs
-@inject brickapp.Data.Services.UserService UserService
-@inject brickapp.Data.Services.StatsService StatsService
-@inject brickapp.Data.Services.SetFavoritesService SetFavoritesService
-@inject brickapp.Data.Services.MappedBrickService BrickService
-@inject brickapp.Data.Services.ImageService ImageService
-@inject brickapp.Data.Services.RequestService RequestService
-@inject brickapp.Data.Services.NotificationService _notificationService
+@inject UserService UserService
+@inject StatsService StatsService
+@inject SetFavoritesService SetFavoritesService
+@inject MappedBrickService BrickService
+@inject ImageService ImageService
+@inject RequestService RequestService
+@inject NotificationService NotificationService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 
@@ -22,7 +19,7 @@
             Mobile View Not Supported
         </MudText>
         <MudText Typo="Typo.body1" Align="Align.Center" Class="mt-4">
-            This site is not designed to fit on a mobile screen. 
+            This site is not designed to fit on a mobile screen.
             Please consider switching to a tablet or PC for the best experience.
         </MudText>
         <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2" Color="Color.Secondary">
@@ -33,285 +30,298 @@
 
 <!-- Eigentlicher Content - nur ab Medium (Tablet) sichtbar -->
 <MudHidden Breakpoint="Breakpoint.SmAndDown">
-@if (_username is null)
-{
-    <MudText Typo="Typo.h4" GutterBottom="true">Welcome to BrickIsBrick!</MudText>
-    <MudAlert Severity="Severity.Info" Class="mt-4">
-        Please <MudLink Href="/login" Color="Color.Primary">log in</MudLink> or <MudLink Href="/login" Color="Color.Primary">sign up</MudLink> to enjoy all features and start managing your brick inventory!
-    </MudAlert>
-}
-else
-{
-    <MudText Typo="Typo.h4" GutterBottom="true">Hello @_username</MudText>
-
-    <!-- Random Brick of the Day -->
-    @if (_randomBrick != null)
+    @if (_username is null)
     {
-        <MudPaper Class="pa-4 mb-4" Elevation="4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-            <MudStack Spacing="3">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                        <MudIcon Icon="@Icons.Material.Filled.AddLink" Size="Size.Large" />
-                        <MudText Typo="Typo.h5">Map a random item and help the community grow.</MudText>
-                    </MudStack>
-                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
-                                   Color="Color.Inherit" 
-                                   OnClick="LoadRandomBrick" 
-                                   Title="Get another random brick" />
-                </MudStack>
-
-                <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
-                    @{
-                        var randomImageUrl = ImageService.GetMappedBrickImagePath(_randomBrick);
-                        var isPlaceholder = randomImageUrl == "/placeholder-image.png";
-                    }
-                    
-                    <MudStack Spacing="1" AlignItems="AlignItems.Center">
-                        @if (isPlaceholder)
-                        {
-                            <MudButton Size="Size.Small" 
-                                       Variant="Variant.Text" 
-                                       Color="Color.Default"
-                                       StartIcon="@Icons.Material.Filled.Upload"
-                                       OnClick="@(() => OpenUploadImageDialog(_randomBrick))"
-                                       Style="color: white; font-size:0.75rem;">
-                                Upload image
-                            </MudButton>
-                        }
-                        <img src="@randomImageUrl" alt="@_randomBrick.Name" 
-                             style="width:100px;height:100px;border-radius:8px;border:2px solid white;object-fit:cover;"
-                             onerror="this.src='/placeholder-image.png'" />
-                    </MudStack>
-                    
-                    <MudStack Spacing="1" Style="flex-grow:1;">
-                        <MudText Typo="Typo.h6">
-                            @_randomBrick.Name
-                            @if (!string.IsNullOrWhiteSpace(_randomBrick.LegoPartNum))
-                            {
-                                <span style="font-weight:normal; font-size:0.9em; opacity:0.85;"> (Lego PartNum.: @_randomBrick.LegoPartNum)</span>
-                            }
-                        </MudText>
-                        <MudText Typo="Typo.body2" Style="opacity:0.9;">
-                            Choose a brand on the right side to help map this item!
-                        </MudText>
-                    </MudStack>
-
-                    <MudStack Spacing="1">
-                        <MudButton Variant="Variant.Filled" 
-                                   Color="Color.Default" 
-                                   Size="Size.Small"
-                                   StartIcon="@Icons.Material.Filled.Link"
-                                   OnClick='() => OpenHelpMappingDialog("BlueBrixx")'
-                                   Style="background-color: white; color: #667eea;">
-                            Map Item to BlueBrixx
-                        </MudButton>
-                        <MudButton Variant="Variant.Filled" 
-                                   Color="Color.Default" 
-                                   Size="Size.Small"
-                                   StartIcon="@Icons.Material.Filled.Link"
-                                   OnClick='() => OpenHelpMappingDialog("Cada")'
-                                   Style="background-color: white; color: #667eea;">
-                            Map Item to Cada
-                        </MudButton>
-                        
-                    </MudStack>
-                </MudStack>
-            </MudStack>
-        </MudPaper>
-    }
-
-    <!-- User Quick Stats -->
-    @if (_userStats != null)
-    {
-        <MudGrid Class="mb-4">
-            <MudItem xs="6" sm="3">
-                <MudCard Elevation="2" Style="cursor: pointer;" @onclick='() => Nav.NavigateTo("/myinventory")'>
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Color="Color.Primary" />
-                        <MudText Typo="Typo.h4" Class="mt-2">@_userStats.TotalInventoryItems</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Inventory Items</MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <MudItem xs="6" sm="3">
-                <MudCard Elevation="2" Style="cursor: pointer;" @onclick='() => Nav.NavigateTo("/mymocs")'>
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.ViewInAr" Size="Size.Large" Color="Color.Secondary" />
-                        <MudText Typo="Typo.h4" Class="mt-2">@_userStats.TotalMocks</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">MOCs</MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <MudItem xs="6" sm="3">
-                <MudCard Elevation="2" Style="cursor: pointer;" @onclick='() => Nav.NavigateTo("/mywantedlists")'>
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.List" Size="Size.Large" Color="Color.Tertiary" />
-                        <MudText Typo="Typo.h4" Class="mt-2">@_userStats.TotalWantedLists</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Wanted Lists</MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <MudItem xs="6" sm="3">
-                <MudCard Elevation="2" Style="cursor: pointer;" @onclick='() => Nav.NavigateTo("/allsets")'>
-                    <MudCardContent Class="text-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Large" Color="Color.Warning" />
-                        <MudText Typo="Typo.h4" Class="mt-2">@_userStats.TotalFavoriteSets</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">Favorite Sets</MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            @if (_userStats.TotalMappingRequests > 0 || _userStats.TotalNewItemRequests > 0)
-            {
-                <MudItem xs="12" sm="6">
-                    <MudCard Elevation="2" Style="cursor: pointer;" @onclick='() => Nav.NavigateTo("/myrequests")'>
-                        <MudCardContent>
-                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                <MudStack Spacing="0">
-                                    <MudText Typo="Typo.h6">Your Contributions</MudText>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                        @_userStats.ApprovedMappingRequests / @_userStats.TotalMappingRequests Mappings approved
-                                    </MudText>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                        @_userStats.ApprovedNewItemRequests / @_userStats.TotalNewItemRequests Items approved
-                                    </MudText>
-                                </MudStack>
-                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Color="Color.Success" />
-                            </MudStack>
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
-            }
-        </MudGrid>
-    }
-
-    <!-- Favorite Sets Carousel -->
-    @if (_favoriteSets != null && _favoriteSets.Count >= 3)
-    {
-        <MudPaper Class="pa-4 mb-4" Elevation="2">
-            <MudStack Spacing="2">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <MudText Typo="Typo.h5">Your Favorite Sets</MudText>
-                    <MudButton Size="Size.Small" Variant="Variant.Text" Href="/allsets">View All</MudButton>
-                </MudStack>
-                
-                <MudCarousel Style="height:280px;" 
-                             ShowArrows="true" 
-                             ShowBullets="false" 
-                             EnableSwipeGesture="true"
-                             AutoCycle="true" 
-                             TData="object">
-                    @foreach (var set in _favoriteSets.Take(6))
-                    {
-                        <MudCarouselItem>
-                            <MudCard Style="height:100%; cursor: pointer;" @onclick='() => Nav.NavigateTo($"/sets/{set.Id}")'>
-                                <MudCardMedia Image="@ImageService.GetSetImagePath(set)" Height="180" Style="object-fit:cover;" />
-                                <MudCardContent>
-                                    <MudText Typo="Typo.h6">@set.Name</MudText>
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@set.Brand • @set.SetNum</MudText>
-                                </MudCardContent>
-                            </MudCard>
-                        </MudCarouselItem>
-                    }
-                </MudCarousel>
-            </MudStack>
-        </MudPaper>
-    }
-
-    <!-- Recent Community Activity -->
-    @if (_recentActivity != null && _recentActivity.Any())
-    {
-        <MudPaper Class="pa-4 mb-4" Elevation="2">
-            <MudStack Spacing="2">
-                <MudText Typo="Typo.h5" GutterBottom="true">Recent Community Activity</MudText>
-                
-                <MudList T="string" Dense="true">
-                    @foreach (var activity in _recentActivity)
-                    {
-                        <MudListItem T="string">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                @{
-                                    var icon = activity.Type switch
-                                    {
-                                        "New Item" => Icons.Material.Filled.AddBox,
-                                        "Mapping" => Icons.Material.Filled.Link,
-                                        "New Set" => Icons.Material.Filled.LibraryAdd,
-                                        _ => Icons.Material.Filled.Info
-                                    };
-                                    var color = activity.Type switch
-                                    {
-                                        "New Item" => Color.Primary,
-                                        "Mapping" => Color.Success,
-                                        "New Set" => Color.Secondary,
-                                        _ => Color.Default
-                                    };
-                                }
-                                <MudIcon Icon="@icon" Color="@color" Size="Size.Small" />
-                                <MudStack Spacing="0" Style="flex-grow:1;">
-                                    <MudText Typo="Typo.body2">
-                                        <b>@activity.Username</b> contributed: @activity.Description
-                                    </MudText>
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                        @GetRelativeTime(activity.Timestamp)
-                                    </MudText>
-                                </MudStack>
-                            </MudStack>
-                        </MudListItem>
-                    }
-                </MudList>
-            </MudStack>
-        </MudPaper>
-    }
-
-  <MudPaper Class="pa-4 mt-4" Elevation="1">
-    <MudText Typo="Typo.body1">
-        BrickIsBrick is a community-driven project!<br /><br />
-        To make this platform better for everyone, there are two main ways you can help:
-        <MudList T="string">
-            <MudListItem T="string" Icon="@Icons.Material.Filled.Map">
-                <b>Map Bricks:</b> Help us connect and match bricks across different brands.<br />
-                <MudLink Href="/allbricks" Color="Color.Primary">Go to All Mapped Bricks</MudLink>
-            </MudListItem>
-            <MudListItem T="string" Icon="@Icons.Material.Filled.AddBox">
-                <b>Add New Sets:</b> Contribute by entering new sets into the database.<br />
-                <MudLink Href="/add-new-set" Color="Color.Primary">Add a New Set</MudLink>
-            </MudListItem>
-        </MudList>
-    </MudText>
-
-    </MudPaper>
-
-
-
-    @if (_stats != null)
-    {
-        <MudPaper Class="pa-4 mt-4" Elevation="1">
-        <MudText Class="mt-4" Typo="Typo.h6" GutterBottom="true">Database Progress</MudText>
-
-        <MudChart ChartType="ChartType.Donut" Width="250px" Height="250px" InputData="@_chartData" InputLabels="@_chartLabels"
-            ChartOptions="@_options">
-            <CustomGraphics>
-                <text x="50%" y="40%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica"
-                    font-size="20">Total items</text>
-                <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica"
-                    font-size="35">@_stats?.TotalBricks</text>
-            </CustomGraphics>
-        </MudChart>
-
-        <MudText>We have @_stats.MappedCount Items in our database</MudText>
-        </MudPaper>
-
+        <MudText Typo="Typo.h4" GutterBottom="true">Welcome to BrickIsBrick!</MudText>
+        <MudAlert Severity="Severity.Info" Class="mt-4">
+            Please
+            <MudLink Href="/login" Color="Color.Primary">log in</MudLink>
+            or
+            <MudLink Href="/login" Color="Color.Primary">sign up</MudLink>
+            to enjoy all features and start managing your brick inventory!
+        </MudAlert>
     }
     else
     {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    }
+        <MudText Typo="Typo.h4" GutterBottom="true">Hello @_username</MudText>
 
-}
-<RebrickableThankYou />
+        <!-- Random Brick of the Day -->
+        @if (_randomBrick != null)
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="4"
+                      Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <MudStack Spacing="3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.AddLink" Size="Size.Large"/>
+                            <MudText Typo="Typo.h5">Map a random item and help the community grow.</MudText>
+                        </MudStack>
+                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                       Color="Color.Inherit"
+                                       OnClick="LoadRandomBrick"
+                                       Title="Get another random brick"/>
+                    </MudStack>
+
+                    <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
+                        @{
+                            var randomImageUrl = ImageService.GetMappedBrickImagePath(_randomBrick);
+                            var isPlaceholder = randomImageUrl == "/placeholder-image.png";
+                        }
+
+                        <MudStack Spacing="1" AlignItems="AlignItems.Center">
+                            @if (isPlaceholder)
+                            {
+                                <MudButton Size="Size.Small"
+                                           Variant="Variant.Text"
+                                           Color="Color.Default"
+                                           StartIcon="@Icons.Material.Filled.Upload"
+                                           OnClick="@(() => OpenUploadImageDialog(_randomBrick))"
+                                           Style="color: white; font-size:0.75rem;">
+                                    Upload image
+                                </MudButton>
+                            }
+                            <img src="@randomImageUrl" alt="@_randomBrick.Name"
+                                 style="width:100px;height:100px;border-radius:8px;border:2px solid white;object-fit:cover;"
+                                 onerror="this.src='/placeholder-image.png'"/>
+                        </MudStack>
+
+                        <MudStack Spacing="1" Style="flex-grow:1;">
+                            <MudText Typo="Typo.h6">
+                                @_randomBrick.Name
+                                @if (!string.IsNullOrWhiteSpace(_randomBrick.LegoPartNum))
+                                {
+                                    <span
+                                        style="font-weight:normal; font-size:0.9em; opacity:0.85;"> (Lego PartNum.: @_randomBrick.LegoPartNum)</span>
+                                }
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="opacity:0.9;">
+                                Choose a brand on the right side to help map this item!
+                            </MudText>
+                        </MudStack>
+
+                        <MudStack Spacing="1">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Default"
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Link"
+                                       OnClick='() => OpenHelpMappingDialog("BlueBrixx")'
+                                       Style="background-color: white; color: #667eea;">
+                                Map Item to BlueBrixx
+                            </MudButton>
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Default"
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Link"
+                                       OnClick='() => OpenHelpMappingDialog("Cada")'
+                                       Style="background-color: white; color: #667eea;">
+                                Map Item to Cada
+                            </MudButton>
+
+                        </MudStack>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        }
+
+        <!-- User Quick Stats -->
+        @if (_userStats != null)
+        {
+            <MudGrid Class="mb-4">
+                <MudItem xs="6" sm="3">
+                    <MudCard Elevation="2" Style="cursor: pointer;" @onclick='() => Nav.NavigateTo("/myinventory")'>
+                        <MudCardContent Class="text-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Color="Color.Primary"/>
+                            <MudText Typo="Typo.h4" Class="mt-2">@_userStats.TotalInventoryItems</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Inventory Items</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="6" sm="3">
+                    <MudCard Elevation="2" Style="cursor: pointer;" @onclick='() => Nav.NavigateTo("/mymocs")'>
+                        <MudCardContent Class="text-center">
+                            <MudIcon Icon="@Icons.Material.Filled.ViewInAr" Size="Size.Large" Color="Color.Secondary"/>
+                            <MudText Typo="Typo.h4" Class="mt-2">@_userStats.TotalMocks</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">MOCs</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="6" sm="3">
+                    <MudCard Elevation="2" Style="cursor: pointer;" @onclick='() => Nav.NavigateTo("/mywantedlists")'>
+                        <MudCardContent Class="text-center">
+                            <MudIcon Icon="@Icons.Material.Filled.List" Size="Size.Large" Color="Color.Tertiary"/>
+                            <MudText Typo="Typo.h4" Class="mt-2">@_userStats.TotalWantedLists</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Wanted Lists</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <MudItem xs="6" sm="3">
+                    <MudCard Elevation="2" Style="cursor: pointer;" @onclick='() => Nav.NavigateTo("/allsets")'>
+                        <MudCardContent Class="text-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Large" Color="Color.Warning"/>
+                            <MudText Typo="Typo.h4" Class="mt-2">@_userStats.TotalFavoriteSets</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Favorite Sets</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                @if (_userStats.TotalMappingRequests > 0 || _userStats.TotalNewItemRequests > 0)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudCard Elevation="2" Style="cursor: pointer;" @onclick='() => Nav.NavigateTo("/myrequests")'>
+                            <MudCardContent>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.h6">Your Contributions</MudText>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            @_userStats.ApprovedMappingRequests / @_userStats.TotalMappingRequests Mappings
+                                            approved
+                                        </MudText>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            @_userStats.ApprovedNewItemRequests / @_userStats.TotalNewItemRequests Items
+                                            approved
+                                        </MudText>
+                                    </MudStack>
+                                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large"
+                                             Color="Color.Success"/>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+
+        <!-- Favorite Sets Carousel -->
+        @if (_favoriteSets != null && _favoriteSets.Count >= 3)
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.h5">Your Favorite Sets</MudText>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Href="/allsets">View All</MudButton>
+                    </MudStack>
+
+                    <MudCarousel Style="height:280px;"
+                                 ShowArrows="true"
+                                 ShowBullets="false"
+                                 EnableSwipeGesture="true"
+                                 AutoCycle="true"
+                                 TData="object">
+                        @foreach (var set in _favoriteSets.Take(6))
+                        {
+                            <MudCarouselItem>
+                                <MudCard Style="height:100%; cursor: pointer;"
+                                         @onclick='() => Nav.NavigateTo($"/sets/{set.Id}")'>
+                                    <MudCardMedia Image="@ImageService.GetSetImagePath(set)" Height="180"
+                                                  Style="object-fit:cover;"/>
+                                    <MudCardContent>
+                                        <MudText Typo="Typo.h6">@set.Name</MudText>
+                                        <MudText Typo="Typo.body2"
+                                                 Color="Color.Secondary">@set.Brand • @set.SetNum</MudText>
+                                    </MudCardContent>
+                                </MudCard>
+                            </MudCarouselItem>
+                        }
+                    </MudCarousel>
+                </MudStack>
+            </MudPaper>
+        }
+
+        <!-- Recent Community Activity -->
+        @if (_recentActivity != null && _recentActivity.Any())
+        {
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.h5" GutterBottom="true">Recent Community Activity</MudText>
+
+                    <MudList T="string" Dense="true">
+                        @foreach (var activity in _recentActivity)
+                        {
+                            <MudListItem T="string">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    @{
+                                        var icon = activity.Type switch
+                                        {
+                                            "New Item" => Icons.Material.Filled.AddBox,
+                                            "Mapping" => Icons.Material.Filled.Link,
+                                            "New Set" => Icons.Material.Filled.LibraryAdd,
+                                            _ => Icons.Material.Filled.Info
+                                        };
+                                        var color = activity.Type switch
+                                        {
+                                            "New Item" => Color.Primary,
+                                            "Mapping" => Color.Success,
+                                            "New Set" => Color.Secondary,
+                                            _ => Color.Default
+                                        };
+                                    }
+                                    <MudIcon Icon="@icon" Color="@color" Size="Size.Small"/>
+                                    <MudStack Spacing="0" Style="flex-grow:1;">
+                                        <MudText Typo="Typo.body2">
+                                            <b>@activity.Username</b> contributed: @activity.Description
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @GetRelativeTime(activity.Timestamp)
+                                        </MudText>
+                                    </MudStack>
+                                </MudStack>
+                            </MudListItem>
+                        }
+                    </MudList>
+                </MudStack>
+            </MudPaper>
+        }
+
+        <MudPaper Class="pa-4 mt-4" Elevation="1">
+            <MudText Typo="Typo.body1">
+                BrickIsBrick is a community-driven project!<br/><br/>
+                To make this platform better for everyone, there are two main ways you can help:
+                <MudList T="string">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Map">
+                        <b>Map Bricks:</b> Help us connect and match bricks across different brands.<br/>
+                        <MudLink Href="/allbricks" Color="Color.Primary">Go to All Mapped Bricks</MudLink>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.AddBox">
+                        <b>Add New Sets:</b> Contribute by entering new sets into the database.<br/>
+                        <MudLink Href="/add-new-set" Color="Color.Primary">Add a New Set</MudLink>
+                    </MudListItem>
+                </MudList>
+            </MudText>
+
+        </MudPaper>
+
+
+        @if (_stats != null)
+        {
+            <MudPaper Class="pa-4 mt-4" Elevation="1">
+                <MudText Class="mt-4" Typo="Typo.h6" GutterBottom="true">Database Progress</MudText>
+
+                <MudChart ChartType="ChartType.Donut" Width="250px" Height="250px" InputData="@_chartData"
+                          InputLabels="@_chartLabels"
+                          ChartOptions="@_options">
+                    <CustomGraphics>
+                        <text x="50%" y="40%" dominant-baseline="middle" text-anchor="middle" fill="black"
+                              font-family="Helvetica"
+                              font-size="20">Total items
+                        </text>
+                        <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="black"
+                              font-family="Helvetica"
+                              font-size="35">@_stats?.TotalBricks</text>
+                    </CustomGraphics>
+                </MudChart>
+
+                <MudText>We have @_stats.MappedCount Items in our database</MudText>
+            </MudPaper>
+        }
+        else
+        {
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
+        }
+    }
+    <RebrickableThankYou/>
 </MudHidden>
 
 <style>
@@ -319,136 +329,3 @@ else
         font-weight: bold;
     }
 </style>
-
-@code {
-    private string? _username;
-    private BrickMappingStats? _stats;
-    private UserStats? _userStats;
-    private MappedBrick? _randomBrick;
-    private List<ItemSet>? _favoriteSets;
-    private List<RecentActivityItem>? _recentActivity;
-    private double[] _chartData = [];
-    private string[] _chartLabels = ["Mapped", "Unmapped"];
-    private ChartOptions _options = new ChartOptions
-    {
-        ChartPalette = new[] { "#4CAF50", "#E0E0E0" } // Grün für Mapped, Grau für Unmapped
-    };
-
-    private readonly DialogOptions dialogOptions = new()
-    {
-        BackdropClick = false,
-        CloseButton = true,
-        CloseOnEscapeKey = true
-    };
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender) return;
-
-        _username = await UserService.GetUsernameAsync();
-        
-        if (_username != null)
-        {
-            _userStats = await StatsService.GetUserStatsAsync();
-            _randomBrick = await BrickService.GetRandomMappedBrickAsync();
-            _favoriteSets = await SetFavoritesService.GetUserFavoriteSetListAsync();
-            _recentActivity = await StatsService.GetRecentActivityAsync(5);
-        }
-
-        _stats = await StatsService.GetBrickMappingStatsAsync();
-
-        if (_stats != null)
-        {
-            _chartData = new double[] { _stats.MappedCount, _stats.UnmappedCount };
-        }
-
-        StateHasChanged();
-    }
-
-    private async Task LoadRandomBrick()
-    {
-        try
-        {
-            _randomBrick = await BrickService.GetRandomMappedBrickAsync();
-            StateHasChanged();
-        }
-        catch (Exception)
-        {
-            // Silent fail
-        }
-    }
-
-    private async Task OpenHelpMappingDialog(string brand)
-    {
-        if (_randomBrick == null) return;
-
-        var parameters = new DialogParameters();
-        parameters.Add("Brick", _randomBrick);
-        parameters.Add("Brand", brand);
-        
-        var dialog = await DialogService.ShowAsync<brickapp.Components.Dialogs.HelpMappingDialog>(
-            $"Help mapping to {brand}", 
-            parameters, 
-            dialogOptions);
-        
-        var result = await dialog.Result;
-        
-        if (result is not null && !result.Canceled && result.Data is ValueTuple<string, string, string> tuple)
-        {
-            await UpdateMappingAsync(_randomBrick, tuple.Item1, tuple.Item2, tuple.Item3);
-        }
-    }
-
-    private async Task UpdateMappingAsync(MappedBrick brick, string brand, string mappingName, string mappingItemId)
-{
-
-    try
-    {
-        var userId = await UserService.GetTokenAsync();
-        if (userId is null)
-            throw new InvalidOperationException("User ist nicht eingeloggt (kein Token).");
-
-        await RequestService.CreateMappingRequestAsync(brick.Id, brand, mappingName, mappingItemId, userId);
-        
-    }
-    catch (Exception ex)
-    {
-        _notificationService.Error("Failed to create mapping request: " + ex.Message);
-
-        }
-}
-
-    private async Task OpenUploadImageDialog(MappedBrick brick)
-    {
-        var parameters = new DialogParameters();
-        parameters.Add("Brick", brick);
-        
-        var dialog = await DialogService.ShowAsync<UploadItemImageDialog>(
-            "Upload Item Image", 
-            parameters, 
-            dialogOptions);
-        
-        var result = await dialog.Result;
-        
-        if (result is not null && !result.Canceled)
-        {
-            await LoadRandomBrick(); // Refresh to show new image
-        }
-    }
-
-    private string GetRelativeTime(DateTime timestamp)
-    {
-        var timeSpan = DateTime.UtcNow - timestamp;
-
-        if (timeSpan.TotalMinutes < 1)
-            return "just now";
-        if (timeSpan.TotalMinutes < 60)
-            return $"{(int)timeSpan.TotalMinutes}m ago";
-        if (timeSpan.TotalHours < 24)
-            return $"{(int)timeSpan.TotalHours}h ago";
-        if (timeSpan.TotalDays < 7)
-            return $"{(int)timeSpan.TotalDays}d ago";
-        
-        return timestamp.ToString("MMM dd");
-    }
-}

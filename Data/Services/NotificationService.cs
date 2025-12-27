@@ -2,32 +2,26 @@ using MudBlazor;
 
 namespace brickapp.Data.Services
 {
-    public class NotificationService
+    public class NotificationService(ISnackbar snackbar)
     {
-        private readonly ISnackbar _snackbar;
-        public NotificationService(ISnackbar snackbar)
-        {
-            _snackbar = snackbar;
-        }
-
         public void Success(string message)
         {
-            _snackbar.Add(message, Severity.Success);
+            snackbar.Add(message, Severity.Success);
         }
 
         public void Error(string message)
         {
-            _snackbar.Add(message, Severity.Error);
+            snackbar.Add(message, Severity.Error);
         }
 
         public void Warning(string message)
         {
-            _snackbar.Add(message, Severity.Warning);
+            snackbar.Add(message, Severity.Warning);
         }
 
         public void Info(string message)
         {
-            _snackbar.Add(message, Severity.Info);
+            snackbar.Add(message, Severity.Info);
         }
     }
 }

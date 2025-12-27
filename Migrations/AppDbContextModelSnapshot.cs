@@ -98,33 +98,6 @@ namespace brickapp.Migrations
                             IsAdmin = false,
                             Name = "Uwe",
                             Uuid = "222"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Brickets = 0,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsAdmin = false,
-                            Name = "Christian",
-                            Uuid = "333222111"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Brickets = 0,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsAdmin = false,
-                            Name = "Martin",
-                            Uuid = "444555666"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Brickets = 0,
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsAdmin = false,
-                            Name = "Tim",
-                            Uuid = "555666777"
                         });
                 });
 

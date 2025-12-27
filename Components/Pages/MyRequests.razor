@@ -1,10 +1,9 @@
 @page "/myrequests"
-@using Microsoft.AspNetCore.Components
 @using brickapp.Data.Entities
 @using brickapp.Data.Services
-@inject brickapp.Data.Services.UserService UserService
-@inject brickapp.Data.Services.RequestService RequestService
-@inject brickapp.Data.Services.ImageService ImageService
+@inject UserService UserService
+@inject RequestService RequestService
+@inject ImageService ImageService
 
 <PageTitle>My Requests</PageTitle>
 
@@ -14,102 +13,105 @@
     <MudTabPanel Text="Mapping requests">
         @if (_mappingRequests == null)
         {
-            <MudProgressCircular Indeterminate="true" />
+            <MudProgressCircular Indeterminate="true"/>
         }
         else if (!_mappingRequests.Any())
         {
             <MudAlert Severity="Severity.Info" Class="mt-4">No mapping requests found.</MudAlert>
-            
         }
         else
         {
-        <MudTable Items="_mappingRequests" Hover="true" Striped="true">
-    <HeaderContent>
-        <MudTh>Image</MudTh>
-        <MudTh>Brick</MudTh>
-        <MudTh>Brand</MudTh>
-        <MudTh>Mapping Name</MudTh>
-        <MudTh>Mapping Item ID</MudTh>
-        <MudTh>Status</MudTh>
-        <MudTh>Reason (if rejected)</MudTh>
-        <MudTh>Created</MudTh>
-        <MudTh>Approved By</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="Image">
-            @{
-                var imageUrl = context.Brick != null 
-                    ? ImageService.GetMappedBrickImagePath(context.Brick) 
-                    : ImageService.GetPlaceHolder();
-            }
-            <img src="@imageUrl" alt="Brick Image" 
-                 style="max-width:64px; max-height:64px; border:1px solid #ccc; padding:2px;" />
-        </MudTd>
-        <MudTd DataLabel="Brick">@context.Brick?.Name</MudTd>
-        <MudTd DataLabel="Brand">@context.Brand</MudTd>
-        <MudTd DataLabel="Mapping Name">@context.MappingName</MudTd>
-        <MudTd DataLabel="Mapping Item ID">@context.MappingItemId</MudTd>
-        
-        <MudTd DataLabel="Status">
-            @if (context.Status == MappingRequestStatus.Approved)
-            {
-                <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Success" Title="Approved" Class="mr-2" />
-            }
-            else if (context.Status == MappingRequestStatus.Rejected)
-            {
-                <MudIcon Icon="@Icons.Material.Filled.HeartBroken" Color="Color.Error" Title="Rejected" Class="mr-2" />
-            }
-            else
-            {
-                <MudIcon Icon="@Icons.Material.Filled.Pending" Color="Color.Warning" Title="Pending" Class="mr-2" />
-            }
-            @context.Status.ToString()
-        </MudTd>
+            <MudTable Items="_mappingRequests" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>Image</MudTh>
+                    <MudTh>Brick</MudTh>
+                    <MudTh>Brand</MudTh>
+                    <MudTh>Mapping Name</MudTh>
+                    <MudTh>Mapping Item ID</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Reason (if rejected)</MudTh>
+                    <MudTh>Created</MudTh>
+                    <MudTh>Approved By</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Image">
+                        @{
+                            var imageUrl = context.Brick != null
+                                ? ImageService.GetMappedBrickImagePath(context.Brick)
+                                : ImageService.GetPlaceHolder();
+                        }
+                        <img src="@imageUrl" alt="Brick Image"
+                             style="max-width:64px; max-height:64px; border:1px solid #ccc; padding:2px;"/>
+                    </MudTd>
+                    <MudTd DataLabel="Brick">@context.Brick?.Name</MudTd>
+                    <MudTd DataLabel="Brand">@context.Brand</MudTd>
+                    <MudTd DataLabel="Mapping Name">@context.MappingName</MudTd>
+                    <MudTd DataLabel="Mapping Item ID">@context.MappingItemId</MudTd>
 
-        <MudTd DataLabel="Reason">
-            @if (context.Status == MappingRequestStatus.Rejected && !string.IsNullOrWhiteSpace(context.ReasonRejected))
-            {
-                <MudAlert Severity="Severity.Error" Dense="true">@context.ReasonRejected</MudAlert>
-            }
-        </MudTd>
-        
-        <MudTd DataLabel="Created">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
-        <MudTd DataLabel="Approved By">@context.ApprovedByUser?.Name</MudTd>
-    </RowTemplate>
-    <PagerContent>
-        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
-    </PagerContent>
-</MudTable>
+                    <MudTd DataLabel="Status">
+                        @if (context.Status == MappingRequestStatus.Approved)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Success" Title="Approved"
+                                     Class="mr-2"/>
+                        }
+                        else if (context.Status == MappingRequestStatus.Rejected)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.HeartBroken" Color="Color.Error" Title="Rejected"
+                                     Class="mr-2"/>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Pending" Color="Color.Warning" Title="Pending"
+                                     Class="mr-2"/>
+                        }
+                        @context.Status.ToString()
+                    </MudTd>
+
+                    <MudTd DataLabel="Reason">
+                        @if (context.Status == MappingRequestStatus.Rejected && !string.IsNullOrWhiteSpace(context.ReasonRejected))
+                        {
+                            <MudAlert Severity="Severity.Error" Dense="true">@context.ReasonRejected</MudAlert>
+                        }
+                    </MudTd>
+
+                    <MudTd DataLabel="Created">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                    <MudTd DataLabel="Approved By">@context.ApprovedByUser?.Name</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }"/>
+                </PagerContent>
+            </MudTable>
         }
     </MudTabPanel>
     <MudTabPanel Text="New Item Requests">
-      
+
         @if (_itemRequests == null)
         {
-            <MudProgressCircular Indeterminate="true" />
+            <MudProgressCircular Indeterminate="true"/>
         }
         else if (!_itemRequests.Any())
         {
-              <MudAlert Severity="Severity.Info" Class="mt-4">No open item requests found.</MudAlert>
+            <MudAlert Severity="Severity.Info" Class="mt-4">No open item requests found.</MudAlert>
         }
         else
         {
             <MudTable Items="_itemRequests" Hover="true" Striped="true">
                 <HeaderContent>
-                      <MudTh>Image</MudTh>
+                    <MudTh>Image</MudTh>
                     <MudTh>Brand</MudTh>
                     <MudTh>Name</MudTh>
                     <MudTh>Item Number</MudTh>
                     <MudTh>Status</MudTh>
-                  
+
                     <MudTh>Reason (if rejected)</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                     <MudTd DataLabel="Image">
+                    <MudTd DataLabel="Image">
                         @{
                             var imageUrl = ImageService.GetItemRequestImagePath(context);
                         }
-                        <img src="@imageUrl" alt="Item Image" style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;" />
+                        <img src="@imageUrl" alt="Item Image"
+                             style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;"/>
                     </MudTd>
                     <MudTd DataLabel="Brand">@context.Brand</MudTd>
                     <MudTd DataLabel="Name">@context.Name</MudTd>
@@ -117,20 +119,19 @@
                     <MudTd DataLabel="Status">
                         @if (context.Status.ToString() == "Approved")
                         {
-                           <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Success" Title="Favorite" />
+                            <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Success" Title="Favorite"/>
                         }
-                        else  if (context.Status.ToString() == "Rejected")
+                        else if (context.Status.ToString() == "Rejected")
                         {
-                           <MudIcon Icon="@Icons.Material.Filled.HeartBroken" Color="Color.Error" Title="Rejected" />
+                            <MudIcon Icon="@Icons.Material.Filled.HeartBroken" Color="Color.Error" Title="Rejected"/>
                         }
                         else
                         {
-                            <MudIcon Icon="@Icons.Material.Filled.Pending" Color="Color.Warning" Title="Pending" />
-                            
+                            <MudIcon Icon="@Icons.Material.Filled.Pending" Color="Color.Warning" Title="Pending"/>
                         }
                         @context.Status.ToString()
                     </MudTd>
-                   
+
                     <MudTd DataLabel="Reason">
                         @if (context.Status == NewItemRequestStatus.Rejected && !string.IsNullOrWhiteSpace(context.ReasonRejected))
                         {
@@ -139,7 +140,7 @@
                     </MudTd>
                 </RowTemplate>
                 <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                    <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }"/>
                 </PagerContent>
             </MudTable>
         }
@@ -147,11 +148,11 @@
     <MudTabPanel Text="New Set Requests">
         @if (_setRequests == null)
         {
-            <MudProgressCircular Indeterminate="true" />
+            <MudProgressCircular Indeterminate="true"/>
         }
         else if (!_setRequests.Any())
         {
-              <MudAlert Severity="Severity.Info" Class="mt-4">No set requests found.</MudAlert>
+            <MudAlert Severity="Severity.Info" Class="mt-4">No set requests found.</MudAlert>
         }
         else
         {
@@ -166,7 +167,8 @@
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Image">
-                        <img src="@ImageService.GetNewSetRequestImagePath(context)" alt="Set Image" style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;" />
+                        <img src="@ImageService.GetNewSetRequestImagePath(context)" alt="Set Image"
+                             style="max-width:64px;max-height:64px;border:1px solid #ccc;padding:2px;"/>
                     </MudTd>
                     <MudTd DataLabel="Brand">@context.Brand</MudTd>
                     <MudTd DataLabel="Set Name">@context.SetName</MudTd>
@@ -174,15 +176,15 @@
                     <MudTd DataLabel="Status">
                         @if (context.Status.ToString() == "Approved")
                         {
-                           <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Success" Title="Favorite" />
+                            <MudIcon Icon="@Icons.Material.Filled.Favorite" Color="Color.Success" Title="Favorite"/>
                         }
-                        else  if (context.Status.ToString() == "Rejected")
+                        else if (context.Status.ToString() == "Rejected")
                         {
-                           <MudIcon Icon="@Icons.Material.Filled.HeartBroken" Color="Color.Error" Title="Rejected" />
+                            <MudIcon Icon="@Icons.Material.Filled.HeartBroken" Color="Color.Error" Title="Rejected"/>
                         }
                         else
                         {
-                            <MudIcon Icon="@Icons.Material.Filled.Pending" Color="Color.Warning" Title="Pending" />
+                            <MudIcon Icon="@Icons.Material.Filled.Pending" Color="Color.Warning" Title="Pending"/>
                         }
                         @context.Status.ToString()
                     </MudTd>
@@ -194,26 +196,9 @@
                     </MudTd>
                 </RowTemplate>
                 <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                    <MudTablePager PageSizeOptions="new[] { 10, 25, 50, 100 }"/>
                 </PagerContent>
             </MudTable>
         }
     </MudTabPanel>
 </MudTabs>
-
-@code {
-    private List<MappingRequest>? _mappingRequests;
-    private List<NewItemRequest>? _itemRequests;
-    private List<NewSetRequest>? _setRequests;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var userId = await UserService.GetTokenAsync();
-        if (userId != null)
-        {
-            _mappingRequests = await RequestService.GetMappingRequestsByUserAsync(userId);
-            _itemRequests = await RequestService.GetAllNewItemRequestsByUserAsync(userId);
-            _setRequests = await RequestService.GetNewSetRequestsByUserAsync(userId);
-        }
-    }
-}

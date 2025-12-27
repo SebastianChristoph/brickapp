@@ -1,23 +1,15 @@
 @page "/mymocs"
-
-@using IBrowserFile = Microsoft.AspNetCore.Components.Forms.IBrowserFile
-@using System.Xml.Linq
-@using Microsoft.EntityFrameworkCore
-@using brickapp.Data.Entities
-@using Microsoft.AspNetCore.Components.Forms
-@using brickapp.Data.Services
-@using MudBlazor
 @using brickapp.Components.Shared.PartsListUpload
-@using brickapp.Helpers
+@using brickapp.Data.Services
 @inject NavigationManager Nav
 @inject IServiceProvider ServiceProvider
-@inject brickapp.Data.Services.ImageService ImageService
-@inject brickapp.Data.Services.UserService UserService
-@inject brickapp.Data.Services.TrackingService TrackingService
-@inject brickapp.Data.Services.LoadingService LoadingService
-@inject brickapp.Data.Services.NotificationService NotificationService
-@inject brickapp.Data.Services.RebrickableApiService RebrickableApi
-@inject ILogger<MyMocks> _logger
+@inject ImageService ImageService
+@inject UserService UserService
+@inject TrackingService TrackingService
+@inject LoadingService LoadingService
+@inject NotificationService NotificationService
+@inject RebrickableApiService RebrickableApi
+@inject ILogger<MyMocks> Logger
 
 
 <PageTitle>My MOCs</PageTitle>
@@ -30,7 +22,7 @@
         @_error
         @if (!string.IsNullOrWhiteSpace(_errorDetails))
         {
-            <MudDivider Class="my-2" />
+            <MudDivider Class="my-2"/>
             <MudText Typo="Typo.caption" Style="white-space:pre-wrap;">@_errorDetails</MudText>
         }
     </MudAlert>
@@ -39,52 +31,52 @@
 <MudPaper Class="pa-4 mb-4">
     <MudText Typo="Typo.h5">Upload a new MOC</MudText>
 
-    <MudTextField @bind-Value="newMockName"
+    <MudTextField @bind-Value="_newMockName"
                   Label="MOC name *"
                   Disabled="_loading"/>
 
-    <MudTextField @bind-Value="newMockComment"
+    <MudTextField @bind-Value="_newMockComment"
                   Label="Comment"
                   HelperText="optional description or notes about the MOC"
                   Disabled="_loading"
                   Lines="3"
-                  TextFieldStyle="MudBlazor.TextFieldStyle.Multiline" />
+                  TextFieldStyle="MudBlazor.TextFieldStyle.Multiline"/>
 
-    <MudTextField @bind-Value="newMockWebSource"
-                    HelperText="optional URL to the MOC source (e.g. Rebrickable)"
+    <MudTextField @bind-Value="_newMockWebSource"
+                  HelperText="optional URL to the MOC source (e.g. Rebrickable)"
                   Label="Web Source"
-                  Disabled="_loading" />
+                  Disabled="_loading"/>
 
     <MudText Typo="Typo.h6" Class="my-4">Upload MOC image (max 3MB)</MudText>
-    <InputFile OnChange="OnImageSelected" accept="image/*" disabled="@_loading" />
-    
+    <InputFile OnChange="OnImageSelected" accept="image/*" disabled="@_loading"/>
 
-    @if (!string.IsNullOrEmpty(imagePreviewUrl))
+
+    @if (!string.IsNullOrEmpty(_imagePreviewUrl))
     {
         <div style="margin-top:8px;">
-            <img src="@imagePreviewUrl" alt="Mock Bild Vorschau"
-                 style="max-width:200px;max-height:200px;border:1px solid #ccc;padding:2px;" />
+            <img src="@_imagePreviewUrl" alt="Mock Bild Vorschau"
+                 style="max-width:200px;max-height:200px;border:1px solid #ccc;padding:2px;"/>
         </div>
     }
 
-    <MudDivider Class="my-3" />
-<PartsListUploader Title="Upload Item List File"
-                   Disabled="_loading"
-                   Formats="@_mocFormats"
-                   FormatLabelFunc="MocFormatLabel"
-                   ShowAddButton="false"
-                   ClearButtonText="Clear upload"
-                   OnParsed="OnMocParsed" />
-    @if (!string.IsNullOrWhiteSpace(uploadError))
+    <MudDivider Class="my-3"/>
+    <PartsListUploader Title="Upload Item List File"
+                       Disabled="_loading"
+                       Formats="@_mocFormats"
+                       FormatLabelFunc="MocFormatLabel"
+                       ShowAddButton="false"
+                       ClearButtonText="Clear upload"
+                       OnParsed="OnMocParsed"/>
+    @if (!string.IsNullOrWhiteSpace(_uploadError))
     {
-        <MudText Color="Color.Error" Class="mt-2">@uploadError</MudText>
+        <MudText Color="Color.Error" Class="mt-2">@_uploadError</MudText>
     }
 
     <MudButton StartIcon="@Icons.Material.Filled.Add"
                Variant="Variant.Filled"
                Color="Color.Primary"
                OnClick="CreateMockFromUpload"
-               Disabled="@(!fileReadyForUpload || _loading)"
+               Disabled="@(!_fileReadyForUpload || _loading)"
                Class="ml-2 mt-3">
         Create new MOC
     </MudButton>
@@ -105,457 +97,66 @@
     </MudStack>
 
     <MudList T="string">
-        @if (userMocks == null)
+        @if (_userMocks == null)
         {
             <MudText>Loading...</MudText>
         }
-        else if (!userMocks.Any())
+        else if (!_userMocks.Any())
         {
             <MudAlert Severity="Severity.Info">No MOCs found.</MudAlert>
         }
         else
         {
-           <MudTable Items="@userMocks" Hover="true" Breakpoint="Breakpoint.Sm" Context="mock">
-    <HeaderContent>
-        <MudTh>Image</MudTh>
-        <MudTh>Name</MudTh>
-        <MudTh>Source / Typ</MudTh>
-        <MudTh>Items</MudTh>
-        <MudTh Style="text-align:right">Actions</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="Bild">
-            <div style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
-                <img src="@ImageService.GetMockImagePath(mock)" alt="Mock Bild"
-                     style="width:48px;height:48px;object-fit:contain;border:1px solid #ccc;background:#fff;padding:2px;border-radius:6px;" />
-            </div>
-        </MudTd>
-        <MudTd DataLabel="Name">
-            <div style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
-                <MudText>@mock.Name</MudText>
-            </div>
-        </MudTd>
-        <MudTd DataLabel="Source">
-            <MudText>@mock.MockType</MudText>
-        </MudTd>
-        <MudTd DataLabel="Items">
-            @{
-                var totalParts = mock.Items?.Sum(i => i.Quantity) ?? 0;
-            }
-            <MudText Typo="Typo.body2">@totalParts Parts</MudText>
-        </MudTd>
-        <MudTd DataLabel="Actions" Style="text-align:right">
-            <MudIconButton Variant="Variant.Outlined" 
-                       Color="Color.Error" 
-                       Icon="@Icons.Material.Filled.Delete" 
-                       Size="Size.Small" 
-                       OnClick="@(() => DeleteMock(mock.Id))">
-            </MudIconButton>
-        </MudTd>
-    </RowTemplate>
-</MudTable>
+            <MudTable Items="@_userMocks" Hover="true" Breakpoint="Breakpoint.Sm" Context="mock">
+                <HeaderContent>
+                    <MudTh>Image</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Source / Typ</MudTh>
+                    <MudTh>Items</MudTh>
+                    <MudTh Style="text-align:right">Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Bild">
+                        <div style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
+                            <img src="@ImageService.GetMockImagePath(mock)" alt="Mock Bild"
+                                 style="width:48px;height:48px;object-fit:contain;border:1px solid #ccc;background:#fff;padding:2px;border-radius:6px;"/>
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Name">
+                        <div style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/mockdetail/{mock.Id}"))">
+                            <MudText>@mock.Name</MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Source">
+                        <MudText>@mock.MockType</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Items">
+                        @{
+                            var totalParts = mock.Items?.Sum(i => i.Quantity) ?? 0;
+                        }
+                        <MudText Typo="Typo.body2">@totalParts Parts</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Actions" Style="text-align:right">
+                        <MudIconButton Variant="Variant.Outlined"
+                                       Color="Color.Error"
+                                       Icon="@Icons.Material.Filled.Delete"
+                                       Size="Size.Small"
+                                       OnClick="@(() => DeleteMock(mock.Id))">
+                        </MudIconButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
         }
     </MudList>
 </MudPaper>
 
 @code {
-    private readonly PartsUploadFormat[] _mocFormats = new[]
-    {
-        PartsUploadFormat.RebrickableCsv,
-        PartsUploadFormat.RebrickableXml,
-        PartsUploadFormat.BricklinkXml
-    };
 
-    private string MocFormatLabel(PartsUploadFormat f) => f switch
-    {
-        PartsUploadFormat.RebrickableCsv => "Rebrickable CSV (Part,Color,Quantity)",
-        PartsUploadFormat.RebrickableXml => "Rebrickable XML",
-        PartsUploadFormat.BricklinkXml => "BrickLink XML",
-        _ => f.ToString()
-    };
-
-    private List<Mock>? userMocks;
-    private string uploadError = string.Empty;
-    private string newMockName = string.Empty;
-    private string newMockComment = string.Empty;
-    private string newMockWebSource = string.Empty;
-    private List<MockItem> uploadedItems = new();
     // NEU: Liste für ungemappte Teile
-    private List<UnmappedRow> unmappedRows = new(); 
     // NEU: Source für die Farblogik
-    private string currentSource = string.Empty;
-    private bool fileReadyForUpload = false;
-    private IBrowserFile? uploadedImage = null;
-    private string imagePreviewUrl = string.Empty;
-    private bool _loading = false;
-    private string? _error;
-    private string? _errorDetails;
-
-    private void SetError(Exception ex, string context = "")
-    {
-        _error = string.IsNullOrWhiteSpace(context) ? $"Error: {ex.Message}" : $"Error ({context}): {ex.Message}";
-        _errorDetails = ex.ToString();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender) { await LoadMocks(); StateHasChanged(); }
-    }
-
-    private async Task LoadMocks()
-    {
-        using var scope = ServiceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-        var userUuid = await UserService.GetTokenAsync();
-        if (string.IsNullOrEmpty(userUuid)) return;
-        userMocks = await db.Mocks.Where(m => m.UserUuid == userUuid).Include(m => m.Items).ToListAsync();
-        
-        // Track page visit
-        await TrackingService.TrackAsync("ViewMyMocks", $"Mocks: {userMocks?.Count ?? 0}", "/mymocs");
-    }
-
-    private Task OnMocParsed(ParseResult<ParsedPart> result)
-    {
-        // 1. Mapped Items wie bisher
-        uploadedItems = result.MappedItems
-            .Select(p => new MockItem
-        {
-            MappedBrickId = p.MappedBrickId,
-            BrickColorId = p.BrickColorId,
-            Quantity = p.Quantity,
-            ExternalPartNum = p.ExternalPartNum
-        })
-            .ToList();
-
-        // 2. Unmapped Rows speichern
-        unmappedRows = result.Unmapped ?? new();
-
-        // 3. Source merken
-        currentSource = result.AppliedFormat.ToString();
-
-        // --- FIX: Button aktivieren ---
-        // Wir aktivieren den Button, wenn entweder gemappte ODER ungemappte Teile gefunden wurden
-        fileReadyForUpload = uploadedItems.Any() || unmappedRows.Any();
-
-        return Task.CompletedTask;
-    }
-    private async Task<ParseResult<MockItem>> ParseMocUploadAsync(string content, PartsUploadFormat format)
-    {
-        var (rows, invalidRows, invalidColorIdsFromFile) = format switch
-        {
-            PartsUploadFormat.RebrickableCsv => ParseRebrickableCsv_Rows(content),
-            PartsUploadFormat.RebrickableXml => ParseRebrickableXml_Rows(content),
-            PartsUploadFormat.BricklinkXml => ParseBricklinkXml_Rows(content),
-            _ => (new List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)>(), new List<(string?, int?, int, string)>(), new HashSet<int>())
-        };
-
-        return await MapRowsToMockItemsAsync(rows, invalidRows, invalidColorIdsFromFile);
-    }
-
-    private async Task<ParseResult<MockItem>> MapRowsToMockItemsAsync(
-        List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)> rows,
-        List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows,
-        HashSet<int> invalidColorIdsFromFile)
-    {
-        var result = new ParseResult<MockItem> { 
-            InvalidColorIds = new HashSet<int>(invalidColorIdsFromFile),
-            InvalidRows = invalidRows.Select(x => new InvalidRow(x.PartNum, x.ColorId, x.Qty, x.Reason)).ToList()
-        };
-
-        using var scope = ServiceProvider.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-
-        // LADE CACHES FRISCH (Das löst das Problem, dass Items nicht gefunden werden)
-        var allBricks = await db.MappedBricks.AsNoTracking().ToListAsync();
-        var brickMap = allBricks
-            .Where(b => !string.IsNullOrEmpty(b.LegoPartNum))
-            .GroupBy(b => b.LegoPartNum!.Trim())
-            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
-
-        var allColors = await db.BrickColors.AsNoTracking().ToListAsync();
-        var rbToDbColor = allColors.ToDictionary(c => c.RebrickableColorId, c => c.Id);
-        var nameToDbColor = allColors.Where(c => c.Name != null)
-            .GroupBy(c => c.Name!.Trim())
-            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var (partNum, colorIdFromFile, qty, colorMode) in rows)
-        {
-            var partTrim = partNum.Trim();
-            if (!brickMap.TryGetValue(partTrim, out var mappedBrickId))
-            {
-                result.Unmapped.Add(new UnmappedRow(partTrim, colorIdFromFile, qty));
-                continue;
-            }
-
-            int? dbColorId = null;
-            if (colorMode == "rebrickable")
-            {
-                if (rbToDbColor.TryGetValue(colorIdFromFile, out var cid)) dbColorId = cid;
-            }
-            else // bricklink
-            {
-                var blName = BricklinkColorMap.GetBrickColorName(colorIdFromFile);
-                if (!string.IsNullOrEmpty(blName) && nameToDbColor.TryGetValue(blName.Trim(), out var cid)) dbColorId = cid;
-            }
-
-            if (dbColorId.HasValue)
-            {
-                result.MappedItems.Add(new MockItem { 
-                    MappedBrickId = mappedBrickId, 
-                    BrickColorId = dbColorId.Value, 
-                    Quantity = qty, 
-                    ExternalPartNum = partTrim 
-                });
-            }
-            else
-            {
-                result.InvalidColorIds.Add(colorIdFromFile);
-            }
-        }
-
-        // Gruppieren
-        result.MappedItems = result.MappedItems
-            .GroupBy(i => new { i.MappedBrickId, i.BrickColorId })
-            .Select(g => { var f = g.First(); f.Quantity = g.Sum(x => x.Quantity); return f; })
-            .ToList();
-
-        return result;
-    }
 
     // ==========================================
     // PARSER METHODEN (Vollständig)
     // ==========================================
 
-    private (List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)> rows, List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows, HashSet<int> invalidColorIds) ParseRebrickableCsv_Rows(string csv)
-    {
-        var rows = new List<(string, int, int, string)>();
-        var lines = csv.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        if (lines.Length < 2) return (rows, new(), new());
-
-        var header = lines[0].Split(',').Select(x => x.Trim()).ToArray();
-        int pIdx = Array.FindIndex(header, h => h.Equals("Part", StringComparison.OrdinalIgnoreCase));
-        int cIdx = Array.FindIndex(header, h => h.Equals("Color", StringComparison.OrdinalIgnoreCase));
-        int qIdx = Array.FindIndex(header, h => h.Equals("Quantity", StringComparison.OrdinalIgnoreCase));
-
-        if (pIdx < 0 || cIdx < 0 || qIdx < 0) return (rows, new(), new());
-
-        for (int i = 1; i < lines.Length; i++)
-        {
-            var cols = lines[i].Split(',');
-            if (cols.Length <= Math.Max(pIdx, Math.Max(cIdx, qIdx))) continue;
-            if (int.TryParse(cols[cIdx], out var c) && int.TryParse(cols[qIdx], out var q))
-                rows.Add((cols[pIdx].Trim(), c, q, "rebrickable"));
-        }
-        return (rows, new(), new());
-    }
-
-    private (List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)> rows, List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows, HashSet<int> invalidColorIds) ParseBricklinkXml_Rows(string xml)
-    {
-        var rows = new List<(string, int, int, string)>();
-        try {
-            var doc = XDocument.Parse(xml);
-            var items = doc.Descendants().Where(x => x.Name.LocalName.Equals("ITEM", StringComparison.OrdinalIgnoreCase));
-            foreach (var it in items) {
-                var id = it.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("ITEMID", StringComparison.OrdinalIgnoreCase))?.Value;
-                var col = it.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("COLOR", StringComparison.OrdinalIgnoreCase))?.Value;
-                var qty = it.Elements().FirstOrDefault(e => e.Name.LocalName.Equals("MINQTY", StringComparison.OrdinalIgnoreCase) || e.Name.LocalName.Equals("QTY", StringComparison.OrdinalIgnoreCase))?.Value;
-                if (id != null && int.TryParse(col, out var c) && int.TryParse(qty, out var q))
-                    rows.Add((id.Trim(), c, q, "bricklink"));
-            }
-        } catch { }
-        return (rows, new(), new());
-    }
-
-    private (List<(string PartNum, int ColorIdFromFile, int Qty, string ColorMode)> rows, List<(string? PartNum, int? ColorId, int Qty, string Reason)> invalidRows, HashSet<int> invalidColorIds) ParseRebrickableXml_Rows(string xml)
-    {
-        // Rebrickable XMLs sind oft wie Bricklink XMLs aufgebaut
-        return ParseBricklinkXml_Rows(xml);
-    }
-
-    private async Task CreateMockFromUpload()
-    {
-        if (_loading || uploadedItems.Count == 0) return;
-        _loading = true;
-        LoadingService.Show("Creating MOC...");
-        try {
-            using var scope = ServiceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-            var userUuid = await UserService.GetTokenAsync();
-
-            if (string.IsNullOrEmpty(userUuid)) {
-                NotificationService.Success("User not authenticated.");
-                return;
-            }
-
-            var mock = new Mock { 
-            Name = newMockName, 
-            Comment = newMockComment, 
-            WebSource = newMockWebSource, 
-            UserUuid = userUuid, 
-            MockType =  currentSource.ToLower()
-            .Replace("csv", "")
-            .Replace("xml", "")
-            .Trim(),
-                // WICHTIG: Source speichern (musst du evtl. in Mock.cs Entity noch hinzufügen!)
-                // MockSource = currentSource 
-        };
-            db.Mocks.Add(mock);
-            await db.SaveChangesAsync();
-
-            // 1. Mapped Items hinzufügen
-            foreach (var item in uploadedItems) {
-                item.MockId = mock.Id; // Wird von EF gehandelt
-                mock.Items.Add(item);
-            }
-
-            // 2. NEU: Missing Items transformieren und hinzufügen
-            if (unmappedRows.Any())
-            {
-                // A) MissingItems für das Mock erstellen (für die UI Anzeige)
-                mock.MissingItems = unmappedRows
-                    .GroupBy(u => new { u.PartNum, u.ColorId })
-                    .Select(g => new MissingItem
-                    {
-                        ExternalPartNum = g.Key.PartNum,
-                        ExternalColorId = g.Key.ColorId,
-                        Quantity = g.Sum(x => x.Quantity)
-                    }).ToList();
-
-                // B) NewItemRequests & Bilder für Lego Teile erstellen
-                var distinctPartNums = unmappedRows
-                    .Where(r => !string.IsNullOrEmpty(r.PartNum))
-                    .Select(r => r.PartNum!)
-                    .Distinct()
-                    .ToList();
-
-                foreach (var partNum in distinctPartNums)
-                {
-                    // Checken, ob wir für dieses Teil schon einen gültigen Request haben
-                    bool requestExists = await db.NewItemRequests
-                        .AnyAsync(r => r.PartNum == partNum
-                                    && r.Brand == "Lego"
-                                    && r.Status != NewItemRequestStatus.Rejected
-                                    && r.Status != NewItemRequestStatus.Pending);
-
-                    if (!requestExists)
-                    {
-                        // API fragen nach Name und Bild-URL (nutzt das neue DTO)
-                        var partInfo = await RebrickableApi.GetLegoItemNameByPartNumber(partNum);
-
-                        if (partInfo != null && !string.IsNullOrWhiteSpace(partInfo.Name))
-                        {
-                            var newRequestUuid = Guid.NewGuid().ToString();
-                            var newRequest = new NewItemRequest
-                                {
-                                    Uuid = newRequestUuid,
-                                    Brand = "Lego",
-                                    PartNum = partNum,
-                                    Name = partInfo.Name,
-                                    RequestedByUserId = userUuid,
-                                    CreatedAt = DateTime.UtcNow,
-                                    Status = NewItemRequestStatus.Pending
-                                };
-
-                            db.NewItemRequests.Add(newRequest);
-
-                            // Bild asynchron herunterladen und speichern
-                            if (!string.IsNullOrWhiteSpace(partInfo.ImageUrl))
-                            {
-                                // Wir warten hier kurz, damit das Bild beim nächsten Laden 
-                                // der Seite evtl. schon da ist.
-                                await ImageService.DownloadAndSaveItemImageAsync(
-                                    partInfo.ImageUrl,
-                                    "Lego",
-                                    partNum,
-                                    newRequestUuid);
-                            }
-
-                            _logger.LogInformation("✅ NewItemRequest via MOC-Upload für {PartNum} erstellt.", partNum);
-                        }
-                    }
-                }
-        }
-
-            if (uploadedImage != null) {
-                await ImageService.SaveMockImageAsync(uploadedImage, userUuid, mock.Id);
-            }
-
-            await db.SaveChangesAsync();
-            NotificationService.Success("MOC created!");
-            // --- NAVIGATION HINZUFÜGEN ---
-        // Wir leiten direkt auf die Detailseite weiter
-        Nav.NavigateTo($"/mockdetail/{mock.Id}");
-        } catch (Exception ex) { SetError(ex, "Create"); }
-        finally { LoadingService.Hide(); _loading = false; }
-    }
-
-    private async Task OnImageSelected(InputFileChangeEventArgs e)
-    {
-        uploadedImage = e.File;
-        var stream = uploadedImage.OpenReadStream(3 * 1024 * 1024);
-        var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);
-        imagePreviewUrl = $"data:{e.File.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
-    }
-private async Task DeleteMock(int mockId)
-    {
-        if (_loading) return;
-
-        try
-        {
-            var userUuid = await UserService.GetTokenAsync();
-            if (string.IsNullOrEmpty(userUuid))
-                return;
-
-            using var scope = ServiceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-
-            var mock = db.Mocks.FirstOrDefault(m => m.Id == mockId && m.UserUuid == userUuid);
-            if (mock != null)
-            {
-                await ImageService.DeleteMockImageAsync(mock);
-                db.Mocks.Remove(mock);
-                db.SaveChanges();
-            }
-
-            await LoadMocks();
-        }
-        catch (Exception ex)
-        {
-            SetError(ex, "DeleteMock");
-            NotificationService.Error(_error ?? "DeleteMock failed.");
-        }
-    }
-
-    private async Task DeleteAllMocks()
-    {
-        if (_loading) return;
-
-        try
-        {
-            var userUuid = await UserService.GetTokenAsync();
-            if (string.IsNullOrEmpty(userUuid))
-                return;
-
-            using var scope = ServiceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<Data.AppDbContext>();
-
-            var mocks = db.Mocks.Where(m => m.UserUuid == userUuid).ToList();
-            if (mocks.Any())
-            {
-                foreach (var mock in mocks)
-                    await ImageService.DeleteMockImageAsync(mock);
-
-                db.Mocks.RemoveRange(mocks);
-                db.SaveChanges();
-            }
-
-            await LoadMocks();
-        }
-        catch (Exception ex)
-        {
-            SetError(ex, "DeleteAllMocks");
-            NotificationService.Error(_error ?? "DeleteAllMocks failed.");
-        }
-    }
 }

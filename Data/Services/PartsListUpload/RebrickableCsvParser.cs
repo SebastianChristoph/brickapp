@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using brickapp.Components.Shared.PartsListUpload;
 
@@ -98,20 +95,19 @@ public sealed class RebrickableCsvParser : IPartsListFormatParser
 
     private static IEnumerable<string> SplitLines(string s)
     {
-        using var reader = new System.IO.StringReader(s);
-        string? line;
-        while ((line = reader.ReadLine()) != null)
+        using var reader = new StringReader(s);
+        while (reader.ReadLine() is { } line)
             yield return line;
     }
 
     private static Dictionary<string, int> BuildHeaderMap(List<string> headerFields)
     {
         var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        for (int i = 0; i < headerFields.Count; i++)
+        for (var i = 0; i < headerFields.Count; i++)
         {
-            var key = (headerFields[i] ?? "").Trim();
-            if (!string.IsNullOrWhiteSpace(key) && !map.ContainsKey(key))
-                map[key] = i;
+            var key = (headerFields[i]).Trim();
+            if (!string.IsNullOrWhiteSpace(key))
+                map.TryAdd(key, i);
         }
         return map;
     }
@@ -136,7 +132,7 @@ public sealed class RebrickableCsvParser : IPartsListFormatParser
     }
 
     private static string NormalizeHeader(string s)
-        => new string((s ?? "").Trim().ToLowerInvariant().Where(ch => char.IsLetterOrDigit(ch) || ch == ' ').ToArray())
+        => new string((s).Trim().ToLowerInvariant().Where(ch => char.IsLetterOrDigit(ch) || ch == ' ').ToArray())
             .Replace("  ", " ");
 
     private static string? GetField(List<string> fields, int idx)
@@ -150,7 +146,7 @@ public sealed class RebrickableCsvParser : IPartsListFormatParser
     /// <summary>
     /// Minimal CSV parser with quote support: handles commas inside quotes and escaped quotes ("").
     /// </summary>
-    private static List<string> ParseCsvLine(string line)
+    private static List<string> ParseCsvLine(string? line)
     {
         var result = new List<string>();
         if (line == null)

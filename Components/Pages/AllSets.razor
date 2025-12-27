@@ -41,13 +41,13 @@
 
 @if (!string.IsNullOrWhiteSpace(_searchText) && _searchText.Length >= 3)
 {
-    if (sets is null)
+    if (_sets is null)
     {
         <MudProgressCircular Indeterminate="true" />
     }
     else
     {
-        <MudTable Items="_filteredSets" Hover="true" Striped="true" Dense="false">
+        <MudTable Items="FilteredSets" Hover="true" Striped="true" Dense="false">
             <HeaderContent>
                 <MudTh>Image</MudTh>
                 <MudTh>Name</MudTh>
@@ -87,7 +87,7 @@
 }
 
 @* Show favorites when no search or empty results *@
-@if ((string.IsNullOrWhiteSpace(_searchText) || _searchText.Length < 3 || (_filteredSets?.Count == 0 && !_searchingSets)))
+@if ((string.IsNullOrWhiteSpace(_searchText) || _searchText.Length < 3 || (FilteredSets?.Count == 0 && !_searchingSets)))
 {
     @if (_loadingFavorites)
     {
@@ -146,66 +146,3 @@
 }
 
 <RebrickableThankYou/>
-
-
-@code {
-    private string? _username;
-    private bool _searchingSets = false;
-    private bool _loadingFavorites = true;
-private int _searchRequestId = 0;
-    private List<ItemSet>? sets;
-    private List<ItemSet>? _favoriteSets;
-    private string _searchText = string.Empty;
-
-    private List<ItemSet> _filteredSets =>
-        string.IsNullOrWhiteSpace(_searchText) || _searchText.Length < 3
-            ? sets ?? new List<ItemSet>()
-            : (sets ?? new List<ItemSet>()).Where(s =>
-                (s.Name?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (s.SetNum?.Contains(_searchText, StringComparison.OrdinalIgnoreCase) ?? false)
-                || s.Id.ToString().Contains(_searchText)
-            ).ToList();
-
-private async Task OnSearchChanged(string value)
-{
-    _searchText = value ?? "";
-
-    var reqId = ++_searchRequestId;
-
-    if (_searchText.Length < 3)
-    {
-        _searchingSets = false;
-        await InvokeAsync(StateHasChanged);
-        return;
-    }
-
-    _searchingSets = true;
-    await InvokeAsync(StateHasChanged);
-
-    await Task.Delay(200);
-
-    if (reqId != _searchRequestId) return;
-
-    _searchingSets = false;
-    await InvokeAsync(StateHasChanged);
-}
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender) return;
-
-        _username = await UserService.GetUsernameAsync();
-        // Load ALL sets for client-side pagination
-        var (allSets, _) = await SetService.GetPaginatedItemSetsAsync(1, int.MaxValue);
-        sets = allSets;
-        
-        // Load favorite sets
-        _favoriteSets = await SetFavoritesService.GetUserFavoriteSetListAsync();
-        _loadingFavorites = false;
-        
-        // Track page visit
-        await TrackingService.TrackAsync("ViewAllSets", $"Total Sets: {sets?.Count ?? 0}, Favorites: {_favoriteSets?.Count ?? 0}", "/allsets");
-        
-        StateHasChanged();
-    }
-}

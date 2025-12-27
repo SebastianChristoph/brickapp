@@ -1,17 +1,13 @@
 @page "/add-new-set"
 @using brickapp.Data.Entities
-@using brickapp.Data.Services
-@using brickapp.Data.DTOs
 @using brickapp.Helpers
-@using brickapp.Components.Shared
-
-@inject brickapp.Data.Services.RequestService RequestService
-@inject brickapp.Data.Services.UserService UserService
-@inject brickapp.Data.Services.ItemSetService ItemSetService
-@inject brickapp.Data.Services.MappedBrickService MappedBrickService
-@inject brickapp.Data.Services.NotificationService NotificationService
-@inject brickapp.Data.Services.ImageService ImageService
-@inject brickapp.Data.Services.LoadingService LoadingService
+@inject Data.Services.RequestService RequestService
+@inject Data.Services.UserService UserService
+@inject Data.Services.ItemSetService ItemSetService
+@inject Data.Services.MappedBrickService MappedBrickService
+@inject Data.Services.NotificationService NotificationService
+@inject Data.Services.ImageService ImageService
+@inject Data.Services.LoadingService LoadingService
 
 <PageTitle>Add New Sets</PageTitle>
 <MudText Typo="Typo.h4" GutterBottom="true">Add new sets</MudText>
@@ -40,8 +36,8 @@
     .brick::after {
         content: "";
         position: absolute;
-        right: .5px;
-        bottom: 0px;
+        right: 1px;
+        bottom: 0;
         width: 0;
         height: 0;
         border-bottom: 28px solid var(--brick-color, transparent);
@@ -50,35 +46,21 @@
         z-index: 2;
         pointer-events: none;
     }
-
-        .color-chip-select {
-        border: 1px solid #ccc;
-        transition: transform 0.1s;
-    }
-    .color-chip-select:hover {
-        transform: scale(1.1);
-        cursor: pointer;
-    }
-    /* Markierung für die aktuell gewählte Farbe */
-    .color-chip-active {
-        border: 2px solid var(--mud-palette-primary) !important;
-        box-shadow: 0 0 5px rgba(0,0,0,0.2);
-    }
 </style>
 
 <MudText Typo="Typo.h6" GutterBottom="true">Your drafts</MudText>
 
-@if (draftSets == null)
+@if (_draftSets == null)
 {
     <p><em>Loading drafts...</em></p>
 }
-else if (!draftSets.Any())
+else if (!_draftSets.Any())
 {
     <MudAlert Severity="Severity.Info">You don't have any drafts.</MudAlert>
 }
 else
 {
-    <MudTable Items="draftSets" Hover="true" Striped="true">
+    <MudTable Items="_draftSets" Hover="true" Striped="true">
         <HeaderContent>
             <MudTh>Image</MudTh>
             <MudTh>Name</MudTh>
@@ -122,37 +104,37 @@ else
 <MudPaper Class="pa-4">
     <MudText Typo="Typo.h6" GutterBottom="true">Add a new set</MudText>
 
-    <EditForm Model="newSetModel" OnValidSubmit="HandleDraftSubmit">
+    <EditForm Model="_newSetModel" OnValidSubmit="HandleDraftSubmit">
         <div class="mb-2">
             <label for="setImage">Set image *</label>
             <InputFile id="setImage" OnChange="OnImageSelected" accept="image/*" />
 
-            @if (!string.IsNullOrEmpty(imageError))
+            @if (!string.IsNullOrEmpty(_imageError))
             {
-                <div class="alert alert-danger">@imageError</div>
+                <div class="alert alert-danger">@_imageError</div>
             }
-            @if (!string.IsNullOrEmpty(imagePreviewUrl))
+            @if (!string.IsNullOrEmpty(_imagePreviewUrl))
             {
                 <div class="mt-2">
-                    <img src="@imagePreviewUrl" alt="set image preview"
+                    <img src="@_imagePreviewUrl" alt="set image preview"
                          style="max-width: 300px; max-height: 300px; border: 1px solid #ccc; border-radius: 6px;" />
                 </div>
             }
         </div>
 
-        @if (!string.IsNullOrEmpty(errorMessage))
+        @if (!string.IsNullOrEmpty(_errorMessage))
         {
-            <div class="alert alert-danger">@errorMessage</div>
+            <div class="alert alert-danger">@_errorMessage</div>
         }
 
         <DataAnnotationsValidator />
         <ValidationSummary />
 
         <div style="max-width: 400px">
-            <MudTextField @bind-Value="newSetModel.SetName" Label="Set Name" Variant="Variant.Text" Style="max-width:800px;" />
-            <MudTextField @bind-Value="newSetModel.SetNo" Label="Set Number" Variant="Variant.Text" Style="max-width:800px;" />
+            <MudTextField @bind-Value="_newSetModel.SetName" Label="Set Name" Variant="Variant.Text" Style="max-width:800px;" />
+            <MudTextField @bind-Value="_newSetModel.SetNo" Label="Set Number" Variant="Variant.Text" Style="max-width:800px;" />
 
-            <MudSelect T="string" @bind-Value="newSetModel.Brand" Label="Select brand" Style="max-width:800px;">
+            <MudSelect T="string" @bind-Value="_newSetModel.Brand" Label="Select brand" Style="max-width:800px;">
                 <MudSelectItem Value="@("Lego")">Lego</MudSelectItem>
                 <MudSelectItem Value="@("Bluebrixx")">Bluebrixx</MudSelectItem>
                 <MudSelectItem Value="@("Pantasy")">Pantasy</MudSelectItem>
@@ -202,9 +184,9 @@ else
             Added set items
         </MudText>
 
-        @if (newSetModel.Bricks.Any())
+        @if (_newSetModel.Bricks.Any())
         {
-            <MudTable Items="newSetModel.Bricks" Hover="true" Striped="true">
+            <MudTable Items="_newSetModel.Bricks" Hover="true" Striped="true">
                 <HeaderContent>
                     <MudTh>Image</MudTh>
                     <MudTh>Item</MudTh>
@@ -256,387 +238,3 @@ else
       
     </EditForm>
 </MudPaper>
-
-@code {
-    private string? imagePreviewUrl;
-    private string? imageError;
-    private IBrowserFile? uploadedImageFile;
-    private bool _loading = false;
-
-    private async Task OnImageSelected(InputFileChangeEventArgs e)
-    {
-        imageError = null;
-        imagePreviewUrl = null;
-        uploadedImageFile = null;
-
-        var file = e.File;
-        if (file == null)
-        {
-            imageError = "Please select an image.";
-            StateHasChanged();
-            return;
-        }
-
-        if (file.Size > 3 * 1024 * 1024)
-        {
-            imageError = "The image must be max 3MB.";
-            StateHasChanged();
-            return;
-        }
-
-        try
-        {
-            using var stream = file.OpenReadStream(3 * 1024 * 1024);
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            var buffer = ms.ToArray();
-            var base64 = Convert.ToBase64String(buffer);
-            imagePreviewUrl = $"data:{file.ContentType};base64,{base64}";
-            uploadedImageFile = file;
-        }
-        catch (Exception ex)
-        {
-            imageError = $"Error loading image: {ex.Message}";
-        }
-
-        StateHasChanged();
-    }
-
-    private bool _hasLoaded = false;
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!_hasLoaded && firstRender)
-        {
-            _hasLoaded = true;
-            await LoadDraftsAndData();
-        }
-    }
-
-    private List<Data.Entities.NewSetRequest>? draftSets;
-    private List<string> brands = new();
-    private NewSetModel newSetModel = new();
-    private int? editingDraftId = null;
-    private string? errorMessage;
-
-    private List<MappedBrick>? _allBricksCache;
-    private List<BrickColor> brickColors = new();
-    private Dictionary<int, MappedBrick> _brickCache = new();
-
-
-    private async Task EditDraftAsync(int draftId)
-    {
-        var draft = draftSets?.FirstOrDefault(d => d.Id == draftId);
-        if (draft == null) return;
-
-        LoadingService.Show("Loading draft...");
-        await Task.Delay(100); // allow UI to update
-
-        editingDraftId = draft.Id;
-        var bricks = new List<NewSetBrickModel>();
-        var allBricks = await MappedBrickService.GetAllMappedBricksAsync();
-
-        foreach (var item in draft.Items)
-        {
-            int brickId = 0;
-            string brickName = item.ItemIdOrName;
-
-            if (int.TryParse(item.ItemIdOrName, out var id))
-            {
-                brickId = id;
-                var brick = allBricks.FirstOrDefault(b => b.Id == id);
-                if (brick != null)
-                    brickName = brick.LegoName ?? brick.LegoPartNum ?? item.ItemIdOrName;
-            }
-
-            var mappedBrick = allBricks.FirstOrDefault(b => b.Id == brickId);
-
-            bricks.Add(new NewSetBrickModel
-            {
-                BrickId = brickId,
-                BrickName = brickName,
-                LegoPartNum = mappedBrick?.LegoPartNum,
-                Uuid = mappedBrick?.Uuid,
-                Color = item.Color,
-                Quantity = item.Quantity
-            });
-        }
-
-        newSetModel = new NewSetModel
-        {
-            SetName = draft.SetName,
-            SetNo = draft.SetNo,
-            Brand = draft.Brand,
-            Bricks = bricks
-        };
-
-        uploadedImageFile = null;
-        imagePreviewUrl = ImageService.GetNewSetRequestImagePath(draft);
-        LoadingService.Hide();
-        StateHasChanged();
-    }
-
-    private async Task LoadDraftsAndData()
-    {
-        var user = await UserService.GetCurrentUserAsync();
-        if (user == null)
-        {
-            draftSets = new List<Data.Entities.NewSetRequest>();
-            return;
-        }
-
-        var allSets = await RequestService.GetNewSetRequestsByUserAsync(user.Uuid);
-        draftSets = allSets.Where(s => s.Status == Data.Entities.NewSetRequestStatus.Draft).ToList();
-
-        if (_allBricksCache == null)
-        {
-            _allBricksCache = await MappedBrickService.GetAllMappedBricksAsync();
-        }
-
-        brands = await GetAllBrandsAsync();
-        brickColors = await MappedBrickService.GetAllColorsAsync();
-
-        StateHasChanged();
-    }
-
-    private void RemoveBrick(NewSetBrickModel brick)
-    {
-        newSetModel.Bricks.Remove(brick);
-        StateHasChanged();
-    }
-
-    private void HandleBrickAdded(BrickSelectionDto selection)
-    {
-        if (selection?.Brick == null) return;
-
-        // Cache für spätere Verwendung
-        _brickCache[selection.Brick.Id] = selection.Brick;
-
-        // Hole Farbnamen
-        var colorName = brickColors.FirstOrDefault(c => c.Id == selection.BrickColorId)?.Name ?? "Unknown";
-
-        string displayName = selection.Brick.LegoName 
-                             ?? selection.Brick.BluebrixxName 
-                             ?? selection.Brick.CadaName 
-                             ?? selection.Brick.Name
-                             ?? "Unknown Item";
-
-        newSetModel.Bricks.Add(new NewSetBrickModel
-        {
-            BrickId = selection.Brick.Id,
-            BrickName = displayName,
-            LegoPartNum = selection.Brick.LegoPartNum,
-            Uuid = selection.Brick.Uuid,
-            Color = colorName,
-            Quantity = selection.Quantity
-        });
-
-        NotificationService.Success("Item added to the set.");
-        StateHasChanged();
-    }
-
-    private async Task<List<string>> GetAllBrandsAsync()
-    {
-        var itemSets = await ItemSetService.GetPaginatedItemSetsAsync(1, 1000);
-        return itemSets.Items.Select(s => s.Brand).Distinct().OrderBy(b => b).ToList();
-    }
-
-  private async Task HandleDraftSubmit()
-{
-    if (_loading) return;
-    errorMessage = null;
-
-    _loading = true; 
-    StateHasChanged(); // UI sofort sperren
-
-    try 
-    {
-        // Validierung
-        if (string.IsNullOrWhiteSpace(newSetModel.Brand) || string.IsNullOrWhiteSpace(newSetModel.SetNo) || string.IsNullOrWhiteSpace(newSetModel.SetName))
-        {
-            errorMessage = "Brand, Set Number and Set Name are required.";
-            return;
-        }
-
-        // Prüfe, ob das Set bereits existiert (in veröffentlichten Sets oder pending Requests)
-        // ABER: Wenn wir einen Draft bearbeiten, dürfen wir den eigenen Draft ignorieren
-        if (!editingDraftId.HasValue)
-        {
-            var setExists = await RequestService.DoesSetExistAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName);
-            if (setExists)
-            {
-                errorMessage = $"A set with Brand '{newSetModel.Brand}' and Set Number '{newSetModel.SetNo}' or Name '{newSetModel.SetName}' already exists or has a pending request.";
-                return;
-            }
-        }
-
-        // BILD-LOGIK: Beim Zwischenspeichern (Draft) drücken wir ein Auge zu
-        string? imagePath = null;
-        if (uploadedImageFile != null)
-        {
-            imagePath = await ImageService.SaveSetImageAsync(uploadedImageFile, newSetModel.Brand, newSetModel.SetNo);
-        }
-       
-
-        // SPEICHERN / UPDATE
-        var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem {
-            ItemIdOrName = b.BrickId != 0 ? b.BrickId.ToString() : b.BrickName,
-            Quantity = b.Quantity,
-            Color = b.Color
-        }).ToList();
-
-        if (editingDraftId.HasValue)
-        {
-            // Hier wird der bestehende Draft einfach AKTUALISIERT
-            await RequestService.UpdateNewSetRequestAsync(editingDraftId.Value, newSetModel.Brand, newSetModel.SetNo,
-                newSetModel.SetName, imagePath, items, Data.Entities.NewSetRequestStatus.Draft);
-            NotificationService.Success("Draft updated.");
-        }
-        else
-        {
-            // Neuen Draft anlegen
-            var user = await UserService.GetCurrentUserAsync();
-            if (user == null)
-            {
-                errorMessage = "User not found.";
-                return;
-            }
-            await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath,
-                user.Uuid, items, Data.Entities.NewSetRequestStatus.Draft);
-            NotificationService.Success("Draft created.");
-        }
-
-        // ALLES RESETTEN für die nächste Eingabe
-        await LoadDraftsAndData();
-        newSetModel = new();
-        editingDraftId = null;
-        uploadedImageFile = null;
-        imagePreviewUrl = null;
-    }
-    catch (Exception ex)
-    {
-        errorMessage = "Error: " + ex.Message;
-    }
-    finally 
-    {
-        // DAS HIER IST DER WICHTIGSTE TEIL: 
-        // Egal was passiert, wir machen die Buttons wieder frei!
-        _loading = false;
-        StateHasChanged();
-    }
-}
-    private async Task HandlePublish()
-    {
-        if (_loading) return;
-
-        errorMessage = null;
-        var user = await UserService.GetCurrentUserAsync();
-        if (user == null) return;
-
-        // Validierung
-        if (string.IsNullOrWhiteSpace(newSetModel.Brand) || string.IsNullOrWhiteSpace(newSetModel.SetNo) || string.IsNullOrWhiteSpace(newSetModel.SetName))
-        {
-            errorMessage = "Brand, Set Number and Set Name are required.";
-            StateHasChanged();
-            return;
-        }
-
-        // Prüfe ob das Set bereits existiert (in veröffentlichten Sets oder pending Requests)
-        var setExists = await RequestService.DoesSetExistAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName);
-        if (setExists)
-        {
-            errorMessage = $"A set with Brand '{newSetModel.Brand}' and Set Number '{newSetModel.SetNo}' or Name '{newSetModel.SetName}' already exists or has a pending request.";
-            StateHasChanged();
-            return;
-        }
-
-        string? imagePath = null;
-
-        _loading = true;
-        await InvokeAsync(StateHasChanged);
-        LoadingService.Show(message: "Publishing set...");
-
-        try
-        {
-            if (uploadedImageFile != null)
-            {
-                imagePath = await ImageService.SaveSetImageAsync(uploadedImageFile, newSetModel.Brand, newSetModel.SetNo);
-            }
-            else if (editingDraftId.HasValue)
-            {
-                // kein neues Bild: ok (du hattest hier Logik auskommentiert)
-            }
-            else
-            {
-                errorMessage = "Please upload an image for the set.";
-                StateHasChanged();
-                return;
-            }
-
-            var items = newSetModel.Bricks.Select(b => new Data.Entities.NewSetRequestItem
-            {
-                ItemIdOrName = b.BrickId != 0 ? b.BrickId.ToString() : b.BrickName,
-                Quantity = b.Quantity,
-                Color = b.Color
-            }).ToList();
-
-            if (editingDraftId.HasValue)
-            {
-                var draft = draftSets?.FirstOrDefault(d => d.Id == editingDraftId.Value);
-                if (draft != null)
-                    await RequestService.DeleteNewSetRequestAsync(draft.Id);
-            }
-
-            await RequestService.CreateNewSetRequestAsync(newSetModel.Brand, newSetModel.SetNo, newSetModel.SetName, imagePath,
-                user.Uuid, items, Data.Entities.NewSetRequestStatus.Pending);
-
-            await LoadDraftsAndData();
-            newSetModel = new();
-            editingDraftId = null;
-            uploadedImageFile = null;
-            imagePreviewUrl = null;
-
-            NotificationService.Success("Set successfully submitted for review.");
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error while publishing: {ex.Message}";
-            NotificationService.Error("Publishing failed.");
-        }
-        finally
-        {
-            LoadingService.Hide();
-            _loading = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
-    private async Task DeleteDraftAsync(int id)
-    {
-        await RequestService.DeleteNewSetRequestAsync(id);
-
-        var user = await UserService.GetCurrentUserAsync();
-        if (user != null)
-        {
-            await LoadDraftsAndData();
-            StateHasChanged();
-        }
-    }
-
-    public class NewSetModel
-    {
-        public string SetName { get; set; } = string.Empty;
-        public string SetNo { get; set; } = string.Empty;
-        public string Brand { get; set; } = string.Empty;
-        public List<NewSetBrickModel> Bricks { get; set; } = new();
-    }
-
-    public class NewSetBrickModel
-    {
-        public int BrickId { get; set; }
-        public string BrickName { get; set; } = string.Empty;
-        public string? LegoPartNum { get; set; }
-        public string? Uuid { get; set; }
-        public string Color { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-    }
-}

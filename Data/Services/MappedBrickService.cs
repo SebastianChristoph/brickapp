@@ -1,24 +1,14 @@
-using brickapp.Data;
 using brickapp.Data.Entities;
 using brickapp.Data.Services.Storage;
 using Microsoft.EntityFrameworkCore;
 
 namespace brickapp.Data.Services
 {
-    public class MappedBrickService
+    public class MappedBrickService(IDbContextFactory<AppDbContext> dbFactory, IImageStorage storage)
     {
-        private readonly IDbContextFactory<AppDbContext> _dbFactory;
-        private readonly IImageStorage _storage;
-
-        public MappedBrickService(IDbContextFactory<AppDbContext> dbFactory, IImageStorage storage)
-        {
-            _dbFactory = dbFactory;
-            _storage = storage;
-        }
-
         public async Task UpdateMappingAsync(int brickId, string brand, string mappingName, string mappingItemId)
         {
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            await using var db = await dbFactory.CreateDbContextAsync();
 
             var brick = await db.MappedBricks.FirstOrDefaultAsync(b => b.Id == brickId);
             if (brick == null) return;
@@ -52,7 +42,7 @@ namespace brickapp.Data.Services
 
         public async Task<List<MappedBrick>> GetAllMappedBricksAsync()
         {
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            await using var db = await dbFactory.CreateDbContextAsync();
 
             return await db.MappedBricks
                 .Include(b => b.MappingRequests)
@@ -67,7 +57,7 @@ namespace brickapp.Data.Services
     string? searchText = null,
     bool onlyMapped = false)
 {
-    await using var db = await _dbFactory.CreateDbContextAsync();
+    await using var db = await dbFactory.CreateDbContextAsync();
 
     var query = db.MappedBricks
         .Include(b => b.MappingRequests)
@@ -109,7 +99,7 @@ namespace brickapp.Data.Services
 
         public async Task<List<MappedBrick>> SearchLegoPartByNumberAsync(string legoPartNum, int maxResults = 10)
         {
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            await using var db = await dbFactory.CreateDbContextAsync();
 
             return await db.MappedBricks
                 .AsNoTracking()
@@ -121,7 +111,7 @@ namespace brickapp.Data.Services
 
         public async Task<MappedBrick?> GetLegoPartByNumberAsync(string legoPartNum)
         {
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            await using var db = await dbFactory.CreateDbContextAsync();
 
             return await db.MappedBricks
                 .AsNoTracking()
@@ -130,7 +120,7 @@ namespace brickapp.Data.Services
 
         public async Task<List<BrickColor>> GetAllColorsAsync()
         {
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            await using var db = await dbFactory.CreateDbContextAsync();
 
             return await db.BrickColors
                 .AsNoTracking()
@@ -140,7 +130,7 @@ namespace brickapp.Data.Services
 
         public async Task<MappedBrick?> GetRandomMappedBrickAsync()
         {
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            await using var db = await dbFactory.CreateDbContextAsync();
 
             var count = await db.MappedBricks.CountAsync();
             if (count == 0) return null;
@@ -173,7 +163,7 @@ namespace brickapp.Data.Services
 
         public async Task<bool> DeleteMappedBrickAsync(int brickId)
         {
-            await using var db = await _dbFactory.CreateDbContextAsync();
+            await using var db = await dbFactory.CreateDbContextAsync();
 
             var brick = await db.MappedBricks
                 .Include(b => b.MappingRequests)
@@ -203,7 +193,7 @@ namespace brickapp.Data.Services
             if (!string.IsNullOrWhiteSpace(brick.LegoPartNum))
             {
                 var rel = $"part_images/{brick.LegoPartNum}.png";
-                if (_storage.Exists(rel))
+                if (storage.Exists(rel))
                     return true;
             }
 
@@ -211,7 +201,7 @@ namespace brickapp.Data.Services
             if (!string.IsNullOrWhiteSpace(brick.Uuid))
             {
                 var rel = $"part_images/new/{brick.Uuid}.png";
-                if (_storage.Exists(rel))
+                if (storage.Exists(rel))
                     return true;
             }
 
